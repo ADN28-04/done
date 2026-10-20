@@ -1,6 +1,6 @@
 # Vision : Done
 
-App Pomodoro personnelle pour macOS et iOS, branchée sur Todoist. Usage strictement personnel, pas de publication sur l'App Store.
+App Pomodoro personnelle pour macOS, branchée sur Todoist. Usage strictement personnel, pas de publication sur l'App Store.
 
 ## Le problème
 
@@ -17,7 +17,7 @@ Mon critère de choix réel est l'impact sur l'e-commerce et la performance. Cet
 
 ## Pour qui
 
-Pour moi seul, responsable e-commerce, qui travaille au bureau sur Mac et garde l'iPhone sur moi. Mes journées alternent entre réunions et blocs de deep work de 2 à 3 heures.
+Pour moi seul, responsable e-commerce, qui travaille au bureau sur Mac. Mes journées alternent entre réunions et blocs de deep work de 2 à 3 heures.
 
 ## La réponse
 
