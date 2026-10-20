@@ -102,7 +102,7 @@ Focus → Démarrer → Session en cours
 
 ### Navigation
 
-Une fenêtre avec une barre latérale : Focus, Plan du jour, Stats, Réglages. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘R recharge les tâches Todoist.
+Une fenêtre sans barre latérale. La navigation passe par une barre d'onglets flottante, centrée en bas, façon iOS : une pilule en Liquid Glass (verre dépoli avant macOS 26) avec Focus, Plan du jour, Stats et Réglages, accessibles aussi par ⌘1 à ⌘4. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘R recharge les tâches Todoist.
 
 ## 4. Données
 

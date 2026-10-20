@@ -2,12 +2,33 @@ import AppKit
 import SwiftUI
 
 struct RootView: View {
-    enum Screen: Hashable {
+    enum Screen: CaseIterable, Identifiable, Hashable {
         case focus, plan, stats, settings
+
+        var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .focus: "Focus"
+            case .plan: "Plan du jour"
+            case .stats: "Stats"
+            case .settings: "Réglages"
+            }
+        }
+
+        var shortcut: KeyEquivalent {
+            switch self {
+            case .focus: "1"
+            case .plan: "2"
+            case .stats: "3"
+            case .settings: "4"
+            }
+        }
     }
 
     @Environment(AppModel.self) private var model
-    @State private var screen: Screen?
+    @State private var screen: Screen = .focus
+    @State private var choseInitialScreen = false
 
     var body: some View {
         Group {
@@ -21,50 +42,36 @@ struct RootView: View {
     }
 
     private var main: some View {
-        NavigationSplitView {
-            List(selection: $screen) {
-                NavigationLink(value: Screen.focus) {
-                    Label {
-                        Text("Focus")
-                    } icon: {
-                        Image("DoneGlyph")
-                            .renderingMode(.template)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 15, height: 15)
-                            .foregroundStyle(iconColor(.focus))
-                    }
-                }
-                sidebarLink(.plan, title: "Plan du jour", symbol: "text.alignleft")
-                sidebarLink(.stats, title: "Stats", symbol: "chart.bar.fill")
-                sidebarLink(.settings, title: "Réglages", symbol: "smallcircle.filled.circle")
+        VStack(spacing: 0) {
+            if let message = model.errorMessage {
+                ErrorBanner(message: message) { model.errorMessage = nil }
             }
-            .navigationSplitViewColumnWidth(min: 190, ideal: 220)
-        } detail: {
-            VStack(spacing: 0) {
-                if let message = model.errorMessage {
-                    ErrorBanner(message: message) { model.errorMessage = nil }
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Theme.background)
+        // La barre flotte au-dessus du contenu, qui garde de la place pour elle.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            FloatingTabBar(selection: $screen)
+                .padding(.bottom, 20)
+                .padding(.top, 8)
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task { await model.refresh() }
+                } label: {
+                    Label("Rafraîchir", systemImage: "arrow.clockwise")
                 }
-                detail
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .background(Theme.background)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        Task { await model.refresh() }
-                    } label: {
-                        Label("Rafraîchir", systemImage: "arrow.clockwise")
-                    }
-                    .help("Recharger les tâches Todoist (⌘R)")
-                    .keyboardShortcut("r")
-                    .disabled(model.isLoading)
-                }
+                .help("Recharger les tâches Todoist (⌘R)")
+                .keyboardShortcut("r")
+                .disabled(model.isLoading)
             }
         }
         .onAppear {
-            if screen == nil {
+            if !choseInitialScreen {
                 screen = model.todayPlan == nil ? .plan : .focus
+                choseInitialScreen = true
             }
         }
         .task { await model.refresh() }
@@ -73,24 +80,9 @@ struct RootView: View {
         }
     }
 
-    private func sidebarLink(_ target: Screen, title: String, symbol: String) -> some View {
-        NavigationLink(value: target) {
-            Label {
-                Text(title)
-            } icon: {
-                Image(systemName: symbol)
-                    .foregroundStyle(iconColor(target))
-            }
-        }
-    }
-
-    private func iconColor(_ target: Screen) -> Color {
-        (screen ?? .focus) == target ? Theme.accent : Theme.label2
-    }
-
     @ViewBuilder
     private var detail: some View {
-        switch screen ?? .focus {
+        switch screen {
         case .focus:
             FocusView(openPlan: { screen = .plan })
                 .navigationTitle("Focus")
@@ -104,6 +96,108 @@ struct RootView: View {
             SettingsView()
                 .navigationTitle("Réglages")
         }
+    }
+}
+
+/// Barre d'onglets flottante, centrée en bas, façon iOS : une pilule en Liquid Glass.
+struct FloatingTabBar: View {
+    @Binding var selection: RootView.Screen
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(RootView.Screen.allCases) { screen in
+                TabBarItem(screen: screen, isSelected: selection == screen, namespace: namespace) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                        selection = screen
+                    }
+                }
+                .keyboardShortcut(screen.shortcut, modifiers: .command)
+            }
+        }
+        .padding(6)
+        .liquidGlassCapsule()
+    }
+}
+
+private struct TabBarItem: View {
+    let screen: RootView.Screen
+    let isSelected: Bool
+    let namespace: Namespace.ID
+    let action: () -> Void
+
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                icon
+                    .frame(width: 24, height: 22)
+                Text(screen.title)
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isSelected ? Theme.accent : (hovered ? Theme.label : Theme.label2))
+            .frame(width: 96, height: 60)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(Theme.accent.opacity(0.14))
+                        .matchedGeometryEffect(id: "selection", in: namespace)
+                }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .help("\(screen.title) (⌘\(String(screen.shortcut.character)))")
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch screen {
+        case .focus:
+            Image("DoneGlyph")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 21, height: 21)
+        case .plan:
+            Image(systemName: "text.alignleft")
+                .font(.system(size: 19, weight: .medium))
+        case .stats:
+            Image(systemName: "chart.bar.fill")
+                .font(.system(size: 19, weight: .medium))
+        case .settings:
+            Image(systemName: "smallcircle.filled.circle")
+                .font(.system(size: 20, weight: .medium))
+        }
+    }
+}
+
+extension View {
+    #if compiler(>=6.2)
+    /// Liquid Glass sur macOS 26, verre dépoli avant.
+    @ViewBuilder
+    func liquidGlassCapsule() -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(.regular, in: Capsule())
+                .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+        } else {
+            frostedCapsule()
+        }
+    }
+    #else
+    /// Xcode antérieur à la version 26 : verre dépoli uniquement.
+    func liquidGlassCapsule() -> some View {
+        frostedCapsule()
+    }
+    #endif
+
+    fileprivate func frostedCapsule() -> some View {
+        background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.15), radius: 18, y: 8)
     }
 }
 

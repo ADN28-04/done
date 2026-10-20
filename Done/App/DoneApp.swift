@@ -28,7 +28,7 @@ struct DoneApp: App {
             RootView()
                 .environment(model)
                 .environment(engine)
-                .frame(minWidth: 860, minHeight: 580)
+                .frame(minWidth: 780, minHeight: 640)
         }
         .modelContainer(container)
 

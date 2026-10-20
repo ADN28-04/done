@@ -42,12 +42,17 @@ Règles : le rouge est réservé à P1 et aux erreurs, l'orange aux contraintes 
 - **Anneau** : la part restante, partant du haut, dans le sens horaire. 280 pt, trait 12 pt. Gris quand le minuteur est en pause.
 - **Agenda du jour** : pastilles de créneau, blocs de travail en accent teinté, créneaux passés à 45 % d'opacité, repère vertical pour l'heure actuelle.
 
+## Navigation
+
+Barre d'onglets flottante centrée en bas de la fenêtre (`FloatingTabBar` dans `RootView.swift`), à la place de la barre latérale de la maquette. Pilule de 6 pt de marge intérieure, onglets de 96 × 60 pt avec icône de 22 pt et libellé de 12 pt, à 20 pt du bas. L'onglet actif est en accent, sur une pastille accent à 14 % qui glisse d'un onglet à l'autre. Le fond est en Liquid Glass (`glassEffect`) sur macOS 26 compilé avec Xcode 26, et en verre dépoli (`ultraThinMaterial`) sinon. Raccourcis ⌘1 à ⌘4.
+
 ## Logo
 
-Carré arrondi en dégradé (#16988C vers #0A7D72), anneau blanc à 28 % et arc blanc de 330° partant du haut : un minuteur presque refermé. Source vectorielle : `docs/design/icon.svg`. Dans l'app : `DoneAppIcon` (écran de connexion), l'asset `AppIcon` (Dock et Finder) et l'asset `DoneGlyph`, une image « template » utilisée dans la barre de menus et, teintée en accent, dans la barre latérale. Source du glyphe : `docs/design/glyph.svg`.
+Carré arrondi en dégradé (#16988C vers #0A7D72), anneau blanc à 28 % et arc blanc de 330° partant du haut : un minuteur presque refermé. Source vectorielle : `docs/design/icon.svg`. Dans l'app : `DoneAppIcon` (écran de connexion), l'asset `AppIcon` (Dock et Finder) et l'asset `DoneGlyph`, une image « template » utilisée dans la barre de menus et dans l'onglet Focus. Source du glyphe : `docs/design/glyph.svg`.
 
 ## Écarts assumés avec la maquette
 
 - Les réglages gardent toutes les options réelles de l'app (durées par label, mots-clés des blocs, Ne pas déranger). La maquette montrait une version simplifiée.
 - Les interrupteurs « Notifications : fin de session / réunion proche » de la maquette ne sont pas codés : la notification de réunion proche est une nouvelle fonctionnalité, rangée dans « Plus tard ».
+- La navigation est une barre d'onglets flottante en bas plutôt qu'une barre latérale.
 - Le menu « Interrompre » est un popover stylé plutôt qu'un menu système, pour garder le style pilule.
