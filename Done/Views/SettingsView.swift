@@ -16,6 +16,8 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.dndEnabled) private var dndEnabled = Rules().dndEnabled
     @AppStorage(SettingsKey.dndOnShortcut) private var dndOnShortcut = Rules().dndOnShortcut
     @AppStorage(SettingsKey.dndOffShortcut) private var dndOffShortcut = Rules().dndOffShortcut
+    @AppStorage(SettingsKey.reviewHour) private var reviewHour = Rules().reviewHour
+    @AppStorage(SettingsKey.reviewReminder) private var reviewReminder = Rules().reviewReminder
 
     @State private var newToken = ""
     @State private var isEditingToken = false
@@ -99,6 +101,19 @@ struct SettingsView: View {
             }
 
             Section {
+                Stepper(value: $reviewHour, in: 12...22) {
+                    valueRow("Bilan proposé à partir de", "\(reviewHour) h")
+                }
+                Toggle("Rappel du lundi au vendredi", isOn: $reviewReminder)
+            } header: {
+                Text("Bilan du soir")
+            } footer: {
+                Text("À partir de cette heure, l'écran Focus propose le bilan : ce qui est fait, et ce qui passe au plan de demain.")
+            }
+            .onChange(of: reviewHour) { updateReviewReminder() }
+            .onChange(of: reviewReminder) { updateReviewReminder() }
+
+            Section {
                 Toggle("Activer Ne pas déranger pendant les sessions", isOn: $dndEnabled)
                 TextField("Raccourci pour activer", text: $dndOnShortcut)
                 TextField("Raccourci pour couper", text: $dndOffShortcut)
@@ -130,6 +145,10 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .frame(maxWidth: 640)
         .frame(maxWidth: .infinity)
+    }
+
+    private func updateReviewReminder() {
+        Notifier.shared.updateReviewReminder(enabled: reviewReminder, hour: reviewHour)
     }
 
     private func minutesStepper(_ title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int) -> some View {

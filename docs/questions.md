@@ -26,11 +26,11 @@ Points à trancher pendant l'usage de la V1.
 5. **Durées par label.**
    15 / 25 / 50 minutes pour `Quick` / défaut / `Deepwork` est un point de départ, réglable dans l'app.
 
-6. **Que faire d'une tâche sans sous-tâche ?**
-   En V1, l'app propose la tâche entière. Si c'est trop flou pour attaquer, le découpage assisté (créer la prochaine action dans Todoist depuis Done) remonte dans les priorités.
+6. **Le découpage assisté suffit-il ?**
+   Done propose de créer une seule prochaine action. Si l'usage montre qu'on veut souvent poser deux ou trois étapes d'un coup, on ajoutera la saisie de plusieurs sous-tâches.
 
-7. **Que se passe-t-il pour les tâches du plan non terminées le soir ?**
-   Aujourd'hui, le plan repart de zéro chaque matin. Les tâches non finies réapparaissent dans les candidates si elles remplissent les critères, sans signal particulier. Faut-il les marquer « reportée » ?
+7. **« Plus tard » et « en file d'attente » ne déplacent rien dans Todoist.**
+   Le bilan « Plus tard » laisse la tâche où elle est, et le garde-fou retire seulement `@Chantier-actif`. Faut-il aussi déplacer la tâche dans « Plus tard › File d'attente », comme dans ta méthode actuelle ?
 
 8. **Une tâche `Waiting` dont le parent n'a pas le label.**
    « Formulaire newsletter avec opt-in » attend le DPO, mais seule la tâche « Validation bloc newsletter par DPO » porte `Waiting`. L'app propose donc encore le formulaire. Faut-il poser `Waiting` sur le parent, ou que l'app détecte les tâches liées ?

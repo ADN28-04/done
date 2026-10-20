@@ -59,6 +59,9 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Durée** : 15 min pour `@Quick`, 50 min pour `@Deepwork`, 25 min sinon. Pause de 10 min après une session Deepwork, 5 min sinon.
 - **Réunions** : tâches datées avec une heure et dont le titre commence par « Réunion ». Si le titre contient « deepwork », « deepword » ou « focus », c'est un bloc de travail.
 - **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.
+- **Découpage assisté** : une tâche du plan sans sous-tâche (hors `@Quick`) peut être découpée depuis la carte Focus ; Done crée la prochaine action dans Todoist.
+- **Garde-fou** : à la validation du plan, au-delà de 2 tâches `@Chantier-actif`, Done propose d'en mettre en file d'attente (retrait du label dans Todoist). Une fois par jour.
+- **Bilan du soir** : à partir de 17 h, Done propose de clore la journée ; les tâches non finies marquées « Demain » sont reprises dans le plan du lendemain.
 - **Avant une réunion** : si la tâche prévue ne tient pas, Done propose la suivante du plan qui tient, puis une tâche `@Quick`, puis la préparation de la réunion ou une pause.
 
 Tout est réglable dans l'écran Réglages, sauf les noms de labels (dans `Done/Core/Rules.swift`).

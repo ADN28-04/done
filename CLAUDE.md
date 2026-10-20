@@ -21,7 +21,8 @@ App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui transforme les tâches
 
 - API v1 : `https://api.todoist.com/api/v1/`. Pagination par `next_cursor`, résultats dans `results` (ou `items` pour les tâches terminées).
 - Priorité API inversée : 4 = P1, 1 = P4. Utiliser `displayPriority` pour l'affichage.
-- Todoist reste la source de vérité. L'app lit les tâches et ne fait qu'une écriture : cocher une tâche (`POST /tasks/{id}/close`).
+- Todoist reste la source de vérité. L'app lit les tâches et ne fait que trois écritures : cocher une tâche (`POST /tasks/{id}/close`), créer une sous-tâche (`POST /tasks` avec `parent_id`, découpage assisté) et remplacer les labels (`POST /tasks/{id}` avec `labels`, garde-fou des chantiers actifs).
+- Le bilan du soir et le report vers le plan du lendemain sont stockés dans `UserDefaults` (`review.lastDay`, `review.carryOver`), pas dans SwiftData. La logique pure est dans `Done/Core/Rituals.swift`.
 
 ## Conventions
 

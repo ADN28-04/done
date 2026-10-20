@@ -19,6 +19,7 @@ struct DoneApp: App {
         _model = State(initialValue: model)
         _engine = State(initialValue: FocusEngine(model: model, context: container.mainContext))
         Notifier.shared.setUp()
+        Notifier.shared.updateReviewReminder(enabled: Rules.current.reviewReminder, hour: Rules.current.reviewHour)
         DoNotDisturb.shared.onError = { [weak model] message in model?.errorMessage = message }
         SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }
     }

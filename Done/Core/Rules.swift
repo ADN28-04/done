@@ -15,6 +15,8 @@ enum SettingsKey {
     static let dndEnabled = "rules.dndEnabled"
     static let dndOnShortcut = "rules.dndOnShortcut"
     static let dndOffShortcut = "rules.dndOffShortcut"
+    static let reviewHour = "rules.reviewHour"
+    static let reviewReminder = "rules.reviewReminder"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
@@ -39,6 +41,10 @@ struct Rules {
     /// Raccourcis de l'app Raccourcis qui activent et coupent « Ne pas déranger ».
     var dndOnShortcut = "Done Focus On"
     var dndOffShortcut = "Done Focus Off"
+    /// Heure à partir de laquelle Done propose le bilan du soir.
+    var reviewHour = 17
+    /// Notification de rappel du bilan, du lundi au vendredi.
+    var reviewReminder = true
 
     static let activeLabel = "Chantier-actif"
     static let waitingLabel = "Waiting"
@@ -68,6 +74,8 @@ struct Rules {
         rules.dndEnabled = (defaults.object(forKey: SettingsKey.dndEnabled) as? Bool) ?? base.dndEnabled
         rules.dndOnShortcut = defaults.string(forKey: SettingsKey.dndOnShortcut) ?? base.dndOnShortcut
         rules.dndOffShortcut = defaults.string(forKey: SettingsKey.dndOffShortcut) ?? base.dndOffShortcut
+        rules.reviewHour = int(SettingsKey.reviewHour, base.reviewHour)
+        rules.reviewReminder = (defaults.object(forKey: SettingsKey.reviewReminder) as? Bool) ?? base.reviewReminder
         return rules
     }
 

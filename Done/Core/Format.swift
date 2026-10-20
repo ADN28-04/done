@@ -45,6 +45,19 @@ enum Format {
     private static let dayMonth = french("d MMMM")
     private static let dayShortMonth = french("d MMM")
 
+    private static let dayKeyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    /// Clé de jour locale, comparable comme du texte : « 2026-10-21 ».
+    static func dayKey(_ date: Date) -> String {
+        dayKeyFormatter.string(from: date)
+    }
+
     /// « Semaine du 19 au 25 octobre », ou « du 29 septembre au 5 octobre » à cheval sur deux mois.
     static func weekTitle(_ week: DateInterval) -> String {
         let last = week.end.addingTimeInterval(-1)

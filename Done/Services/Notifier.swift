@@ -33,6 +33,25 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil), withCompletionHandler: nil)
     }
 
+    /// Rappel du bilan du soir, du lundi au vendredi à l'heure choisie.
+    func updateReviewReminder(enabled: Bool, hour: Int) {
+        let ids = (2...6).map { "done.review.\($0)" }
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+        guard enabled else { return }
+        for weekday in 2...6 {
+            let content = UNMutableNotificationContent()
+            content.title = "Bilan du soir"
+            content.body = "Deux minutes pour clore la journée et préparer demain."
+            content.sound = .default
+            var time = DateComponents()
+            time.weekday = weekday
+            time.hour = hour
+            time.minute = 0
+            let trigger = UNCalendarNotificationTrigger(dateMatching: time, repeats: true)
+            center.add(UNNotificationRequest(identifier: "done.review.\(weekday)", content: content, trigger: trigger), withCompletionHandler: nil)
+        }
+    }
+
     func cancel(_ ids: String...) {
         center.removePendingNotificationRequests(withIdentifiers: ids)
     }

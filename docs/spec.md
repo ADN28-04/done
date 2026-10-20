@@ -47,16 +47,17 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Stats de base | Temps de focus par jour et par semaine, sessions par jour, interruptions par raison, temps par projet. |
 | Stats backlog | Tâches ouvertes du backlog Shop, âge moyen, nombre de `Chantier-actif` en parallèle, tâches parentes fermées par semaine. |
 | Barre de menus | Temps restant affiché en permanence, avec Pause, Reprendre et Ouvrir Done. |
+| Découpage assisté | Quand une tâche du plan n'a pas de sous-tâche (et n'est pas `Quick`), la carte Focus propose « Découper… » : je saisis la prochaine action concrète, Done la crée comme sous-tâche dans Todoist et la propose aussitôt. Aussi disponible depuis le bilan du soir. |
+| Garde-fou des chantiers actifs | À la validation du plan, si plus de tâches portent `Chantier-actif` que la cible (2 par défaut), une fenêtre propose de mettre en file d'attente les chantiers absents du plan. Done retire alors le label dans Todoist, sur la tâche et ses sous-tâches. Une fois par jour au plus. |
+| Bilan du soir | À partir de 17 h (réglable), l'écran Focus propose le bilan : temps de focus, sessions, tâches cochées, interruptions, ce qui est terminé, et pour chaque tâche du plan non finie : Demain (reprise dans le plan du lendemain matin, marquée « Reportée ») ou Plus tard. Rappel par notification du lundi au vendredi. |
 | Ne pas déranger | Activé pendant le focus, coupé en pause, en interruption, en fin de session et à la fermeture de Done. Passe par deux raccourcis de l'app Raccourcis, faute d'API publique. Désactivé par défaut. |
 
 ### Plus tard
 
 - **Réglage des règles** : modifier le filtre des candidates et les durées par label depuis l'app.
-- **Découpage assisté** : si une tâche n'a pas de sous-tâche, l'app me demande « quelle est la prochaine action concrète ? » et la crée dans Todoist.
 - **Notification « réunion proche »** quelques minutes avant une réunion lue dans Todoist (présente dans la maquette des réglages).
 - **Version iPhone** avec synchronisation iCloud, Live Activity et widget. Demande un compte Apple Developer payant.
 - **Rappel quand rien n'est lancé** : après 20 minutes sans session en heures de travail, l'app demande pourquoi.
-- **Alerte multi-chantier** : prévenir quand plus de deux tâches portent `Chantier-actif`.
 - **Lecture directe du calendrier** (EventKit) si l'import des réunions dans Todoist ne suffit plus.
 - **Apple Watch.**
 - **Recommandation assistée par IA** pour suggérer l'ordre du matin, si les règles s'avèrent insuffisantes.

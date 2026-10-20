@@ -46,6 +46,25 @@ struct TodoistClient {
         _ = try await send(request)
     }
 
+    /// Crée une sous-tâche sous `parentID`. Le projet et la section suivent ceux du parent.
+    func createSubtask(content: String, parentID: String) async throws -> TodoistTask {
+        try await post("tasks", body: ["content": content, "parent_id": parentID])
+    }
+
+    /// Remplace la liste des labels d'une tâche.
+    func updateLabels(taskID: String, labels: [String]) async throws -> TodoistTask {
+        try await post("tasks/\(taskID)", body: ["labels": labels])
+    }
+
+    private func post<Body: Encodable>(_ path: String, body: Body) async throws -> TodoistTask {
+        var request = try makeRequest(path: path)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        let data = try await send(request)
+        return try JSONDecoder().decode(TodoistTask.self, from: data)
+    }
+
     private struct Page<Item: Decodable>: Decodable {
         let results: [Item]?
         let items: [Item]?

@@ -10,17 +10,32 @@ struct PlanView: View {
     @State private var showPicker = false
     @State private var hovered: String?
     @State private var dropTarget: String?
+    @State private var showGuardrail = false
+    /// Le garde-fou n'apparaît qu'une fois par jour.
+    @AppStorage("guardrail.lastShownDay") private var guardrailLastShownDay = ""
+    @State private var showReview = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Plan du jour")
-                    .font(.system(size: 26, weight: .bold))
-                    .tracking(-0.26)
-                    .foregroundStyle(Theme.label)
-                Text("Choisis tes \(Rules.recommendedPlanSize) tâches les plus importantes, dans l'ordre. Le reste attendra.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.label2)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Plan du jour")
+                        .font(.system(size: 26, weight: .bold))
+                        .tracking(-0.26)
+                        .foregroundStyle(Theme.label)
+                    Text("Choisis tes \(Rules.recommendedPlanSize) tâches les plus importantes, dans l'ordre. Le reste attendra.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.label2)
+                }
+                Spacer()
+                if model.todayPlan != nil {
+                    Button {
+                        showReview = true
+                    } label: {
+                        Label(model.reviewDoneToday ? "Revoir le bilan" : "Bilan du soir", systemImage: "moon.stars")
+                    }
+                    .buttonStyle(PillButtonStyle())
+                }
             }
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 AgendaStrip(meetings: model.meetingsToday, now: context.date)
@@ -38,7 +53,8 @@ struct PlanView: View {
         .onAppear {
             // Reprend le plan déjà validé aujourd'hui.
             if !loaded {
-                draft = model.planIDs
+                // Sans plan aujourd'hui, on part des tâches reportées par le bilan de la veille.
+                draft = model.planIDs.isEmpty ? model.carriedOverIDs : model.planIDs
                 loaded = true
             }
         }
@@ -50,6 +66,31 @@ struct PlanView: View {
             TaskPickerView(title: "Ajouter une tâche au plan") { add($0.id) }
                 .environment(model)
         }
+        .sheet(isPresented: $showGuardrail) {
+            GuardrailSheet(plan: draft) { commitPlan() }
+                .environment(model)
+        }
+        .sheet(isPresented: $showReview) {
+            ReviewSheet()
+                .environment(model)
+                .modelContext(model.context)
+        }
+    }
+
+    /// Le garde-fou s'intercale quand il y a plus de chantiers actifs que la cible.
+    private func validate() {
+        let today = Format.dayKey(.now)
+        if model.activeChantiers.count > model.rules.maxActive, guardrailLastShownDay != today {
+            guardrailLastShownDay = today
+            showGuardrail = true
+        } else {
+            commitPlan()
+        }
+    }
+
+    private func commitPlan() {
+        model.savePlan(draft)
+        onValidate()
     }
 
     // MARK: Candidates
@@ -158,10 +199,7 @@ struct PlanView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.label2)
                 Spacer()
-                Button("Valider le plan") {
-                    model.savePlan(draft)
-                    onValidate()
-                }
+                Button("Valider le plan", action: validate)
                 .buttonStyle(PillButtonStyle(kind: .primary))
                 .keyboardShortcut(.defaultAction)
                 .disabled(draft.isEmpty)
@@ -182,6 +220,11 @@ struct PlanView: View {
             if let task = model.index[id] {
                 TaskRowContent(task: task, emphasized: !isSecondary)
                     .opacity(isSecondary ? 0.5 : 1)
+                if model.carriedOverIDs.contains(id) {
+                    Text("Reportée")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.orangeText)
+                }
             } else {
                 Text("Tâche terminée ou introuvable")
                     .font(.system(size: 13))

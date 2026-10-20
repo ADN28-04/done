@@ -43,6 +43,8 @@ struct SuggestionView: View {
     @State private var ignoreMeetings = false
     @State private var customMinutes: MinutesOverride?
     @State private var showPicker = false
+    @State private var breakdownTask: TodoistTask?
+    @State private var showReview = false
 
     private struct MinutesOverride {
         let taskID: String
@@ -62,6 +64,9 @@ struct SuggestionView: View {
             )
             ScrollView {
                 VStack(spacing: 16) {
+                    if model.isReviewDue {
+                        ReviewBanner { showReview = true }
+                    }
                     MeetingBanner(suggestion: suggestion)
                     switch suggestion.status {
                     case .planEmpty:
@@ -84,6 +89,15 @@ struct SuggestionView: View {
         .sheet(isPresented: $showPicker) {
             TaskPickerView(title: "Changer de tâche") { model.putFirst($0.id) }
                 .environment(model)
+        }
+        .sheet(item: $breakdownTask) { task in
+            BreakdownSheet(task: task)
+                .environment(model)
+        }
+        .sheet(isPresented: $showReview) {
+            ReviewSheet()
+                .environment(model)
+                .modelContext(model.context)
         }
     }
 
@@ -114,6 +128,10 @@ struct SuggestionView: View {
                         .foregroundStyle(Theme.label2)
                         .lineLimit(3)
                         .padding(.top, 8)
+                }
+                if Planner.needsBreakdown(action: action, root: root, in: model.index) {
+                    BreakdownHint { breakdownTask = root }
+                        .padding(.top, 20)
                 }
                 if let note = suggestion.note {
                     Text(note)

@@ -13,7 +13,14 @@ final class AppModel {
     private(set) var lastRefresh: Date?
     private(set) var hasToken: Bool
     private(set) var plan: DayPlan?
+    /// Jour du dernier bilan du soir (`Format.dayKey`).
+    private(set) var lastReviewDay: String?
+    /// Tâches reportées par le dernier bilan, pour le prochain plan du matin.
+    private(set) var carryOver: CarryOver?
     var errorMessage: String?
+
+    private static let lastReviewKey = "review.lastDay"
+    private static let carryOverKey = "review.carryOver"
 
     let context: ModelContext
     @ObservationIgnored private var token: String?
@@ -24,6 +31,9 @@ final class AppModel {
         self.token = token
         self.hasToken = token != nil
         self.plan = nil
+        let defaults = UserDefaults.standard
+        self.lastReviewDay = defaults.string(forKey: Self.lastReviewKey)
+        self.carryOver = defaults.data(forKey: Self.carryOverKey).flatMap { try? JSONDecoder().decode(CarryOver.self, from: $0) }
         loadPlan()
     }
 
@@ -147,6 +157,54 @@ final class AppModel {
         }
     }
 
+    // MARK: Découpage et chantiers actifs
+
+    var activeChantiers: [TodoistTask] {
+        Planner.activeChantiers(in: index, rules: rules)
+    }
+
+    /// Crée la prochaine action concrète comme sous-tâche dans Todoist.
+    @discardableResult
+    func addSubtask(_ content: String, to parent: TodoistTask) async throws -> TodoistTask {
+        guard let token else { throw TodoistError.unauthorized }
+        let created = try await TodoistClient(token: token).createSubtask(content: content, parentID: parent.id)
+        index = TaskIndex(index.all + [created])
+        return created
+    }
+
+    /// Met des chantiers en file d'attente : retire @Chantier-actif dans Todoist, puis recharge.
+    func park(_ tasks: [TodoistTask]) async throws {
+        guard let token else { throw TodoistError.unauthorized }
+        let client = TodoistClient(token: token)
+        for task in tasks {
+            for update in Planner.parkingUpdates(for: task, in: index) {
+                _ = try await client.updateLabels(taskID: update.taskID, labels: update.labels)
+            }
+        }
+        await refresh()
+    }
+
+    // MARK: Bilan du soir
+
+    var isReviewDue: Bool {
+        Review.isDue(now: .now, rules: rules, hasPlan: todayPlan != nil, lastReviewDay: lastReviewDay)
+    }
+
+    var reviewDoneToday: Bool { lastReviewDay == Format.dayKey(.now) }
+
+    /// Tâches reportées par le dernier bilan, à proposer dans le plan d'aujourd'hui.
+    var carriedOverIDs: [String] {
+        carryOver?.taskIDs(availableOn: Format.dayKey(.now)) ?? []
+    }
+
+    func completeReview(_ carry: CarryOver) {
+        carryOver = carry
+        lastReviewDay = carry.fromDay
+        let defaults = UserDefaults.standard
+        defaults.set(try? JSONEncoder().encode(carry), forKey: Self.carryOverKey)
+        defaults.set(carry.fromDay, forKey: Self.lastReviewKey)
+    }
+
     // MARK: Plan du jour
 
     func savePlan(_ ids: [String]) {
@@ -157,6 +215,11 @@ final class AppModel {
             let plan = DayPlan(day: Calendar.current.startOfDay(for: .now), taskIDs: ids)
             context.insert(plan)
             self.plan = plan
+        }
+        // Le report de la veille a servi : il ne doit pas revenir demain.
+        if !carriedOverIDs.isEmpty {
+            carryOver = nil
+            UserDefaults.standard.removeObject(forKey: Self.carryOverKey)
         }
         save()
     }

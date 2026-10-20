@@ -94,18 +94,13 @@ enum Stats {
         let scoped = index.all.filter { inScope($0, rules: rules) }
         let topLevel = scoped.filter { $0.parentId == nil }
         let ages = topLevel.compactMap { task in task.addedAt.map { now.timeIntervalSince($0) / 86_400 } }
-        // Un chantier actif compte une fois, même si ses sous-tâches portent aussi le label.
-        let active = scoped.filter { task in
-            guard task.hasLabel(Rules.activeLabel) else { return false }
-            let parentIsActive = task.parentId.flatMap { index[$0] }?.hasLabel(Rules.activeLabel) ?? false
-            return !parentIsActive
-        }
         return BacklogNumbers(
             openTasks: scoped.count,
             openTopLevel: topLevel.count,
             averageAgeDays: ages.isEmpty ? 0 : ages.reduce(0, +) / Double(ages.count),
             oldestAgeDays: ages.max() ?? 0,
-            activeCount: active.count
+            // Un chantier actif compte une fois, même si ses sous-tâches portent aussi le label.
+            activeCount: Planner.activeChantiers(in: index, rules: rules).count
         )
     }
 
