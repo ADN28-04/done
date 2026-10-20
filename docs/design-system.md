@@ -44,7 +44,7 @@ Règles : le rouge est réservé à P1 et aux erreurs, l'orange aux contraintes 
 
 ## Navigation
 
-Barre d'onglets flottante centrée en bas de la fenêtre (`FloatingTabBar` dans `RootView.swift`), à la place de la barre latérale de la maquette. Pilule de 6 pt de marge intérieure, onglets de 96 × 60 pt avec icône de 22 pt et libellé de 12 pt, à 20 pt du bas. L'onglet actif est en accent, sur une pastille accent à 14 % qui glisse d'un onglet à l'autre. Le fond est en Liquid Glass (`glassEffect`) sur macOS 26 compilé avec Xcode 26, et en verre dépoli (`ultraThinMaterial`) sinon. Raccourcis ⌘1 à ⌘4.
+Barre d'onglets flottante centrée en bas de la fenêtre (`FloatingTabBar` dans `RootView.swift`), à la place de la barre latérale de la maquette. Pilule de 6 pt de marge intérieure, onglets de 96 × 60 pt avec icône de 22 pt et libellé de 12 pt, à 20 pt du bas. L'onglet actif est en accent, sur une pastille accent à 14 % qui glisse d'un onglet à l'autre. Le fond est en Liquid Glass (`glassEffect`) sur macOS 26 compilé avec Xcode 26, et en verre dépoli (`ultraThinMaterial`) sinon. Raccourcis ⌘1 à ⌘4. Masquée pendant une session (minuteur en cours ou en pause), elle réapparaît au survol du bas de la fenêtre.
 
 ## Logo
 

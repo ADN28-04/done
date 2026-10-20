@@ -27,8 +27,16 @@ struct RootView: View {
     }
 
     @Environment(AppModel.self) private var model
+    @Environment(FocusEngine.self) private var engine
     @State private var screen: Screen = .focus
     @State private var choseInitialScreen = false
+    @State private var revealTabBar = false
+
+    /// Pendant une session, la barre s'efface : il ne reste que la tâche et le minuteur.
+    private var showTabBar: Bool {
+        let sessionRunning = engine.phase == .focusing || engine.phase == .paused
+        return !sessionRunning || revealTabBar
+    }
 
     var body: some View {
         Group {
@@ -51,10 +59,18 @@ struct RootView: View {
         }
         .background(Theme.background)
         // La barre flotte au-dessus du contenu, qui garde de la place pour elle.
+        // Masquée pendant une session, elle revient quand la souris approche du bas.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $screen)
+                .opacity(showTabBar ? 1 : 0)
+                .offset(y: showTabBar ? 0 : 24)
+                .allowsHitTesting(showTabBar)
+                .animation(.easeInOut(duration: 0.3), value: showTabBar)
                 .padding(.bottom, 20)
                 .padding(.top, 8)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .onHover { inside in revealTabBar = inside }
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
