@@ -18,6 +18,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.dndOffShortcut) private var dndOffShortcut = Rules().dndOffShortcut
 
     @State private var newToken = ""
+    @State private var isEditingToken = false
     @State private var dndStatus: DndStatus = .unknown
 
     private enum DndStatus: Equatable {
@@ -27,32 +28,54 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Todoist") {
-                LabeledContent("Connexion", value: model.hasToken ? "Connecté" : "Non connecté")
-                if let last = model.lastRefresh {
-                    LabeledContent("Dernière synchro", value: Format.time(last))
-                }
-                HStack {
-                    SecureField("Nouveau token API", text: $newToken)
-                    Button("Remplacer") {
-                        Task {
-                            if await model.connect(token: newToken) { newToken = "" }
-                        }
+                LabeledContent("Connexion") {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(model.hasToken ? Theme.accent : Theme.label3)
+                            .frame(width: 6, height: 6)
+                        Text(model.hasToken ? "Connecté" : "Non connecté")
                     }
-                    .disabled(newToken.isEmpty)
                 }
-                Button("Se déconnecter", role: .destructive) { model.disconnect() }
+                if let last = model.lastRefresh {
+                    LabeledContent("Dernière synchro", value: "Aujourd'hui à \(Format.time(last))")
+                }
+                LabeledContent("Token API") {
+                    HStack(spacing: 8) {
+                        Button("Changer de token…") { isEditingToken.toggle() }
+                            .buttonStyle(PillButtonStyle())
+                        Button("Se déconnecter") { model.disconnect() }
+                            .buttonStyle(PillButtonStyle())
+                    }
+                }
+                if isEditingToken {
+                    HStack {
+                        SecureField("Nouveau token API", text: $newToken)
+                        Button("Remplacer") {
+                            Task {
+                                if await model.connect(token: newToken) {
+                                    newToken = ""
+                                    isEditingToken = false
+                                }
+                            }
+                        }
+                        .buttonStyle(PillButtonStyle(kind: .primary))
+                        .disabled(newToken.isEmpty)
+                    }
+                }
             }
 
             Section("Durées des sessions") {
-                Stepper("@\(Rules.quickLabel) : \(quickMinutes) min", value: $quickMinutes, in: 5...60, step: 5)
-                Stepper("Par défaut : \(defaultMinutes) min", value: $defaultMinutes, in: 10...90, step: 5)
-                Stepper("@\(Rules.deepworkLabel) : \(deepworkMinutes) min", value: $deepworkMinutes, in: 15...120, step: 5)
-                Stepper("Pause courte : \(shortBreakMinutes) min", value: $shortBreakMinutes, in: 1...30)
-                Stepper("Pause longue, après une session Deepwork : \(longBreakMinutes) min", value: $longBreakMinutes, in: 1...30)
+                minutesStepper("Par défaut", value: $defaultMinutes, range: 10...90, step: 5)
+                minutesStepper("Tâches @\(Rules.quickLabel)", value: $quickMinutes, range: 5...60, step: 5)
+                minutesStepper("Tâches @\(Rules.deepworkLabel)", value: $deepworkMinutes, range: 15...120, step: 5)
+                minutesStepper("Pause", value: $shortBreakMinutes, range: 1...30, step: 1)
+                minutesStepper("Pause après une session Deepwork", value: $longBreakMinutes, range: 1...30, step: 1)
             }
 
             Section {
-                Stepper("Échéance proche : \(horizonDays) jour\(horizonDays > 1 ? "s" : "")", value: $horizonDays, in: 0...14)
+                Stepper(value: $horizonDays, in: 0...14) {
+                    valueRow("Échéance proche", "\(horizonDays) jour\(horizonDays > 1 ? "s" : "")")
+                }
                 TextField("Préfixe des réunions", text: $meetingPrefix)
                 TextField("Mots-clés des blocs de travail", text: $focusBlockKeywords)
             } header: {
@@ -62,9 +85,12 @@ struct SettingsView: View {
             }
 
             Section {
-                Stepper("Chantiers actifs visés : \(maxActive)", value: $maxActive, in: 1...10)
+                Stepper(value: $maxActive, in: 1...10) {
+                    valueRow("Cible de chantiers actifs", "\(maxActive)")
+                }
                 ForEach(model.projects) { project in
                     Toggle(project.name, isOn: binding(for: project.id))
+                        .toggleStyle(.checkbox)
                 }
             } header: {
                 Text("Backlog")
@@ -76,12 +102,15 @@ struct SettingsView: View {
                 Toggle("Activer Ne pas déranger pendant les sessions", isOn: $dndEnabled)
                 TextField("Raccourci pour activer", text: $dndOnShortcut)
                 TextField("Raccourci pour couper", text: $dndOffShortcut)
-                HStack {
+                HStack(spacing: 8) {
                     dndStatusLabel
                     Spacer()
                     Button("Ouvrir Raccourcis") { SystemBridge.openShortcutsApp() }
+                        .buttonStyle(PillButtonStyle())
                     Button("Vérifier") { Task { await checkShortcuts() } }
+                        .buttonStyle(PillButtonStyle())
                     Button("Tester") { Task { await testShortcuts() } }
+                        .buttonStyle(PillButtonStyle())
                 }
                 .disabled(dndStatus == .checking)
             } header: {
@@ -94,10 +123,29 @@ struct SettingsView: View {
 
             Section("Notifications") {
                 Text("Si les fins de session ne s'affichent pas, autorise Done dans Réglages Système › Notifications.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.label2)
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .frame(maxWidth: 640)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func minutesStepper(_ title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int) -> some View {
+        Stepper(value: value, in: range, step: step) {
+            valueRow(title, "\(value.wrappedValue) min")
+        }
+    }
+
+    private func valueRow(_ title: String, _ value: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value)
+                .monospacedDigit()
+                .foregroundStyle(Theme.label)
+        }
     }
 
     @ViewBuilder
@@ -153,45 +201,76 @@ struct OnboardingView: View {
     @Environment(AppModel.self) private var model
     @State private var token = ""
     @State private var isConnecting = false
+    @FocusState private var fieldFocused: Bool
 
     var body: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "scope")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.accentColor)
-            Text("Done").font(.largeTitle.bold())
+        VStack(spacing: 0) {
+            DoneAppIcon(size: 84)
+            Text("Done")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Theme.label)
+                .padding(.top, 24)
             Text("Une tâche à la fois, avec un minuteur.")
-                .foregroundStyle(.secondary)
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.label2)
+                .padding(.top, 6)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Colle ton token API Todoist").font(.headline)
-                Text("Dans Todoist : Réglages › Intégrations › Développeur. Le token reste dans le trousseau de ton Mac.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                Link("Ouvrir la page Développeur de Todoist", destination: URL(string: "https://app.todoist.com/app/settings/integrations/developer")!)
-                SecureField("Token API", text: $token)
-                    .textFieldStyle(.roundedBorder)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Token API Todoist")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.label2)
+                SecureField("Colle ton token ici", text: $token)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                    .focused($fieldFocused)
                     .onSubmit(connect)
+                    .padding(.horizontal, 10)
+                    .frame(height: 30)
+                    .background(Theme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(fieldBorder, lineWidth: fieldFocused || model.errorMessage != nil ? 3 : 1)
+                    )
+                    .padding(.top, 6)
                 if let message = model.errorMessage {
                     Text(message)
-                        .font(.callout)
-                        .foregroundStyle(.red)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.redText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
                 }
-                HStack {
-                    Spacer()
+                Link(destination: URL(string: "https://app.todoist.com/app/settings/integrations/developer")!) {
+                    Text("Ouvrir la page Développeur de Todoist ↗")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.accentText)
+                }
+                .padding(.top, 8)
+                Button(action: connect) {
                     if isConnecting {
-                        ProgressView().controlSize(.small)
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Connexion…")
+                        }
+                    } else {
+                        Text("Se connecter")
                     }
-                    Button("Se connecter", action: connect)
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(token.isEmpty || isConnecting)
                 }
+                .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
+                .keyboardShortcut(.defaultAction)
+                .disabled(token.isEmpty || isConnecting)
+                .padding(.top, 28)
             }
-            .frame(width: 440)
+            .frame(width: 340)
+            .padding(.top, 40)
         }
-        .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.background)
+        .onAppear { fieldFocused = true }
+    }
+
+    private var fieldBorder: Color {
+        if model.errorMessage != nil { return Theme.redText.opacity(0.35) }
+        return fieldFocused ? Theme.accent.opacity(0.35) : Theme.separator
     }
 
     private func connect() {

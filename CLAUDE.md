@@ -1,6 +1,6 @@
 # Done
 
-App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui transforme les tâches Todoist en sessions Pomodoro. Lire `docs/vision.md` et `docs/spec.md` avant de proposer une fonctionnalité : la spec classe ce qui est MVP, plus tard ou hors périmètre.
+App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui transforme les tâches Todoist en sessions Pomodoro. Lire `docs/vision.md` et `docs/spec.md` avant de proposer une fonctionnalité : la spec classe ce qui est MVP, plus tard ou hors périmètre. Pour toute modification d'interface, suivre `docs/design-system.md` (maquettes dans `docs/design/Done-Ecrans.html`).
 
 ## Langue
 
@@ -14,6 +14,7 @@ App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui transforme les tâches
 - `Done/Data/Records.swift` : modèles SwiftData. Les enums sont stockés en `String` brut (`outcomeRaw`, `reasonRaw`).
 - `Done/Services/` : `TodoistClient` (API v1, token Bearer), `Keychain`, `Notifier`, `DoNotDisturb` (lance les raccourcis `Done Focus On` / `Done Focus Off` via `/usr/bin/shortcuts`), `SystemBridge` (seul fichier qui importe AppKit côté logique).
 - Dans `FocusEngine`, tout changement de phase passe par `transition(to:)`, qui synchronise « Ne pas déranger » et la protection contre App Nap. Ne pas assigner `phase` directement.
+- `Done/Views/Theme.swift` : couleurs du design system (clair et sombre), boutons `PillButtonStyle`, cartes `cardStyle()` et `panelStyle()`, logo. Utiliser `Theme.*` plutôt que les couleurs système, et ces composants plutôt que des styles ad hoc.
 - Les réglages passent par `UserDefaults` (`SettingsKey`), lus dans `Rules.current` et modifiés via `@AppStorage` dans `SettingsView`.
 
 ## Todoist

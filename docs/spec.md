@@ -53,6 +53,7 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 
 - **Réglage des règles** : modifier le filtre des candidates et les durées par label depuis l'app.
 - **Découpage assisté** : si une tâche n'a pas de sous-tâche, l'app me demande « quelle est la prochaine action concrète ? » et la crée dans Todoist.
+- **Notification « réunion proche »** quelques minutes avant une réunion lue dans Todoist (présente dans la maquette des réglages).
 - **Version iPhone** avec synchronisation iCloud, Live Activity et widget. Demande un compte Apple Developer payant.
 - **Rappel quand rien n'est lancé** : après 20 minutes sans session en heures de travail, l'app demande pourquoi.
 - **Alerte multi-chantier** : prévenir quand plus de deux tâches portent `Chantier-actif`.

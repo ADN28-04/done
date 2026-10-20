@@ -28,6 +28,7 @@ final class FocusEngine {
     private(set) var now = Date()
     private(set) var interruptedAt: Date?
     private(set) var breakEnd: Date?
+    private(set) var breakDuration: TimeInterval = 0
     private(set) var isClosing = false
     var errorMessage: String?
 
@@ -55,12 +56,17 @@ final class FocusEngine {
 
     var remaining: TimeInterval { max(0, (current?.planned ?? 0) - elapsed) }
 
-    var progress: Double {
+    var breakRemaining: TimeInterval { max(0, (breakEnd ?? now).timeIntervalSince(now)) }
+
+    /// Part restante du minuteur, pour l'anneau qui se vide depuis le haut.
+    var remainingFraction: Double {
         guard let planned = current?.planned, planned > 0 else { return 0 }
-        return min(1, elapsed / planned)
+        return remaining / planned
     }
 
-    var breakRemaining: TimeInterval { max(0, (breakEnd ?? now).timeIntervalSince(now)) }
+    var breakRemainingFraction: Double {
+        breakDuration > 0 ? breakRemaining / breakDuration : 0
+    }
 
     var menuBarText: String {
         switch phase {
@@ -68,16 +74,6 @@ final class FocusEngine {
         case .focusing, .paused, .interrupted: Format.clock(remaining)
         case .awaitingOutcome: "Fini"
         case .onBreak: Format.clock(breakRemaining)
-        }
-    }
-
-    var menuBarSymbol: String {
-        switch phase {
-        case .idle: "scope"
-        case .focusing: "timer"
-        case .paused, .interrupted: "pause.circle"
-        case .awaitingOutcome: "checkmark.circle"
-        case .onBreak: "cup.and.saucer"
         }
     }
 
@@ -154,7 +150,11 @@ final class FocusEngine {
             finishRecord(.done)
             startBreakAfterSession()
         } catch {
-            errorMessage = error.localizedDescription
+            if let todoistError = error as? TodoistError, case .unauthorized = todoistError {
+                errorMessage = error.localizedDescription
+            } else {
+                errorMessage = "Todoist n'a pas répondu : la tâche n'est pas cochée. Vérifie ta connexion et réessaie."
+            }
         }
     }
 
@@ -210,6 +210,7 @@ final class FocusEngine {
         reset()
         now = .now
         breakEnd = now.addingTimeInterval(seconds)
+        breakDuration = seconds
         transition(to: .onBreak)
         Notifier.shared.schedule(
             Notifier.breakEnd,

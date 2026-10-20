@@ -46,6 +46,15 @@ enum Stats {
         calendar.dateInterval(of: .weekOfYear, for: date) ?? DateInterval(start: date, duration: 7 * 86_400)
     }
 
+    /// Fenêtre de `days` jours finissant aujourd'hui, décalée de `offset` fenêtres vers le passé.
+    static func dayWindow(days: Int = 14, offset: Int, now: Date = .now) -> DateInterval {
+        let calendar = Stats.calendar
+        let today = calendar.startOfDay(for: now)
+        let end = calendar.date(byAdding: .day, value: 1 + offset * days, to: today) ?? today
+        let start = calendar.date(byAdding: .day, value: -days, to: end) ?? today
+        return DateInterval(start: start, end: end)
+    }
+
     // MARK: Focus
 
     static func totalMinutes(_ sessions: [SessionFact]) -> Double {

@@ -20,9 +20,18 @@ struct FocusView: View {
                 BreakView()
             }
         }
-        .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+/// Largeur des cartes de l'écran Focus.
+let focusCardWidth: CGFloat = 560
+
+/// Tâche du plan avec sa position, pour les listes numérotées.
+struct NumberedTask: Identifiable {
+    let position: Int
+    let task: TodoistTask
+    var id: String { task.id }
 }
 
 /// Proposition : la prochaine action du plan et sa durée.
@@ -51,36 +60,26 @@ struct SuggestionView: View {
                 now: context.date,
                 ignoreMeetings: ignoreMeetings
             )
-            VStack(spacing: 20) {
-                MeetingBanner(suggestion: suggestion)
-                switch suggestion.status {
-                case .planEmpty:
-                    ContentUnavailableView {
-                        Label("Pas encore de plan aujourd'hui", systemImage: "list.number")
-                    } description: {
-                        Text("Choisis tes trois tâches les plus importantes pour commencer.")
-                    } actions: {
-                        Button("Préparer mon plan", action: openPlan)
-                            .buttonStyle(.borderedProminent)
+            ScrollView {
+                VStack(spacing: 16) {
+                    MeetingBanner(suggestion: suggestion)
+                    switch suggestion.status {
+                    case .planEmpty:
+                        planEmpty
+                    case .allBlocked:
+                        allBlocked
+                    case .noTimeBeforeMeeting:
+                        noTime(suggestion)
+                    case .ready:
+                        ready(suggestion)
+                        upNext(suggestion)
                     }
-                case .allBlocked:
-                    ContentUnavailableView {
-                        Label("Tout est en attente", systemImage: "hourglass")
-                    } description: {
-                        Text("Tout ce qui reste dans le plan porte @\(Rules.waitingLabel). Ajoute une tâche faisable maintenant.")
-                    } actions: {
-                        Button("Modifier le plan", action: openPlan)
-                        Button("Choisir une tâche…") { showPicker = true }
-                    }
-                case .noTimeBeforeMeeting:
-                    noTime(suggestion)
-                case .ready:
-                    ready(suggestion)
-                    upNext(suggestion)
                 }
-                Spacer(minLength: 0)
+                .frame(width: focusCardWidth)
+                .padding(.top, 40)
+                .padding(.bottom, 24)
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: 680)
         }
         .sheet(isPresented: $showPicker) {
             TaskPickerView(title: "Changer de tâche") { model.putFirst($0.id) }
@@ -88,145 +87,331 @@ struct SuggestionView: View {
         }
     }
 
+    // MARK: Prêt
+
     @ViewBuilder
     private func ready(_ suggestion: Suggestion) -> some View {
         if let action = suggestion.action, let root = suggestion.planTask {
             let minutes = customMinutes.flatMap { $0.taskID == action.id ? $0.minutes : nil } ?? suggestion.minutes
-            VStack(alignment: .leading, spacing: 14) {
-                Text(caption(suggestion, root: root))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
+            VStack(alignment: .leading, spacing: 0) {
+                Eyebrow(text: caption(suggestion, root: root))
                 if action.id != root.id {
                     Text(root.content)
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.label2)
+                        .padding(.top, 16)
                 }
                 Text(action.content)
                     .font(.system(size: 30, weight: .semibold))
+                    .tracking(-0.3)
+                    .lineSpacing(2)
+                    .foregroundStyle(Theme.label)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, action.id != root.id ? 4 : 16)
                 if !action.description.isEmpty {
                     Text(action.description)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(4)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.label2)
+                        .lineLimit(3)
+                        .padding(.top, 8)
                 }
                 if let note = suggestion.note {
-                    Label(note, systemImage: "clock.badge.exclamationmark")
-                        .font(.callout)
-                        .foregroundStyle(.orange)
+                    Text(note)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.orangeText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Theme.orangeTint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .padding(.top, 20)
                 }
-                HStack(spacing: 12) {
-                    Stepper(value: Binding(
+                HStack(spacing: 8) {
+                    Text("Durée")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.label2)
+                    Picker("Durée", selection: Binding(
                         get: { minutes },
                         set: { customMinutes = MinutesOverride(taskID: action.id, minutes: $0) }
-                    ), in: 5...120, step: 5) {
-                        Text("\(minutes) min").font(.title3.monospacedDigit())
+                    )) {
+                        ForEach(durationOptions(including: minutes), id: \.self) { value in
+                            Text("\(value) min").tag(value)
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
                     .fixedSize()
-                    Spacer()
+                }
+                .padding(.top, 24)
+                Hairline()
+                    .padding(.top, 24)
+                HStack(spacing: 8) {
                     Button("Changer de tâche") { showPicker = true }
+                        .buttonStyle(PillButtonStyle())
                     if suggestion.position > 0 {
                         Button("Passer") { model.skip(root.id) }
+                            .buttonStyle(PillButtonStyle())
                             .help("Mettre cette tâche en fin de plan")
                     }
+                    Spacer()
                     Button {
                         engine.start(action: action, root: root, minutes: minutes)
                     } label: {
-                        Label("Démarrer", systemImage: "play.fill")
+                        ShortcutLabel(title: "Démarrer", hint: "↩")
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(PillButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
                 }
+                .padding(.top, 20)
             }
-            .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 16))
+            .cardStyle()
         }
     }
 
     @ViewBuilder
     private func upNext(_ suggestion: Suggestion) -> some View {
-        let rest = model.planIDs.compactMap { model.index[$0] }.filter { $0.id != suggestion.planTask?.id }
+        let rest = model.planIDs.enumerated().compactMap { offset, id -> NumberedTask? in
+            guard let task = model.index[id], task.id != suggestion.planTask?.id else { return nil }
+            return NumberedTask(position: offset + 1, task: task)
+        }
         if !rest.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Ensuite").font(.caption.weight(.medium)).foregroundStyle(.secondary).textCase(.uppercase)
-                ForEach(rest) { task in
-                    Text(task.content)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+            VStack(alignment: .leading, spacing: 4) {
+                Eyebrow(text: "Ensuite")
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 4)
+                ForEach(rest) { item in
+                    let task = item.task
+                    HStack(spacing: 12) {
+                        Text("\(item.position)")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(Theme.label2)
+                            .frame(width: 12, alignment: .trailing)
+                        PriorityBadge(task: task)
+                        Text(task.content)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.label)
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                        Text(meta(task))
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.label2)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
+            .padding(.top, 12)
         }
+    }
+
+    // MARK: Autres états
+
+    private var planEmpty: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Eyebrow(text: "Aucun plan")
+            Text("Pas encore de plan pour aujourd'hui")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Theme.label)
+                .padding(.top, 16)
+            Text("Choisis tes \(Rules.recommendedPlanSize) tâches les plus importantes. Ça prend moins de deux minutes.")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.label2)
+                .padding(.top, 6)
+            Hairline().padding(.top, 24)
+            HStack {
+                Spacer()
+                Button("Préparer le plan", action: openPlan)
+                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 20)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+
+    private var allBlocked: some View {
+        let tasks = model.planIDs.compactMap { model.index[$0] }
+        return VStack(alignment: .leading, spacing: 0) {
+            Eyebrow(text: "Plan en attente")
+            Text("Tout ton plan dépend de quelqu'un d'autre")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Theme.label)
+                .padding(.top, 16)
+            Text("Aucune des \(tasks.count) tâches ne peut avancer pour l'instant.")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.label2)
+                .padding(.top, 6)
+            VStack(spacing: 0) {
+                ForEach(Array(tasks.enumerated()), id: \.element.id) { offset, task in
+                    HStack(spacing: 12) {
+                        Text("\(offset + 1)")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(Theme.label2)
+                            .frame(width: 12, alignment: .trailing)
+                        PriorityBadge(task: task)
+                        Text(task.content)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.label2)
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                        Text("En attente")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.label2)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+            .padding(.top, 16)
+            Hairline().padding(.top, 16)
+            HStack {
+                Button("Faire une pause") { engine.takeBreak(minutes: model.rules.shortBreakMinutes) }
+                    .buttonStyle(PillButtonStyle())
+                Spacer()
+                Button("Revoir le plan", action: openPlan)
+                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 20)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
     }
 
     @ViewBuilder
     private func noTime(_ suggestion: Suggestion) -> some View {
         let available = suggestion.minutesBeforeMeeting ?? 0
-        VStack(spacing: 14) {
-            Image(systemName: "person.2")
-                .font(.system(size: 40))
-                .foregroundStyle(.orange)
+        VStack(alignment: .leading, spacing: 0) {
+            Eyebrow(text: "Réunion à venir")
             if let meeting = suggestion.nextMeeting {
-                Text("« \(meeting.title) » commence à \(Format.time(meeting.start))")
-                    .font(.title2)
-                    .multilineTextAlignment(.center)
+                Text("\(meeting.title) commence à \(Format.time(meeting.start))")
+                    .font(.system(size: 30, weight: .semibold))
+                    .tracking(-0.3)
+                    .foregroundStyle(Theme.label)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 16)
             }
-            Text("Il reste \(Format.minutes(Double(available))) : pas assez pour une tâche du plan. Prépare la réunion ou fais une pause.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            HStack {
-                if let preparation = suggestion.preparation {
-                    Button("Préparer : \(preparation.content)") {
-                        engine.start(action: preparation, root: model.index.root(of: preparation), minutes: max(5, available))
-                    }
-                    .buttonStyle(.borderedProminent)
+            Text("Il reste \(Format.minutes(Double(available)))")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.orangeText)
+                .padding(.top, 12)
+            Text("Aucune tâche du plan ne tient dans ce temps.")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.label2)
+                .padding(.top, 4)
+            Hairline().padding(.top, 24)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    noTimeSecondaryButtons(available)
+                    Spacer(minLength: 8)
+                    preparationButton(suggestion, available: available)
                 }
-                Button("Faire une pause") { engine.takeBreak(minutes: max(1, available)) }
-                Button("Ignorer la réunion") { ignoreMeetings = true }
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) { noTimeSecondaryButtons(available) }
+                    preparationButton(suggestion, available: available)
+                }
             }
-            .controlSize(.large)
+            .padding(.top, 20)
         }
-        .padding(.top, 40)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
     }
+
+    @ViewBuilder
+    private func noTimeSecondaryButtons(_ available: Int) -> some View {
+        Button("Ignorer la réunion") { ignoreMeetings = true }
+            .buttonStyle(PillButtonStyle(kind: .plain))
+        Button("Faire une pause") { engine.takeBreak(minutes: max(1, available)) }
+            .buttonStyle(PillButtonStyle())
+    }
+
+    @ViewBuilder
+    private func preparationButton(_ suggestion: Suggestion, available: Int) -> some View {
+        if let preparation = suggestion.preparation {
+            Button(preparation.content) {
+                engine.start(action: preparation, root: model.index.root(of: preparation), minutes: max(5, available))
+            }
+            .buttonStyle(PillButtonStyle(kind: .primary))
+            .keyboardShortcut(.defaultAction)
+        }
+    }
+
+    // MARK: Aides
 
     private func caption(_ suggestion: Suggestion, root: TodoistTask) -> String {
         let project = model.projectName(for: root)
         guard suggestion.position > 0 else { return "Hors plan · \(project)" }
         return "Tâche \(suggestion.position) sur \(suggestion.planCount) · \(project)"
     }
+
+    private func meta(_ task: TodoistTask) -> String {
+        ([model.projectName(for: task)] + task.labels.map { "@\($0)" })
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+
+    private func durationOptions(including minutes: Int) -> [Int] {
+        Array(Set([5, 10, 15, 20, 25, 30, 40, 45, 50, 60, 75, 90, minutes])).sorted()
+    }
 }
 
+/// Bandeau au-dessus de la carte : bloc de travail, réunion en cours ou prochaine réunion.
 struct MeetingBanner: View {
-    let suggestion: Suggestion
+    var ongoing: Meeting?
+    var next: Meeting?
+    var minutesBeforeMeeting: Int?
+
+    init(ongoing: Meeting?, next: Meeting? = nil, minutesBeforeMeeting: Int? = nil) {
+        self.ongoing = ongoing
+        self.next = next
+        self.minutesBeforeMeeting = minutesBeforeMeeting
+    }
+
+    init(suggestion: Suggestion) {
+        self.init(ongoing: suggestion.ongoing, next: suggestion.nextMeeting, minutesBeforeMeeting: suggestion.minutesBeforeMeeting)
+    }
 
     var body: some View {
-        if let ongoing = suggestion.ongoing {
-            banner(
-                ongoing.isFocusBlock
-                    ? "Bloc « \(ongoing.title) » jusqu'à \(Format.time(ongoing.end))"
-                    : "Réunion en cours : \(ongoing.title), jusqu'à \(Format.time(ongoing.end))",
-                symbol: ongoing.isFocusBlock ? "brain.head.profile" : "person.2.fill",
-                tint: ongoing.isFocusBlock ? .accentColor : .orange
-            )
-        } else if let next = suggestion.nextMeeting, let minutes = suggestion.minutesBeforeMeeting {
-            banner(
-                "Prochaine réunion : \(next.title) à \(Format.time(next.start)), dans \(Format.minutes(Double(minutes)))",
-                symbol: "calendar",
-                tint: .secondary
-            )
+        if let ongoing {
+            if ongoing.isFocusBlock {
+                banner(
+                    Text("Bloc \(ongoing.title) jusqu'à \(Format.time(ongoing.end))"),
+                    color: Theme.accentText, dot: Theme.accent, background: Theme.accentTint
+                )
+            } else {
+                banner(
+                    Text("Réunion en cours… jusqu'à \(Format.time(ongoing.end))"),
+                    color: Theme.label, dot: Theme.label2, background: Theme.fill
+                )
+            }
+        } else if let next, let minutes = minutesBeforeMeeting {
+            HStack(spacing: 10) {
+                Circle()
+                    .strokeBorder(Theme.label2, lineWidth: 1.5)
+                    .frame(width: 8, height: 8)
+                Text("Prochaine réunion : \(Text(next.title).foregroundStyle(Theme.label)) à \(Format.time(next.start)), dans \(Format.minutes(Double(minutes)))")
+                    .foregroundStyle(Theme.label2)
+            }
+            .font(.system(size: 13))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
         }
     }
 
-    private func banner(_ text: String, symbol: String, tint: Color) -> some View {
-        Label(text, systemImage: symbol)
-            .font(.callout)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(tint.opacity(0.1), in: Capsule())
+    private func banner(_ content: Text, color: Color, dot: Color, background: Color) -> some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(dot)
+                .frame(width: 8, height: 8)
+            content
+                .foregroundStyle(color)
+        }
+        .font(.system(size: 13))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(background, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }

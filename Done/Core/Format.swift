@@ -34,6 +34,47 @@ enum Format {
 
     static func day(_ date: Date) -> String { dayFormatter.string(from: date) }
 
+    private static func french(_ format: String) -> DateFormatter {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = format
+        return f
+    }
+
+    private static let dayNumber = french("d")
+    private static let dayMonth = french("d MMMM")
+    private static let dayShortMonth = french("d MMM")
+
+    /// « Semaine du 19 au 25 octobre », ou « du 29 septembre au 5 octobre » à cheval sur deux mois.
+    static func weekTitle(_ week: DateInterval) -> String {
+        let last = week.end.addingTimeInterval(-1)
+        let calendar = Calendar.current
+        let sameMonth = calendar.component(.month, from: week.start) == calendar.component(.month, from: last)
+        let start = sameMonth ? dayNumber.string(from: week.start) : dayMonth.string(from: week.start)
+        return "Semaine du \(start) au \(dayMonth.string(from: last))"
+    }
+
+    /// « 8 oct. » pour les axes des graphiques.
+    static func shortDate(_ date: Date) -> String {
+        dayShortMonth.string(from: date)
+    }
+
+    /// Initiale du jour, semaine commençant le lundi : L M M J V S D.
+    static func weekdayInitial(_ date: Date) -> String {
+        let letters = ["D", "L", "M", "M", "J", "V", "S"]
+        return letters[Calendar(identifier: .gregorian).component(.weekday, from: date) - 1]
+    }
+
+    /// Numéro de semaine ISO : « S43 ».
+    static func weekNumber(_ date: Date) -> String {
+        "S\(Calendar(identifier: .iso8601).component(.weekOfYear, from: date))"
+    }
+
+    /// Graduation en heures : 0, « 1 h », « 2 h »…
+    static func hours(_ minutes: Double) -> String {
+        minutes == 0 ? "0" : "\(Int((minutes / 60).rounded())) h"
+    }
+
     static func due(_ task: TodoistTask, now: Date = .now) -> String? {
         guard let due = task.due, let value = due.value, let day = due.day else { return nil }
         let calendar = Calendar.current

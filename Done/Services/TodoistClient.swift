@@ -10,7 +10,7 @@ enum TodoistError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unauthorized: "Todoist refuse le token. Vérifie-le dans les réglages."
+        case .unauthorized: "Todoist a refusé ce token. Copie-le à nouveau depuis la page Développeur."
         case .http(let code): "Todoist a répondu avec l'erreur \(code)."
         case .invalidResponse: "Réponse inattendue de Todoist."
         }

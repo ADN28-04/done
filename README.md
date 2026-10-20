@@ -2,7 +2,7 @@
 
 App Pomodoro personnelle pour macOS, branchée sur Todoist. Le matin, je choisis mes trois tâches les plus importantes. Ensuite, Done ne m'affiche qu'une chose : la prochaine action concrète, avec un minuteur adapté.
 
-Le cadrage est dans `docs/` : `vision.md` (le problème), `spec.md` (fonctionnalités, écrans, données) et `questions.md` (ce qui reste ouvert).
+Le cadrage est dans `docs/` : `vision.md` (le problème), `spec.md` (fonctionnalités, écrans, données) et `questions.md` (ce qui reste ouvert). Le design est décrit dans `design-system.md`, avec les maquettes dans `docs/design/`.
 
 ## Lancer l'app
 
@@ -34,7 +34,8 @@ Done/
   Data/       modèles SwiftData (plan du jour, sessions, interruptions, photos du backlog)
   Services/   client API Todoist, trousseau, notifications, appels AppKit
   State/      AppModel (tâches et plan) et FocusEngine (minuteur)
-  Views/      écrans SwiftUI
+  Views/      écrans SwiftUI, et Theme.swift pour les couleurs et composants du design system
+  Assets.xcassets/  icône de l'app et couleur d'accent
 ```
 
 Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` est compilé, sans modifier le projet Xcode.
