@@ -1,43 +1,16 @@
-import AppKit
 import SwiftUI
 
-/// Glyphe monochrome de la marque pour la barre de menus (image « template »).
-enum MenuBarGlyph {
-    static let mark: NSImage = {
-        let image = NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
-            let lineWidth: CGFloat = 2.3
-            let bounds = rect.insetBy(dx: lineWidth / 2 + 1, dy: lineWidth / 2 + 1)
-            let center = NSPoint(x: rect.midX, y: rect.midY)
-
-            NSColor.black.withAlphaComponent(0.35).setStroke()
-            let ring = NSBezierPath(ovalIn: bounds)
-            ring.lineWidth = lineWidth
-            ring.stroke()
-
-            // Arc de 315° partant du haut, dans le sens des aiguilles d'une montre.
-            NSColor.black.setStroke()
-            let arc = NSBezierPath()
-            arc.appendArc(withCenter: center, radius: bounds.width / 2, startAngle: 90, endAngle: -225, clockwise: true)
-            arc.lineWidth = lineWidth
-            arc.lineCapStyle = .round
-            arc.stroke()
-            return true
-        }
-        image.isTemplate = true
-        return image
-    }()
-}
-
-/// Icône et minuteur dans la barre de menus.
+/// Icône et minuteur dans la barre de menus. `DoneGlyph` est une image « template » du catalogue :
+/// macOS la colore selon la barre de menus.
 struct MenuBarLabel: View {
     let engine: FocusEngine
 
     var body: some View {
         switch engine.phase {
         case .idle:
-            Image(nsImage: MenuBarGlyph.mark)
+            Image("DoneGlyph")
         case .focusing, .awaitingOutcome:
-            Text("\(Image(nsImage: MenuBarGlyph.mark)) \(engine.menuBarText)")
+            Text("\(Image("DoneGlyph")) \(engine.menuBarText)")
                 .monospacedDigit()
         case .paused, .interrupted:
             Text("\(Image(systemName: "pause.fill")) \(engine.menuBarText)")

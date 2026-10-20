@@ -173,24 +173,6 @@ struct Hairline: View {
 
 // MARK: Logo et anneaux
 
-/// La marque Done : un anneau de minuteur presque refermé.
-struct DoneMark: View {
-    var color: Color = Theme.accent
-    var lineWidth: CGFloat = 2
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(color.opacity(0.35), lineWidth: lineWidth)
-            Circle()
-                .trim(from: 0, to: 0.875)
-                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-        }
-        .padding(lineWidth / 2)
-    }
-}
-
 /// Icône de l'app : carré arrondi dégradé et anneau blanc.
 struct DoneAppIcon: View {
     var size: CGFloat = 84

@@ -27,8 +27,12 @@ struct RootView: View {
                     Label {
                         Text("Focus")
                     } icon: {
-                        DoneMark(color: iconColor(.focus), lineWidth: 2.2)
+                        Image("DoneGlyph")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
                             .frame(width: 15, height: 15)
+                            .foregroundStyle(iconColor(.focus))
                     }
                 }
                 sidebarLink(.plan, title: "Plan du jour", symbol: "text.alignleft")

@@ -44,7 +44,7 @@ Règles : le rouge est réservé à P1 et aux erreurs, l'orange aux contraintes 
 
 ## Logo
 
-Carré arrondi en dégradé (#16988C vers #0A7D72), anneau blanc à 28 % et arc blanc de 330° partant du haut : un minuteur presque refermé. Source vectorielle : `docs/design/icon.svg`. Dans l'app : `DoneAppIcon`, `DoneMark` (glyphe accent de la barre latérale) et `MenuBarGlyph` (glyphe monochrome de la barre de menus).
+Carré arrondi en dégradé (#16988C vers #0A7D72), anneau blanc à 28 % et arc blanc de 330° partant du haut : un minuteur presque refermé. Source vectorielle : `docs/design/icon.svg`. Dans l'app : `DoneAppIcon` (écran de connexion), l'asset `AppIcon` (Dock et Finder) et l'asset `DoneGlyph`, une image « template » utilisée dans la barre de menus et, teintée en accent, dans la barre latérale. Source du glyphe : `docs/design/glyph.svg`.
 
 ## Écarts assumés avec la maquette
 
