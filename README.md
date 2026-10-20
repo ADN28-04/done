@@ -14,6 +14,18 @@ Il faut un Mac sous macOS 14 ou plus récent, et Xcode 16 ou plus récent.
 4. Au premier lancement, coller le token API Todoist : Todoist › Réglages › Intégrations › Développeur.
 5. Accepter les notifications quand macOS les demande.
 
+### Installer ou mettre à jour l'app dans Applications
+
+Depuis le Terminal, dans le dossier du projet :
+
+```
+./scripts/install.sh
+```
+
+Le script compile la version finale, ferme Done si elle tourne, remplace `/Applications/Done.app` et relance l'app. Les données et le token sont conservés. À relancer après chaque modification du code (ou après un `git pull`).
+
+Si `xcodebuild` signale qu'il lui faut Xcode, lancer une fois `sudo xcode-select -s /Applications/Xcode.app`. La première fois, macOS peut demander au Terminal l'autorisation de contrôler Done : c'est ce qui permet de la fermer proprement.
+
 ### Activer « Ne pas déranger » pendant les sessions (facultatif)
 
 macOS ne laisse pas une app piloter les modes de concentration. Done passe par l'app Raccourcis :
