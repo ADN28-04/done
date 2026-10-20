@@ -24,7 +24,7 @@ Depuis le Terminal, dans le dossier du projet :
 
 Le script compile la version finale, ferme Done si elle tourne, remplace `/Applications/Done.app` et relance l'app. Les données et le token sont conservés. À relancer après chaque modification du code (ou après un `git pull`).
 
-Si `xcodebuild` signale qu'il lui faut Xcode, lancer une fois `sudo xcode-select -s /Applications/Xcode.app`. La première fois, macOS peut demander au Terminal l'autorisation de contrôler Done : c'est ce qui permet de la fermer proprement.
+Le script trouve Xcode tout seul, même si ce sont les outils de ligne de commande qui sont sélectionnés. La première fois, macOS peut demander au Terminal l'autorisation de contrôler Done : c'est ce qui permet de la fermer proprement.
 
 ### Activer « Ne pas déranger » pendant les sessions (facultatif)
 

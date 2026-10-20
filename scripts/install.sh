@@ -4,6 +4,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Utilise Xcode même quand ce sont les outils de ligne de commande qui sont sélectionnés.
+if ! xcodebuild -version > /dev/null 2>&1; then
+  XCODE_APP=$(ls -d /Applications/Xcode*.app 2> /dev/null | head -n 1 || true)
+  if [ -z "$XCODE_APP" ]; then
+    echo "Xcode est introuvable dans Applications." >&2
+    exit 1
+  fi
+  export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
+fi
+
 echo "Compilation de Done…"
 xcodebuild -project Done.xcodeproj -target Done -configuration Release \
   SYMROOT="$PWD/build" -allowProvisioningUpdates -quiet build
