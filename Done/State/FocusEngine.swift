@@ -99,7 +99,7 @@ final class FocusEngine {
         record = session
         save()
 
-        phase = .focusing
+        transition(to: .focusing)
         scheduleFocusEnd()
         startTicker()
     }
@@ -107,7 +107,7 @@ final class FocusEngine {
     func pause() {
         guard phase == .focusing else { return }
         closeSegment()
-        phase = .paused
+        transition(to: .paused)
         Notifier.shared.cancel(Notifier.focusEnd)
     }
 
@@ -116,7 +116,7 @@ final class FocusEngine {
         closeInterruption()
         segmentStart = .now
         now = .now
-        phase = .focusing
+        transition(to: .focusing)
         scheduleFocusEnd()
         startTicker()
         save()
@@ -130,7 +130,7 @@ final class FocusEngine {
         interruption.session = record
         openInterruption = interruption
         interruptedAt = .now
-        phase = .interrupted(reason)
+        transition(to: .interrupted(reason))
         Notifier.shared.cancel(Notifier.focusEnd)
         save()
     }
@@ -140,7 +140,7 @@ final class FocusEngine {
         guard current != nil, phase != .awaitingOutcome else { return }
         closeSegment()
         closeInterruption()
-        phase = .awaitingOutcome
+        transition(to: .awaitingOutcome)
         Notifier.shared.cancel(Notifier.focusEnd)
     }
 
@@ -188,7 +188,7 @@ final class FocusEngine {
 
     func skipBreak() {
         endBreak()
-        phase = .idle
+        transition(to: .idle)
         stopTicker()
     }
 
@@ -210,7 +210,7 @@ final class FocusEngine {
         reset()
         now = .now
         breakEnd = now.addingTimeInterval(seconds)
-        phase = .onBreak
+        transition(to: .onBreak)
         Notifier.shared.schedule(
             Notifier.breakEnd,
             title: "Fin de la pause",
@@ -232,7 +232,7 @@ final class FocusEngine {
         interruptedAt = nil
         record = nil
         openInterruption = nil
-        phase = .idle
+        transition(to: .idle)
     }
 
     private func closeSegment() {
@@ -259,8 +259,17 @@ final class FocusEngine {
         save()
     }
 
+    /// Point de passage unique des changements de phase.
+    private func transition(to newPhase: Phase) {
+        phase = newPhase
+        DoNotDisturb.shared.update(focusing: newPhase == .focusing)
+        SystemBridge.keepTimerAccurate(newPhase != .idle && newPhase != .awaitingOutcome)
+    }
+
     private func scheduleFocusEnd() {
-        guard let current else { return }
+        // Avec « Ne pas déranger », la notification serait masquée : elle part
+        // depuis tick(), une fois le mode coupé.
+        guard let current, !Rules.current.dndEnabled else { return }
         Notifier.shared.schedule(
             Notifier.focusEnd,
             title: "Session terminée",
@@ -293,13 +302,19 @@ final class FocusEngine {
             }
             if remaining <= 0 {
                 closeSegment()
-                phase = .awaitingOutcome
+                transition(to: .awaitingOutcome)
                 SystemBridge.requestAttention()
+                if Rules.current.dndEnabled, let title = current?.action.content {
+                    Task {
+                        await DoNotDisturb.shared.settle()
+                        Notifier.shared.notifyNow(Notifier.focusEnd, title: "Session terminée", body: title)
+                    }
+                }
             }
         case .onBreak:
             if breakRemaining <= 0 {
                 endBreak()
-                phase = .idle
+                transition(to: .idle)
             }
         default:
             break

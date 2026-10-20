@@ -13,8 +13,16 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.meetingPrefix) private var meetingPrefix = Rules().meetingPrefix
     @AppStorage(SettingsKey.focusBlockKeywords) private var focusBlockKeywords = Rules().focusBlockKeywords
     @AppStorage(SettingsKey.backlogProjectIDs) private var backlogProjectIDs = Rules().backlogProjectIDs
+    @AppStorage(SettingsKey.dndEnabled) private var dndEnabled = Rules().dndEnabled
+    @AppStorage(SettingsKey.dndOnShortcut) private var dndOnShortcut = Rules().dndOnShortcut
+    @AppStorage(SettingsKey.dndOffShortcut) private var dndOffShortcut = Rules().dndOffShortcut
 
     @State private var newToken = ""
+    @State private var dndStatus: DndStatus = .unknown
+
+    private enum DndStatus: Equatable {
+        case unknown, checking, ready, problem(String)
+    }
 
     var body: some View {
         Form {
@@ -64,12 +72,69 @@ struct SettingsView: View {
                 Text("Projets suivis dans les stats. Aucun coché : tous les projets.")
             }
 
+            Section {
+                Toggle("Activer Ne pas déranger pendant les sessions", isOn: $dndEnabled)
+                TextField("Raccourci pour activer", text: $dndOnShortcut)
+                TextField("Raccourci pour couper", text: $dndOffShortcut)
+                HStack {
+                    dndStatusLabel
+                    Spacer()
+                    Button("Ouvrir Raccourcis") { SystemBridge.openShortcutsApp() }
+                    Button("Vérifier") { Task { await checkShortcuts() } }
+                    Button("Tester") { Task { await testShortcuts() } }
+                }
+                .disabled(dndStatus == .checking)
+            } header: {
+                Text("Ne pas déranger")
+            } footer: {
+                Text("""
+                macOS ne laisse pas une app activer ce mode directement. Crée deux raccourcis dans l'app Raccourcis avec l'action « Définir la concentration » (Set Focus) : le premier active « Ne pas déranger » jusqu'à désactivation, le second le désactive. Donne-leur exactement les noms ci-dessus. Done les lance au début et à la fin de chaque session, et coupe le mode quand tu le quittes.
+                """)
+            }
+
             Section("Notifications") {
                 Text("Si les fins de session ne s'affichent pas, autorise Done dans Réglages Système › Notifications.")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private var dndStatusLabel: some View {
+        switch dndStatus {
+        case .unknown:
+            EmptyView()
+        case .checking:
+            ProgressView().controlSize(.small)
+        case .ready:
+            Label("Raccourcis opérationnels", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+        case .problem(let message):
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    private func checkShortcuts() async {
+        dndStatus = .checking
+        switch await DoNotDisturb.shared.missingShortcuts() {
+        case .success(let missing) where missing.isEmpty:
+            dndStatus = .ready
+        case .success(let missing):
+            dndStatus = .problem("Introuvable : \(missing.joined(separator: ", "))")
+        case .failure(let error):
+            dndStatus = .problem(error.message)
+        }
+    }
+
+    private func testShortcuts() async {
+        dndStatus = .checking
+        if let message = await DoNotDisturb.shared.test() {
+            dndStatus = .problem(message)
+        } else {
+            dndStatus = .ready
+        }
     }
 
     private func binding(for id: String) -> Binding<Bool> {

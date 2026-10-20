@@ -19,6 +19,8 @@ struct DoneApp: App {
         _model = State(initialValue: model)
         _engine = State(initialValue: FocusEngine(model: model, context: container.mainContext))
         Notifier.shared.setUp()
+        DoNotDisturb.shared.onError = { [weak model] message in model?.errorMessage = message }
+        SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }
     }
 
     var body: some Scene {

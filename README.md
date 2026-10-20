@@ -14,6 +14,17 @@ Il faut un Mac sous macOS 14 ou plus récent, et Xcode 16 ou plus récent.
 4. Au premier lancement, coller le token API Todoist : Todoist › Réglages › Intégrations › Développeur.
 5. Accepter les notifications quand macOS les demande.
 
+### Activer « Ne pas déranger » pendant les sessions (facultatif)
+
+macOS ne laisse pas une app piloter les modes de concentration. Done passe par l'app Raccourcis :
+
+1. Dans Raccourcis, créer un raccourci nommé exactement `Done Focus On`, avec l'action « Définir la concentration » (Set Focus) : « Ne pas déranger », Activé, jusqu'à désactivation.
+2. Créer un second raccourci nommé `Done Focus Off`, avec la même action réglée sur Désactivé.
+3. Lancer chaque raccourci une fois à la main, pour accepter les autorisations éventuelles.
+4. Dans Done, Réglages › Ne pas déranger : activer l'option, puis cliquer sur Vérifier et Tester.
+
+Done active le mode quand le minuteur de focus tourne, et le coupe en pause, en interruption, en fin de session et quand l'app se ferme. Si Done est arrêté brutalement (par exemple avec le bouton Stop d'Xcode), le mode reste actif : il faut le couper dans le Centre de contrôle.
+
 ## Organisation du code
 
 ```
@@ -34,6 +45,7 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Prochaine action** : la première sous-tâche sans `@Waiting`, dans l'ordre de Todoist.
 - **Durée** : 15 min pour `@Quick`, 50 min pour `@Deepwork`, 25 min sinon. Pause de 10 min après une session Deepwork, 5 min sinon.
 - **Réunions** : tâches datées avec une heure et dont le titre commence par « Réunion ». Si le titre contient « deepwork », « deepword » ou « focus », c'est un bloc de travail.
+- **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.
 - **Avant une réunion** : si la tâche prévue ne tient pas, Done propose la suivante du plan qui tient, puis une tâche `@Quick`, puis la préparation de la réunion ou une pause.
 
 Tout est réglable dans l'écran Réglages, sauf les noms de labels (dans `Done/Core/Rules.swift`).

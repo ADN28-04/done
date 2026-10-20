@@ -12,6 +12,9 @@ enum SettingsKey {
     static let meetingPrefix = "rules.meetingPrefix"
     static let focusBlockKeywords = "rules.focusBlockKeywords"
     static let backlogProjectIDs = "rules.backlogProjectIDs"
+    static let dndEnabled = "rules.dndEnabled"
+    static let dndOnShortcut = "rules.dndOnShortcut"
+    static let dndOffShortcut = "rules.dndOffShortcut"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
@@ -31,6 +34,11 @@ struct Rules {
     var focusBlockKeywords = "deepwork, deepword, focus"
     /// IDs de projets séparés par des virgules. Vide = tous les projets.
     var backlogProjectIDs = ""
+    /// Active « Ne pas déranger » pendant les sessions de focus.
+    var dndEnabled = false
+    /// Raccourcis de l'app Raccourcis qui activent et coupent « Ne pas déranger ».
+    var dndOnShortcut = "Done Focus On"
+    var dndOffShortcut = "Done Focus Off"
 
     static let activeLabel = "Chantier-actif"
     static let waitingLabel = "Waiting"
@@ -57,6 +65,9 @@ struct Rules {
         rules.meetingPrefix = defaults.string(forKey: SettingsKey.meetingPrefix) ?? base.meetingPrefix
         rules.focusBlockKeywords = defaults.string(forKey: SettingsKey.focusBlockKeywords) ?? base.focusBlockKeywords
         rules.backlogProjectIDs = defaults.string(forKey: SettingsKey.backlogProjectIDs) ?? base.backlogProjectIDs
+        rules.dndEnabled = (defaults.object(forKey: SettingsKey.dndEnabled) as? Bool) ?? base.dndEnabled
+        rules.dndOnShortcut = defaults.string(forKey: SettingsKey.dndOnShortcut) ?? base.dndOnShortcut
+        rules.dndOffShortcut = defaults.string(forKey: SettingsKey.dndOffShortcut) ?? base.dndOffShortcut
         return rules
     }
 

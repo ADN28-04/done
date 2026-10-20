@@ -47,13 +47,13 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Stats de base | Temps de focus par jour et par semaine, sessions par jour, interruptions par raison, temps par projet. |
 | Stats backlog | Tâches ouvertes du backlog Shop, âge moyen, nombre de `Chantier-actif` en parallèle, tâches parentes fermées par semaine. |
 | Barre de menus | Temps restant affiché en permanence, avec Pause, Reprendre et Ouvrir Done. |
+| Ne pas déranger | Activé pendant le focus, coupé en pause, en interruption, en fin de session et à la fermeture de Done. Passe par deux raccourcis de l'app Raccourcis, faute d'API publique. Désactivé par défaut. |
 
 ### Plus tard
 
 - **Réglage des règles** : modifier le filtre des candidates et les durées par label depuis l'app.
 - **Découpage assisté** : si une tâche n'a pas de sous-tâche, l'app me demande « quelle est la prochaine action concrète ? » et la crée dans Todoist.
 - **Version iPhone** avec synchronisation iCloud, Live Activity et widget. Demande un compte Apple Developer payant.
-- **Mode Concentration** : activer automatiquement un Focus Apple pendant une session.
 - **Rappel quand rien n'est lancé** : après 20 minutes sans session en heures de travail, l'app demande pourquoi.
 - **Alerte multi-chantier** : prévenir quand plus de deux tâches portent `Chantier-actif`.
 - **Lecture directe du calendrier** (EventKit) si l'import des réunions dans Todoist ne suffit plus.
@@ -128,5 +128,6 @@ Remarques :
 - **Xcode, SwiftUI, une cible macOS** (macOS 14 minimum, pour SwiftData et `@Observable`).
 - **SwiftData local** pour le plan, les sessions et les photos du backlog. Pas de Supabase ni de CloudKit : un seul utilisateur, un seul appareil, aucune logique serveur.
 - **API Todoist v1** (`https://api.todoist.com/api/v1/`) appelée avec `URLSession` et `async/await`. Le token personnel évite d'implémenter OAuth. Les formats ont été vérifiés dans le SDK Python officiel de Doist.
+- **App Raccourcis** (`/usr/bin/shortcuts run`) pour « Ne pas déranger », macOS n'ayant pas d'API publique pour les modes de concentration.
 - **UserNotifications** pour les fins de session et de pause, **MenuBarExtra** pour le minuteur dans la barre de menus, **Swift Charts** pour les stats.
 - App non sandboxée et signée localement : elle n'est pas distribuée.

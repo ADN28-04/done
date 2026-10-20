@@ -24,6 +24,15 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger), withCompletionHandler: nil)
     }
 
+    /// Notification immédiate, utilisée quand « Ne pas déranger » vient d'être coupé.
+    func notifyNow(_ id: String, title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil), withCompletionHandler: nil)
+    }
+
     func cancel(_ ids: String...) {
         center.removePendingNotificationRequests(withIdentifiers: ids)
     }
