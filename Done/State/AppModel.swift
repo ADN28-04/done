@@ -17,10 +17,13 @@ final class AppModel {
     private(set) var lastReviewDay: String?
     /// Tâches reportées par le dernier bilan, pour le prochain plan du matin.
     private(set) var carryOver: CarryOver?
+    /// Notes « où j'en suis » des tâches quittées en cours de route.
+    private(set) var resumeNotes = ResumeNotes()
     var errorMessage: String?
 
     private static let lastReviewKey = "review.lastDay"
     private static let carryOverKey = "review.carryOver"
+    private static let resumeNotesKey = "resume.notes"
 
     let context: ModelContext
     @ObservationIgnored private var token: String?
@@ -34,6 +37,7 @@ final class AppModel {
         let defaults = UserDefaults.standard
         self.lastReviewDay = defaults.string(forKey: Self.lastReviewKey)
         self.carryOver = defaults.data(forKey: Self.carryOverKey).flatMap { try? JSONDecoder().decode(CarryOver.self, from: $0) }
+        self.resumeNotes = defaults.data(forKey: Self.resumeNotesKey).flatMap { try? JSONDecoder().decode(ResumeNotes.self, from: $0) } ?? ResumeNotes()
         loadPlan()
     }
 
@@ -132,6 +136,8 @@ final class AppModel {
             errorMessage = nil
             loadPlan()
             recordSnapshot()
+            updateResumeNotes { $0.keepOnly(Set(tasks.map(\.id))) }
+            updateMeetingReminders()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -158,6 +164,7 @@ final class AppModel {
         guard let token else { throw TodoistError.unauthorized }
         try await TodoistClient(token: token).closeTask(id: task.id)
         index = index.removing(task.id)
+        updateResumeNotes { $0.remove(task.id) }
         if let plan = todayPlan, plan.taskIDs.contains(task.id) {
             plan.taskIDs.removeAll { $0 == task.id }
             plan.doneIDs.append(task.id)
@@ -211,6 +218,41 @@ final class AppModel {
         let defaults = UserDefaults.standard
         defaults.set(try? JSONEncoder().encode(carry), forKey: Self.carryOverKey)
         defaults.set(carry.fromDay, forKey: Self.lastReviewKey)
+    }
+
+    // MARK: Note de reprise
+
+    func resumeNote(for taskID: String) -> ResumeNote? {
+        resumeNotes[taskID]
+    }
+
+    func setResumeNote(_ text: String, for taskID: String) {
+        updateResumeNotes { $0.set(text, for: taskID) }
+    }
+
+    private func updateResumeNotes(_ change: (inout ResumeNotes) -> Void) {
+        var notes = resumeNotes
+        change(&notes)
+        guard notes != resumeNotes else { return }
+        resumeNotes = notes
+        UserDefaults.standard.set(try? JSONEncoder().encode(notes), forKey: Self.resumeNotesKey)
+    }
+
+    // MARK: Réunion proche
+
+    /// Reprogramme les rappels des réunions d'aujourd'hui et de demain, après chaque synchro
+    /// ou changement de réglage.
+    func updateMeetingReminders() {
+        let rules = rules
+        guard rules.meetingReminder else {
+            Notifier.shared.updateMeetingReminders([])
+            return
+        }
+        let now = Date.now
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now) ?? now
+        let meetings = Planner.meetings(in: index.all, on: now, rules: rules)
+            + Planner.meetings(in: index.all, on: tomorrow, rules: rules)
+        Notifier.shared.updateMeetingReminders(MeetingReminder.plan(meetings, now: now, minutes: rules.meetingReminderMinutes))
     }
 
     // MARK: Plan du jour

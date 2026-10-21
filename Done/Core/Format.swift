@@ -34,6 +34,16 @@ enum Format {
 
     static func day(_ date: Date) -> String { dayFormatter.string(from: date) }
 
+    /// Moment d'une note : « aujourd'hui à 15:40 », « hier à 15:40 », sinon « mar. 21 oct. ».
+    static func moment(_ date: Date, now: Date = .now) -> String {
+        let calendar = Calendar.current
+        if calendar.isDate(date, inSameDayAs: now) { return "aujourd'hui à \(time(date))" }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday) {
+            return "hier à \(time(date))"
+        }
+        return day(date)
+    }
+
     private static func french(_ format: String) -> DateFormatter {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")

@@ -116,6 +116,10 @@ struct SuggestionView: View {
                     .frame(maxWidth: 680)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, action.id != root.id ? 6 : 20)
+                if let resume = model.resumeNote(for: action.id) {
+                    ResumeNoteCard(note: resume)
+                        .padding(.top, 20)
+                }
                 if let note = suggestion.note {
                     NoticeBox(text: note)
                         .frame(maxWidth: 520)

@@ -1,7 +1,7 @@
 import Foundation
 import UserNotifications
 
-/// Notifications de fin de session et de fin de pause.
+/// Notifications de fin de session et de pause, rappels du bilan et des réunions.
 final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     static let shared = Notifier()
 
@@ -49,6 +49,25 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             time.minute = 0
             let trigger = UNCalendarNotificationTrigger(dateMatching: time, repeats: true)
             center.add(UNNotificationRequest(identifier: "done.review.\(weekday)", content: content, trigger: trigger), withCompletionHandler: nil)
+        }
+    }
+
+    /// Remplace les rappels « réunion proche » déjà programmés par ceux-ci.
+    func updateMeetingReminders(_ reminders: [MeetingReminder]) {
+        let center = self.center
+        let wanted = Set(reminders.map(\.id))
+        center.getPendingNotificationRequests { requests in
+            let stale = requests.map(\.identifier).filter { $0.hasPrefix(MeetingReminder.prefix) && !wanted.contains($0) }
+            center.removePendingNotificationRequests(withIdentifiers: stale)
+        }
+        for reminder in reminders {
+            let content = UNMutableNotificationContent()
+            content.title = reminder.title
+            content.body = reminder.body
+            content.sound = .default
+            let moment = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: reminder.fireDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: moment, repeats: false)
+            center.add(UNNotificationRequest(identifier: reminder.id, content: content, trigger: trigger), withCompletionHandler: nil)
         }
     }
 

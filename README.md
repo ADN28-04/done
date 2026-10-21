@@ -37,6 +37,20 @@ macOS ne laisse pas une app piloter les modes de concentration. Done passe par l
 
 Done active le mode quand le minuteur de focus tourne, et le coupe en pause, en interruption, en fin de session et quand l'app se ferme. Si Done est arrêté brutalement (par exemple avec le bouton Stop d'Xcode), le mode reste actif : il faut le couper dans le Centre de contrôle.
 
+### Passer Teams en « Ne pas déranger » pendant les sessions (facultatif)
+
+Done change ton statut Teams avec Microsoft Graph. Il faut d'abord inscrire Done dans l'annuaire Microsoft de ton entreprise, une seule fois :
+
+1. Ouvrir [entra.microsoft.com](https://entra.microsoft.com) avec ton compte professionnel, puis Applications › Inscriptions d'applications › Nouvelle inscription.
+2. Nom : `Done`. Types de comptes : « Comptes dans cet annuaire organisationnel uniquement ». URI de redirection : plateforme « Client public/natif (mobile et bureau) », valeur `done://auth`. Enregistrer.
+3. Dans l'application créée : Autorisations d'API › Ajouter une autorisation › Microsoft Graph › Autorisations déléguées › cocher `Presence.ReadWrite` › Ajouter.
+4. Sur la page Vue d'ensemble, copier « ID d'application (client) » et « ID de l'annuaire (locataire) » dans Done › Réglages › Statut Teams.
+5. Cliquer sur Se connecter : la page Microsoft s'ouvre dans une feuille. Accepter la permission demandée, puis cliquer sur Tester et activer l'option.
+
+Si l'inscription d'applications est bloquée, ou si Microsoft affiche « Approbation de l'administrateur requise », il faut demander au service informatique de créer l'application avec ces réglages.
+
+Done passe le statut en « Ne pas déranger » quand le minuteur tourne et le remet en automatique en pause, en interruption, en fin de session et quand l'app se ferme. Un statut choisi à la main dans Teams avant la session est remplacé par le statut automatique à la fin. Si Done est arrêté brutalement, Teams rétablit seul le statut cinq minutes après la fin prévue de la session.
+
 ## Organisation du code
 
 ```
@@ -60,7 +74,9 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Prochaine action** : la première sous-tâche sans `@Waiting` et pas datée plus tard, dans l'ordre de Todoist.
 - **Durée** : 15 min pour `@Quick`, 50 min pour `@Deepwork`, 25 min sinon. Pause de 10 min après une session Deepwork, 5 min sinon.
 - **Réunions** : tâches datées avec une heure et dont le titre commence par « Réunion ». Si le titre contient « deepwork », « deepword » ou « focus », c'est un bloc de travail.
-- **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.
+- **Ne pas déranger** et **statut Teams** (si activés) : seulement pendant que le minuteur de focus tourne.
+- **Note de reprise** : en fin de session ou pendant une interruption, une ligne « Où tu en es ? », réaffichée la prochaine fois que la tâche revient. Effacée quand la tâche est cochée.
+- **Réunion proche** : notification 5 minutes avant chaque réunion (réglable). Pendant « Ne pas déranger », macOS la masque, sauf si Done fait partie des apps autorisées de ce mode.
 - **Découpage assisté** : une tâche du plan sans sous-tâche (hors `@Quick`) peut être découpée depuis la carte Focus ; Done crée la prochaine action dans Todoist.
 - **Garde-fou** : à la validation du plan, au-delà de 2 tâches `@Chantier-actif`, Done propose d'en mettre en file d'attente (retrait du label dans Todoist). Une fois par jour.
 - **Bilan du soir** : à partir de 17 h, Done propose de clore la journée ; les tâches non finies marquées « Demain » sont reprises dans le plan du lendemain.

@@ -22,7 +22,11 @@ struct DoneApp: App {
         Notifier.shared.setUp()
         Notifier.shared.updateReviewReminder(enabled: Rules.current.reviewReminder, hour: Rules.current.reviewHour)
         DoNotDisturb.shared.onError = { [weak model] message in model?.errorMessage = message }
-        SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }
+        TeamsStatus.shared.onError = { [weak model] message in model?.errorMessage = message }
+        SystemBridge.onTerminate {
+            DoNotDisturb.shared.turnOffBeforeExit()
+            TeamsStatus.shared.clearBeforeExit()
+        }
     }
 
     var body: some Scene {

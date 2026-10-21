@@ -51,11 +51,13 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Garde-fou des chantiers actifs | À la validation du plan, si plus de tâches portent `Chantier-actif` que la cible (2 par défaut), une fenêtre propose de mettre en file d'attente les chantiers absents du plan. Done retire alors le label dans Todoist, sur la tâche et ses sous-tâches. Une fois par jour au plus. |
 | Bilan du soir | À partir de 17 h (réglable), l'écran Focus propose le bilan : temps de focus, sessions, tâches cochées, interruptions, ce qui est terminé, et pour chaque tâche du plan non finie : Demain (reprise dans le plan du lendemain matin, marquée « Reportée ») ou Plus tard. Rappel par notification du lundi au vendredi. |
 | Ne pas déranger | Activé pendant le focus, coupé en pause, en interruption, en fin de session et à la fermeture de Done. Passe par deux raccourcis de l'app Raccourcis, faute d'API publique. Désactivé par défaut. |
+| Note de reprise | En fin de session ou pendant une interruption, un champ « Où tu en es ? » garde une ligne sur la tâche. Elle est réaffichée sur l'écran Focus et pendant la session suivante sur cette tâche, puis effacée quand la tâche est cochée ou disparaît de Todoist. |
+| Réunion proche | Notification quelques minutes avant chaque réunion lue dans Todoist (5 min par défaut, réglable, blocs de travail exclus). Reprogrammée à chaque synchronisation. |
+| Statut Teams | Option : statut Teams en « Ne pas déranger » pendant que le minuteur tourne, remis en automatique en pause, en interruption, en fin de session et à la fermeture. Passe par Microsoft Graph, avec une application inscrite dans l'annuaire Microsoft de l'entreprise. Désactivé par défaut. |
 
 ### Plus tard
 
 - **Réglage des règles** : modifier le filtre des candidates et les durées par label depuis l'app.
-- **Notification « réunion proche »** quelques minutes avant une réunion lue dans Todoist (présente dans la maquette des réglages).
 - **Version iPhone** avec synchronisation iCloud, Live Activity et widget. Demande un compte Apple Developer payant.
 - **Rappel quand rien n'est lancé** : après 20 minutes sans session en heures de travail, l'app demande pourquoi.
 - **Lecture directe du calendrier** (EventKit) si l'import des réunions dans Todoist ne suffit plus.
@@ -80,8 +82,8 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 2. **Plan du jour** : en haut, les réunions et blocs du jour. À gauche, les candidates triées par priorité puis échéance, avec projet, échéance, sous-tâches et labels. À droite, la liste « Aujourd'hui » que j'ordonne par glisser-déposer (3 recommandées, 5 au maximum). Bouton « Chercher une autre tâche » pour ajouter une tâche hors candidates. Bouton Valider.
 3. **Focus** (écran principal) : la tâche du plan, sa prochaine action en grand, la durée proposée (modifiable), le temps avant la prochaine réunion. Boutons Démarrer, Passer, Changer de tâche. En dessous, la suite du plan.
 4. **Session en cours** : anneau de progression, minuteur, boutons Pause (barre d'espace), Interrompre (menu des raisons), Terminer.
-5. **Fin de session** : « Terminé, cocher dans Todoist », « Je continue », « Pause », « Arrêter là ».
-6. **Interruption** : raison et durée de l'interruption, puis Reprendre, Choisir autre chose, ou Insérer une tâche urgente en tête du plan.
+5. **Fin de session** : champ « Où tu en es ? », puis « Terminé, cocher dans Todoist », « Je continue », « Pause », « Arrêter là ».
+6. **Interruption** : raison et durée de l'interruption, champ « Où tu en es ? », puis Reprendre, Choisir autre chose, ou Insérer une tâche urgente en tête du plan.
 7. **Pause** : compte à rebours, bouton Passer la pause.
 8. **Stats** : onglet Focus (semaine par semaine) et onglet Backlog (évolution jour après jour).
 9. **Réglages** : token, durées par label, horizon des candidates, préfixe des réunions, mots-clés des blocs de travail, cible de chantiers actifs, projets suivis dans les stats.
@@ -113,6 +115,8 @@ Une fenêtre sans barre latérale. La navigation passe par une barre d'onglets f
 | Réunions du jour | Todoist (tâches « Réunion · … » datées avec une heure) | En mémoire |
 | Tâches terminées | Todoist (l'app coche via l'API) | En mémoire, pour l'onglet Backlog (8 dernières semaines) |
 | Token API Todoist | Moi | Trousseau du Mac |
+| Jeton de renouvellement Microsoft (statut Teams) | Microsoft, après connexion | Trousseau du Mac. Le jeton d'accès reste en mémoire |
+| Notes de reprise (texte, date, par tâche) | App | UserDefaults (`resume.notes`) |
 | Plan du jour (date, IDs ordonnés, IDs terminés) | App | SwiftData, local |
 | Sessions (tâche, tâche du plan, projet, labels, début, fin, durée prévue, durée réelle, issue) | App | SwiftData, local |
 | Interruptions (raison, début, fin, session) | App | SwiftData, local |
@@ -123,7 +127,7 @@ Remarques :
 
 - Les sessions gardent une copie du titre et du projet de la tâche, pour que les stats restent lisibles une fois la tâche fermée ou supprimée dans Todoist.
 - L'âge des tâches vient du champ `added_at` de Todoist. La photo quotidienne permet de tracer la courbe sans dépendre de l'historique de Todoist.
-- Les données SwiftData restent sur le Mac. Rien n'est envoyé ailleurs que vers l'API Todoist.
+- Les données SwiftData restent sur le Mac. Rien n'est envoyé ailleurs que vers l'API Todoist, sauf le statut Teams (disponibilité seulement, jamais le nom des tâches) si l'option est activée.
 
 ## 5. Choix techniques
 
@@ -131,5 +135,6 @@ Remarques :
 - **SwiftData local** pour le plan, les sessions et les photos du backlog. Pas de Supabase ni de CloudKit : un seul utilisateur, un seul appareil, aucune logique serveur.
 - **API Todoist v1** (`https://api.todoist.com/api/v1/`) appelée avec `URLSession` et `async/await`. Le token personnel évite d'implémenter OAuth. Les formats ont été vérifiés dans le SDK Python officiel de Doist.
 - **App Raccourcis** (`/usr/bin/shortcuts run`) pour « Ne pas déranger », macOS n'ayant pas d'API publique pour les modes de concentration.
-- **UserNotifications** pour les fins de session et de pause, **MenuBarExtra** pour le minuteur dans la barre de menus, **Swift Charts** pour les stats.
+- **Microsoft Graph** (`setUserPreferredPresence`, `clearUserPreferredPresence`, permission déléguée `Presence.ReadWrite`) pour le statut Teams. Connexion par code d'autorisation avec PKCE dans une feuille Safari (`ASWebAuthenticationSession`), sans secret ni dépendance.
+- **UserNotifications** pour les fins de session et de pause, les rappels du bilan et des réunions, **MenuBarExtra** pour le minuteur dans la barre de menus, **Swift Charts** pour les stats.
 - App non sandboxée et signée localement : elle n'est pas distribuée.

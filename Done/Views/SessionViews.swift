@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Minuteur en cours ou en pause.
 struct SessionView: View {
+    @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     @State private var showReasons = false
 
@@ -18,6 +19,15 @@ struct SessionView: View {
                     .frame(maxWidth: 620)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 6)
+                if let note = model.resumeNote(for: current.action.id) {
+                    Text("Où tu en étais : \(note.text)")
+                        .font(.text(13))
+                        .foregroundStyle(Theme.label2)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .frame(maxWidth: 560)
+                        .padding(.top, 10)
+                }
 
                 ZStack {
                     ProgressRing(fraction: engine.remainingFraction, color: paused ? Theme.label3 : Theme.ring, lineWidth: 14)
@@ -97,6 +107,7 @@ struct InterruptionView: View {
     @Environment(FocusEngine.self) private var engine
     let reason: InterruptionReason
     @State private var showPicker = false
+    @FocusState private var noteFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -111,15 +122,19 @@ struct InterruptionView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 520)
                     .padding(.top, 24)
+                ResumeNoteField(taskID: current.action.id, focused: $noteFocused)
+                    .frame(width: 420)
+                    .padding(.top, 24)
             }
             HStack(spacing: 10) {
                 Button("Choisir autre chose") { engine.stop(as: .interrupted) }
                     .buttonStyle(PillButtonStyle())
                 Button("Reprendre") { engine.resume() }
                     .buttonStyle(PillButtonStyle(kind: .primary))
-                    .keyboardShortcut(.defaultAction)
+                    // Entrée dans le champ de note ne relance pas le minuteur.
+                    .keyboardShortcut(noteFocused ? nil : .defaultAction)
             }
-            .padding(.top, 36)
+            .padding(.top, 24)
             Button("Insérer une tâche urgente…") { showPicker = true }
                 .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
                 .padding(.top, 10)
@@ -143,6 +158,7 @@ struct InterruptionView: View {
 /// Fin du minuteur : on décide de la suite.
 struct OutcomeView: View {
     @Environment(FocusEngine.self) private var engine
+    @FocusState private var noteFocused: Bool
 
     var body: some View {
         if let current = engine.current {
@@ -168,6 +184,9 @@ struct OutcomeView: View {
                         .frame(width: 360)
                         .padding(.top, 20)
                 }
+                ResumeNoteField(taskID: current.action.id, placeholder: "Pas fini ? Note où tu en es pour reprendre plus vite", focused: $noteFocused)
+                    .frame(width: 360)
+                    .padding(.top, 28)
                 VStack(spacing: 10) {
                     Button {
                         Task { await engine.markDone() }
@@ -182,7 +201,8 @@ struct OutcomeView: View {
                         }
                     }
                     .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
-                    .keyboardShortcut(.defaultAction)
+                    // Entrée dans le champ de note ne coche pas la tâche.
+                    .keyboardShortcut(noteFocused ? nil : .defaultAction)
                     HStack(spacing: 10) {
                         Button("Continuer \(Int(current.planned / 60)) min") { engine.continueSameAction() }
                             .buttonStyle(PillButtonStyle(fullWidth: true))
@@ -194,7 +214,7 @@ struct OutcomeView: View {
                 }
                 .frame(width: 360)
                 .disabled(engine.isClosing)
-                .padding(.top, 36)
+                .padding(.top, 14)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

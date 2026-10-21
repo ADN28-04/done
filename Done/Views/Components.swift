@@ -103,3 +103,59 @@ struct TaskPickerView: View {
         .background(Backdrop(style: .wash))
     }
 }
+
+// MARK: Note de reprise
+
+/// Champ « Où tu en es ? », enregistré au fil de la frappe dans la note de reprise de la tâche.
+struct ResumeNoteField: View {
+    @Environment(AppModel.self) private var model
+    let taskID: String
+    var placeholder = "Où tu en es ? Une ligne pour reprendre plus vite"
+    var focused: FocusState<Bool>.Binding
+
+    @State private var text = ""
+    @State private var loaded = false
+
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .textFieldStyle(.plain)
+            .font(.text(14))
+            .multilineTextAlignment(.leading)
+            .focused(focused)
+            .onSubmit { focused.wrappedValue = false }
+            .padding(.horizontal, 14)
+            .frame(height: 40)
+            .surface(radius: 12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Theme.ring.opacity(focused.wrappedValue ? 0.45 : 0), lineWidth: 2)
+            )
+            .onAppear {
+                guard !loaded else { return }
+                text = model.resumeNote(for: taskID)?.text ?? ""
+                loaded = true
+            }
+            .onChange(of: text) {
+                if loaded { model.setResumeNote(text, for: taskID) }
+            }
+    }
+}
+
+/// Rappel de la note de reprise, quand la tâche revient sur l'écran Focus.
+struct ResumeNoteCard: View {
+    let note: ResumeNote
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Eyebrow(text: "Où tu en étais · \(Format.moment(note.writtenAt))")
+            Text(note.text)
+                .font(.text(15))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .frame(maxWidth: 520)
+        .surface(radius: 14)
+    }
+}

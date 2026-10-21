@@ -18,6 +18,11 @@ enum SettingsKey {
     static let reviewHour = "rules.reviewHour"
     static let reviewReminder = "rules.reviewReminder"
     static let planSize = "rules.planSize"
+    static let meetingReminder = "rules.meetingReminder"
+    static let meetingReminderMinutes = "rules.meetingReminderMinutes"
+    static let teamsEnabled = "rules.teamsEnabled"
+    static let teamsClientID = "rules.teamsClientID"
+    static let teamsTenantID = "rules.teamsTenantID"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
@@ -48,6 +53,15 @@ struct Rules {
     var reviewReminder = true
     /// Nombre de tâches mises en avant dans le plan du jour.
     var planSize = 3
+    /// Notification quelques minutes avant chaque réunion lue dans Todoist.
+    var meetingReminder = true
+    var meetingReminderMinutes = 5
+    /// Statut Teams en « Ne pas déranger » pendant les sessions de focus.
+    var teamsEnabled = false
+    /// Application inscrite dans l'annuaire Microsoft (Entra ID) de l'entreprise.
+    var teamsClientID = ""
+    /// Annuaire (locataire) de l'entreprise. Vide = « organizations ».
+    var teamsTenantID = ""
 
     static let activeLabel = "Chantier-actif"
     static let waitingLabel = "Waiting"
@@ -79,6 +93,11 @@ struct Rules {
         rules.reviewHour = int(SettingsKey.reviewHour, base.reviewHour)
         rules.planSize = min(max(int(SettingsKey.planSize, base.planSize), 1), Rules.maxPlanSize)
         rules.reviewReminder = (defaults.object(forKey: SettingsKey.reviewReminder) as? Bool) ?? base.reviewReminder
+        rules.meetingReminder = (defaults.object(forKey: SettingsKey.meetingReminder) as? Bool) ?? base.meetingReminder
+        rules.meetingReminderMinutes = min(max(int(SettingsKey.meetingReminderMinutes, base.meetingReminderMinutes), 1), 30)
+        rules.teamsEnabled = (defaults.object(forKey: SettingsKey.teamsEnabled) as? Bool) ?? base.teamsEnabled
+        rules.teamsClientID = (defaults.string(forKey: SettingsKey.teamsClientID) ?? base.teamsClientID).trimmingCharacters(in: .whitespacesAndNewlines)
+        rules.teamsTenantID = (defaults.string(forKey: SettingsKey.teamsTenantID) ?? base.teamsTenantID).trimmingCharacters(in: .whitespacesAndNewlines)
         return rules
     }
 
