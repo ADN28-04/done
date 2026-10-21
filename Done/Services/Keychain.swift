@@ -1,21 +1,21 @@
 import Foundation
 import Security
 
-/// Secrets dans le trousseau du Mac : token Todoist et jeton de renouvellement Microsoft.
+/// Stockage du token Todoist dans le trousseau du Mac.
 enum Keychain {
     private static let service = "com.adnan.done"
-    static let todoistAccount = "todoist-token"
-    static let microsoftAccount = "microsoft-refresh-token"
+    private static let account = "todoist-token"
 
-    static func readToken() -> String? { read(todoistAccount) }
+    private static var baseQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+        ]
+    }
 
-    @discardableResult
-    static func saveToken(_ token: String) -> Bool { save(token, account: todoistAccount) }
-
-    static func deleteToken() { delete(todoistAccount) }
-
-    static func read(_ account: String) -> String? {
-        var query = baseQuery(account)
+    static func readToken() -> String? {
+        var query = baseQuery
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
@@ -25,22 +25,14 @@ enum Keychain {
     }
 
     @discardableResult
-    static func save(_ value: String, account: String) -> Bool {
-        delete(account)
-        var query = baseQuery(account)
-        query[kSecValueData as String] = Data(value.utf8)
+    static func saveToken(_ token: String) -> Bool {
+        deleteToken()
+        var query = baseQuery
+        query[kSecValueData as String] = Data(token.utf8)
         return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
     }
 
-    static func delete(_ account: String) {
-        _ = SecItemDelete(baseQuery(account) as CFDictionary)
-    }
-
-    private static func baseQuery(_ account: String) -> [String: Any] {
-        [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
+    static func deleteToken() {
+        _ = SecItemDelete(baseQuery as CFDictionary)
     }
 }

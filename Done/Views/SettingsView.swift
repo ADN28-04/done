@@ -21,21 +21,14 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.reviewReminder) private var reviewReminder = Rules().reviewReminder
     @AppStorage(SettingsKey.meetingReminder) private var meetingReminder = Rules().meetingReminder
     @AppStorage(SettingsKey.meetingReminderMinutes) private var meetingReminderMinutes = Rules().meetingReminderMinutes
-    @AppStorage(SettingsKey.teamsEnabled) private var teamsEnabled = Rules().teamsEnabled
-    @AppStorage(SettingsKey.teamsClientID) private var teamsClientID = Rules().teamsClientID
-    @AppStorage(SettingsKey.teamsTenantID) private var teamsTenantID = Rules().teamsTenantID
 
     @State private var newToken = ""
     @State private var isEditingToken = false
-    @State private var dndStatus: CheckStatus = .unknown
-    @State private var teamsCheck: CheckStatus = .unknown
+    @State private var dndStatus: DndStatus = .unknown
 
-    /// Résultat d'une vérification : raccourcis « Ne pas déranger » ou connexion Teams.
-    private enum CheckStatus: Equatable {
+    private enum DndStatus: Equatable {
         case unknown, checking, ready, problem(String)
     }
-
-    private var teams: TeamsStatus { .shared }
 
     var body: some View {
         ScrollView {
@@ -156,37 +149,6 @@ struct SettingsView: View {
                     }
                 }
 
-                SettingsSection("Statut Teams", footer: "Done passe ton statut Teams en « Ne pas déranger » quand le minuteur tourne, et le remet en automatique en pause, en interruption et à la fin de la session. Il faut d'abord inscrire Done dans l'annuaire Microsoft de ton entreprise : les étapes sont dans le README.") {
-                    toggleRow("Ne pas déranger pendant les sessions", isOn: $teamsEnabled)
-                    RowDivider()
-                    textRow("ID d'application (client)", text: $teamsClientID)
-                    RowDivider()
-                    textRow("ID de l'annuaire (locataire)", text: $teamsTenantID)
-                    RowDivider()
-                    SettingsRow {
-                        teamsStatusLabel
-                    } trailing: {
-                        HStack(spacing: 6) {
-                            if teams.isSignedIn {
-                                Button("Se déconnecter") {
-                                    Task {
-                                        await teams.signOut()
-                                        teamsCheck = .unknown
-                                    }
-                                }
-                                .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
-                                Button("Tester") { Task { await testTeams() } }
-                                    .buttonStyle(PillButtonStyle(size: .mini))
-                            } else {
-                                Button("Se connecter") { Task { await signInTeams() } }
-                                    .buttonStyle(PillButtonStyle(kind: .primary, size: .mini))
-                                    .disabled(teamsClientID.trimmingCharacters(in: .whitespaces).isEmpty)
-                            }
-                        }
-                        .disabled(teamsCheck == .checking)
-                    }
-                }
-
                 SettingsSection("Notifications", footer: "Si les notifications ne s'affichent pas, autorise Done dans Réglages Système › Notifications. Pendant « Ne pas déranger », macOS les masque : pour garder le rappel de réunion, ajoute Done aux apps autorisées dans Réglages Système › Concentration › Ne pas déranger.") {
                     toggleRow("Réunion proche", isOn: $meetingReminder)
                     RowDivider()
@@ -241,24 +203,16 @@ struct SettingsView: View {
         }
     }
 
-    private var dndStatusLabel: some View {
-        statusLabel(dndStatus, unknown: "État des raccourcis", ready: "Raccourcis opérationnels")
-    }
-
-    private var teamsStatusLabel: some View {
-        statusLabel(teamsCheck, unknown: teams.isSignedIn ? "Connecté à Microsoft" : "Non connecté", ready: "Statut Teams opérationnel")
-    }
-
     @ViewBuilder
-    private func statusLabel(_ status: CheckStatus, unknown: String, ready: String) -> some View {
-        switch status {
+    private var dndStatusLabel: some View {
+        switch dndStatus {
         case .unknown:
-            Text(unknown)
+            Text("État des raccourcis")
                 .foregroundStyle(Theme.label2)
         case .checking:
             ProgressView().controlSize(.small)
         case .ready:
-            Label(ready, systemImage: "checkmark.circle.fill")
+            Label("Raccourcis opérationnels", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(Theme.accentText)
         case .problem(let message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
@@ -290,27 +244,6 @@ struct SettingsView: View {
             dndStatus = .problem("Introuvable : \(missing.joined(separator: ", "))")
         case .failure(let error):
             dndStatus = .problem(error.message)
-        }
-    }
-
-    private func signInTeams() async {
-        teamsCheck = .checking
-        do {
-            try await teams.signIn()
-            teamsCheck = .unknown
-        } catch is CancellationError {
-            teamsCheck = .unknown
-        } catch {
-            teamsCheck = .problem("Teams : \(error.localizedDescription)")
-        }
-    }
-
-    private func testTeams() async {
-        teamsCheck = .checking
-        if let message = await teams.test() {
-            teamsCheck = .problem(message)
-        } else {
-            teamsCheck = .ready
         }
     }
 

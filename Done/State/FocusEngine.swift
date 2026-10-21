@@ -260,12 +260,10 @@ final class FocusEngine {
         save()
     }
 
-    /// Point de passage unique des changements de phase : « Ne pas déranger », statut Teams et App Nap.
+    /// Point de passage unique des changements de phase.
     private func transition(to newPhase: Phase) {
         phase = newPhase
-        let focusing = newPhase == .focusing
-        DoNotDisturb.shared.update(focusing: focusing)
-        TeamsStatus.shared.update(focusing: focusing, until: focusing ? Date.now.addingTimeInterval(remaining) : nil)
+        DoNotDisturb.shared.update(focusing: newPhase == .focusing)
         SystemBridge.keepTimerAccurate(newPhase != .idle && newPhase != .awaitingOutcome)
     }
 

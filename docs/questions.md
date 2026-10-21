@@ -41,7 +41,7 @@ Points à trancher pendant l'usage de la V1.
    Le jour du cadrage, six tâches portaient `Chantier-actif`, dont quatre en P1. La cible est fixée à 2 par défaut dans les réglages. À confirmer.
 
 10. **Données professionnelles.**
-    Le Todoist contient des informations de travail (noms de collègues, projets internes). Elles transitent entre l'API Todoist et le Mac, et l'historique des sessions reste en local. Vérifier que c'est compatible avec les règles de l'employeur. Le statut Teams demande en plus d'inscrire une application dans l'annuaire Microsoft de l'entreprise : à valider avec le service informatique si l'inscription est encadrée.
+    Le Todoist contient des informations de travail (noms de collègues, projets internes). Elles transitent entre l'API Todoist et le Mac, et l'historique des sessions reste en local. Vérifier que c'est compatible avec les règles de l'employeur.
 
 11. **« Ne pas déranger » pendant une pause manuelle ?**
     Aujourd'hui, le mode est coupé dès que le minuteur est en pause ou interrompu. Si les pauses sont très courtes, on pourrait le garder actif pour éviter les allers-retours.
@@ -49,8 +49,5 @@ Points à trancher pendant l'usage de la V1.
 12. **Faut-il bloquer les distractions ?**
     Exclu de la V1. À réévaluer après un mois si la concentration reste le principal frein malgré le minuteur.
 
-13. **Statut Teams choisi à la main.**
-    À la fin d'une session, Done remet le statut Teams en automatique, même si « Absent » ou « Occupé » avait été choisi à la main avant. À surveiller : si c'est gênant, Done pourrait lire le statut avant la session et le rétablir.
-
-14. **La note de reprise doit-elle aller dans Todoist ?**
+13. **La note de reprise doit-elle aller dans Todoist ?**
     Elle reste sur le Mac pour l'instant. La poster en commentaire sur la tâche la rendrait visible dans Todoist, au prix d'une quatrième écriture.
