@@ -8,6 +8,7 @@ struct DoneApp: App {
     @State private var engine: FocusEngine
 
     init() {
+        FontLoader.registerBundledFonts()
         let container: ModelContainer
         do {
             container = try ModelContainer(for: DayPlan.self, FocusSession.self, Interruption.self, BacklogSnapshot.self)
@@ -29,15 +30,22 @@ struct DoneApp: App {
             RootView()
                 .environment(model)
                 .environment(engine)
-                .frame(minWidth: 780, minHeight: 640)
+                .font(.text(13))
+                .foregroundStyle(Theme.label)
+                .tint(Theme.accent)
+                .frame(minWidth: 820, minHeight: 640)
         }
         .modelContainer(container)
+        // Le contenu monte sous la barre de titre : fond teinté et barre du haut maison.
+        .windowStyle(.hiddenTitleBar)
 
         // Le minuteur reste visible dans la barre de menus, même fenêtre fermée.
         MenuBarExtra {
             MenuBarView()
                 .environment(model)
                 .environment(engine)
+                .font(.text(13))
+                .foregroundStyle(Theme.label)
         } label: {
             MenuBarLabel(engine: engine)
         }

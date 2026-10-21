@@ -46,7 +46,8 @@ Done/
   Data/       modèles SwiftData (plan du jour, sessions, interruptions, photos du backlog)
   Services/   client API Todoist, trousseau, notifications, appels AppKit
   State/      AppModel (tâches et plan) et FocusEngine (minuteur)
-  Views/      écrans SwiftUI, et Theme.swift pour les couleurs et composants du design system
+  Views/      écrans SwiftUI, et Theme.swift pour les couleurs, polices et composants du design system
+  Fonts/      Plus Jakarta Sans, DM Sans et DM Mono (licences OFL dans docs/fonts/)
   Assets.xcassets/  icône de l'app et couleur d'accent
 ```
 

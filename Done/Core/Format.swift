@@ -60,11 +60,26 @@ enum Format {
 
     /// « Semaine du 19 au 25 octobre », ou « du 29 septembre au 5 octobre » à cheval sur deux mois.
     static func weekTitle(_ week: DateInterval) -> String {
+        "Semaine \(span(week))"
+    }
+
+    /// « Du 19 au 25 octobre ».
+    static func weekRange(_ week: DateInterval) -> String {
+        "D" + span(week).dropFirst()
+    }
+
+    private static func span(_ week: DateInterval) -> String {
         let last = week.end.addingTimeInterval(-1)
         let calendar = Calendar.current
         let sameMonth = calendar.component(.month, from: week.start) == calendar.component(.month, from: last)
         let start = sameMonth ? dayNumber.string(from: week.start) : dayMonth.string(from: week.start)
-        return "Semaine du \(start) au \(dayMonth.string(from: last))"
+        return "du \(start) au \(dayMonth.string(from: last))"
+    }
+
+    /// Jour abrégé, semaine commençant le lundi : Lun, Mar… Dim.
+    static func weekdayShort(_ date: Date) -> String {
+        let names = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+        return names[Calendar(identifier: .gregorian).component(.weekday, from: date) - 1]
     }
 
     /// « 8 oct. » pour les axes des graphiques.

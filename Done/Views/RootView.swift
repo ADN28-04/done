@@ -29,14 +29,9 @@ struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     @State private var screen: Screen = .focus
+    @State private var statsTab: StatsView.Tab = .focus
     @State private var choseInitialScreen = false
     @State private var revealTabBar = false
-
-    /// Pendant une session, la barre s'efface : il ne reste que la tâche et le minuteur.
-    private var showTabBar: Bool {
-        let sessionRunning = engine.phase == .focusing || engine.phase == .paused
-        return !sessionRunning || revealTabBar
-    }
 
     var body: some View {
         Group {
@@ -46,43 +41,56 @@ struct RootView: View {
                 OnboardingView()
             }
         }
-        .background(Theme.background)
+    }
+
+    /// Sur l'écran Focus, toute phase autre que le repos est une session :
+    /// la navigation s'efface, il ne reste que la tâche et le minuteur.
+    private var inSession: Bool {
+        screen == .focus && engine.phase != .idle
+    }
+
+    private var showTabBar: Bool { !inSession || revealTabBar }
+
+    private var backdropStyle: BackdropStyle {
+        guard screen == .focus else { return .wash }
+        switch engine.phase {
+        case .idle: return .wash
+        case .focusing, .paused: return .session
+        case .interrupted: return .interruption
+        case .awaitingOutcome: return .finished
+        case .onBreak: return .rest
+        }
     }
 
     private var main: some View {
-        VStack(spacing: 0) {
-            if let message = model.errorMessage {
-                ErrorBanner(message: message) { model.errorMessage = nil }
+        ZStack {
+            Backdrop(style: backdropStyle)
+                .animation(.easeInOut(duration: 0.6), value: backdropStyle)
+            VStack(spacing: 0) {
+                TopBar(screen: screen, inSession: inSession, statsTab: $statsTab)
+                if let message = model.errorMessage {
+                    ErrorBanner(message: message) { model.errorMessage = nil }
+                        .padding(.horizontal, 32)
+                        .padding(.bottom, 8)
+                }
+                detail
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            detail
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(.container, edges: .top)
         }
-        .background(Theme.background)
         // La barre flotte au-dessus du contenu, qui garde de la place pour elle.
         // Masquée pendant une session, elle revient quand la souris approche du bas.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $screen)
                 .opacity(showTabBar ? 1 : 0)
-                .offset(y: showTabBar ? 0 : 24)
+                .offset(y: showTabBar ? 0 : 20)
                 .allowsHitTesting(showTabBar)
                 .animation(.easeInOut(duration: 0.3), value: showTabBar)
-                .padding(.bottom, 20)
+                .padding(.bottom, 16)
                 .padding(.top, 8)
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
                 .onHover { inside in revealTabBar = inside }
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await model.refresh() }
-                } label: {
-                    Label("Rafraîchir", systemImage: "arrow.clockwise")
-                }
-                .help("Recharger les tâches Todoist (⌘R)")
-                .keyboardShortcut("r")
-                .disabled(model.isLoading)
-            }
         }
         .onAppear {
             if !choseInitialScreen {
@@ -101,27 +109,127 @@ struct RootView: View {
         switch screen {
         case .focus:
             FocusView(openPlan: { screen = .plan })
-                .navigationTitle("Focus")
         case .plan:
             PlanView(onValidate: { screen = .focus })
-                .navigationTitle("")
         case .stats:
-            StatsView()
-                .navigationTitle("Stats")
+            StatsView(tab: statsTab)
         case .settings:
             SettingsView()
-                .navigationTitle("Réglages")
         }
     }
 }
 
-/// Barre d'onglets flottante, centrée en bas, façon iOS : une pilule en Liquid Glass.
+/// Barre du haut, dans la zone de titre : pastille centrale (réunion, ou choix Focus/Backlog
+/// dans les stats) et bouton rafraîchir. Les feux de la fenêtre restent à gauche.
+private struct TopBar: View {
+    @Environment(AppModel.self) private var model
+    @Environment(FocusEngine.self) private var engine
+    let screen: RootView.Screen
+    let inSession: Bool
+    @Binding var statsTab: StatsView.Tab
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            HStack(spacing: 12) {
+                Color.clear.frame(width: 80)
+                Spacer(minLength: 0)
+                center(now: context.date)
+                Spacer(minLength: 0)
+                HStack {
+                    if !inSession && screen != .settings {
+                        Button {
+                            Task { await model.refresh() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(RoundGlassButtonStyle())
+                        .help("Recharger les tâches Todoist (⌘R)")
+                        .keyboardShortcut("r")
+                        .disabled(model.isLoading)
+                    }
+                }
+                .frame(width: 80, alignment: .trailing)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 60)
+        }
+    }
+
+    @ViewBuilder
+    private func center(now: Date) -> some View {
+        if screen == .stats {
+            StatsTabPicker(selection: $statsTab)
+        } else if screen == .focus || screen == .plan {
+            let showPill = !inSession || isInterrupted
+            if showPill, let pill = MeetingPill.make(meetings: model.meetingsToday, now: now, includeNext: !inSession) {
+                MeetingPill(content: pill)
+            }
+        }
+    }
+
+    private var isInterrupted: Bool {
+        if case .interrupted = engine.phase { return true }
+        return false
+    }
+}
+
+/// Pastille en verre : réunion en cours, bloc de travail ou prochaine réunion.
+struct MeetingPill: View {
+    struct Content {
+        enum Dot { case filled, accent, hollow }
+        let text: String
+        let dot: Dot
+        let help: String
+    }
+
+    let content: Content
+
+    var body: some View {
+        HStack(spacing: 8) {
+            dot
+            Text(content.text)
+                .font(.text(13))
+                .foregroundStyle(Theme.label)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 32)
+        .glassBackground(Capsule())
+        .help(content.help)
+    }
+
+    @ViewBuilder
+    private var dot: some View {
+        switch content.dot {
+        case .filled:
+            Circle().fill(Theme.label2).frame(width: 7, height: 7)
+        case .accent:
+            Circle().fill(Theme.ring).frame(width: 7, height: 7)
+        case .hollow:
+            Circle().strokeBorder(Theme.label2, lineWidth: 1.5).frame(width: 7, height: 7)
+        }
+    }
+
+    static func make(meetings: [Meeting], now: Date, includeNext: Bool) -> Content? {
+        if let ongoing = meetings.first(where: { $0.contains(now) }) {
+            if ongoing.isFocusBlock {
+                return Content(text: "Bloc \(ongoing.title) jusqu'à \(Format.time(ongoing.end))", dot: .accent, help: ongoing.title)
+            }
+            return Content(text: "Réunion en cours jusqu'à \(Format.time(ongoing.end))", dot: .filled, help: ongoing.title)
+        }
+        guard includeNext, let next = meetings.first(where: { !$0.isFocusBlock && $0.start > now }) else { return nil }
+        let minutes = Format.minutes(next.start.timeIntervalSince(now) / 60)
+        return Content(text: "Prochaine réunion à \(Format.time(next.start)) · dans \(minutes)", dot: .hollow, help: next.title)
+    }
+}
+
+/// Barre d'onglets flottante, centrée en bas : une pilule en verre.
 struct FloatingTabBar: View {
     @Binding var selection: RootView.Screen
     @Namespace private var namespace
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(RootView.Screen.allCases) { screen in
                 TabBarItem(screen: screen, isSelected: selection == screen, namespace: namespace) {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
@@ -131,8 +239,8 @@ struct FloatingTabBar: View {
                 .keyboardShortcut(screen.shortcut, modifiers: .command)
             }
         }
-        .padding(6)
-        .liquidGlassCapsule()
+        .padding(5)
+        .liquidGlass(Capsule())
     }
 }
 
@@ -146,19 +254,20 @@ private struct TabBarItem: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            HStack(spacing: 8) {
                 icon
-                    .frame(width: 24, height: 22)
+                    .frame(width: 16, height: 16)
                 Text(screen.title)
-                    .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                    .font(.text(13, isSelected ? .semibold : .regular))
                     .lineLimit(1)
             }
-            .foregroundStyle(isSelected ? Theme.accent : (hovered ? Theme.label : Theme.label2))
-            .frame(width: 96, height: 60)
+            .foregroundStyle(isSelected ? Theme.accentText : (hovered ? Theme.label : Theme.label2))
+            .padding(.horizontal, 18)
+            .frame(height: 40)
             .background {
                 if isSelected {
                     Capsule()
-                        .fill(Theme.accent.opacity(0.14))
+                        .fill(Theme.selection)
                         .matchedGeometryEffect(id: "selection", in: namespace)
                 }
             }
@@ -177,43 +286,16 @@ private struct TabBarItem: View {
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 21, height: 21)
         case .plan:
             Image(systemName: "text.alignleft")
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
         case .stats:
             Image(systemName: "chart.bar.fill")
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
         case .settings:
             Image(systemName: "smallcircle.filled.circle")
-                .font(.system(size: 20, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
         }
-    }
-}
-
-extension View {
-    #if compiler(>=6.2)
-    /// Liquid Glass sur macOS 26, verre dépoli avant.
-    @ViewBuilder
-    func liquidGlassCapsule() -> some View {
-        if #available(macOS 26.0, *) {
-            glassEffect(.regular, in: Capsule())
-                .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
-        } else {
-            frostedCapsule()
-        }
-    }
-    #else
-    /// Xcode antérieur à la version 26 : verre dépoli uniquement.
-    func liquidGlassCapsule() -> some View {
-        frostedCapsule()
-    }
-    #endif
-
-    fileprivate func frostedCapsule() -> some View {
-        background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.15), radius: 18, y: 8)
     }
 }
 
@@ -222,21 +304,18 @@ struct ErrorBanner: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-            Text(message)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .top, spacing: 10) {
+            NoticeBox(text: message, tone: .error)
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.label2)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("Masquer")
         }
-        .font(.system(size: 13))
-        .foregroundStyle(Theme.redText)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Theme.redTint)
+        .frame(maxWidth: 640)
     }
 }

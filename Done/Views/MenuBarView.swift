@@ -22,7 +22,7 @@ struct MenuBarLabel: View {
     }
 }
 
-/// Panneau ouvert au clic sur l'icône : 280 pt, style fenêtre.
+/// Panneau ouvert au clic sur l'icône, en verre : 300 pt de large.
 struct MenuBarView: View {
     @Environment(FocusEngine.self) private var engine
     @Environment(\.openWindow) private var openWindow
@@ -30,18 +30,27 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             content
-            Hairline()
-                .padding(.vertical, 8)
-            MenuRow(title: "Ouvrir Done", shortcut: "⌘O") {
-                openWindow(id: "main")
-                SystemBridge.bringToFront()
+            HStack(spacing: 8) {
+                primaryControl
+                Button("Ouvrir Done") {
+                    openWindow(id: "main")
+                    SystemBridge.bringToFront()
+                }
+                .buttonStyle(PillButtonStyle(size: .small, fullWidth: true))
+                .keyboardShortcut("o")
             }
-            .keyboardShortcut("o")
-            MenuRow(title: "Quitter", shortcut: "⌘Q") { SystemBridge.quit() }
-                .keyboardShortcut("q")
+            .padding(.top, 16)
+            HStack {
+                Spacer()
+                Button("Quitter Done") { SystemBridge.quit() }
+                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+                    .keyboardShortcut("q")
+            }
+            .padding(.top, 6)
         }
-        .padding(14)
-        .frame(width: 280)
+        .padding(18)
+        .frame(width: 300)
+        .background(Backdrop(style: .wash).opacity(0.6))
     }
 
     @ViewBuilder
@@ -49,109 +58,74 @@ struct MenuBarView: View {
         switch engine.phase {
         case .idle:
             Text("Aucune session en cours")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.label)
+                .font(.text(15, .semibold))
             Text("Ouvre Done pour lancer la prochaine tâche.")
-                .font(.system(size: 12))
+                .font(.text(12))
                 .foregroundStyle(Theme.label2)
                 .padding(.top, 4)
         case .awaitingOutcome:
             Text("Session terminée")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.label)
+                .font(.text(15, .semibold))
             Text("Ouvre Done pour cocher la tâche ou continuer.")
-                .font(.system(size: 12))
+                .font(.text(12))
                 .foregroundStyle(Theme.label2)
                 .padding(.top, 4)
         case .onBreak:
             caption("Pause café")
-            timer(engine.breakRemaining, total: engine.breakDuration, fraction: engine.breakRemainingFraction)
-            Button("Passer la pause") { engine.skipBreak() }
-                .buttonStyle(PillButtonStyle(fullWidth: true))
-                .padding(.top, 12)
+            timer(engine.breakRemaining, total: engine.breakDuration, fraction: engine.breakRemainingFraction, active: true)
         case .focusing, .paused, .interrupted:
             if let current = engine.current {
                 caption(engine.phase == .focusing ? current.projectName : statusCaption)
                 Text(current.action.content)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.label)
+                    .font(.text(15, .semibold))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
-                timer(engine.remaining, total: current.planned, fraction: engine.remainingFraction)
-                if engine.phase == .focusing {
-                    Button("Pause") { engine.pause() }
-                        .buttonStyle(PillButtonStyle(fullWidth: true))
-                        .padding(.top, 12)
-                } else {
-                    Button("Reprendre") { engine.resume() }
-                        .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
-                        .padding(.top, 12)
-                }
+                timer(engine.remaining, total: current.planned, fraction: engine.remainingFraction, active: engine.phase == .focusing)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var primaryControl: some View {
+        switch engine.phase {
+        case .focusing:
+            Button("Pause") { engine.pause() }
+                .buttonStyle(PillButtonStyle(size: .small, fullWidth: true))
+        case .paused, .interrupted:
+            Button("Reprendre") { engine.resume() }
+                .buttonStyle(PillButtonStyle(kind: .primary, size: .small, fullWidth: true))
+        case .onBreak:
+            Button("Passer la pause") { engine.skipBreak() }
+                .buttonStyle(PillButtonStyle(size: .small, fullWidth: true))
+        case .idle, .awaitingOutcome:
+            EmptyView()
         }
     }
 
     private var statusCaption: String {
         if case .interrupted(let reason) = engine.phase {
-            return "Interrompu : \(reason.label)"
+            return "Interrompu · \(reason.label)"
         }
         return "En pause"
     }
 
     private func caption(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11))
+            .font(.text(12))
             .foregroundStyle(Theme.label2)
     }
 
-    private func timer(_ remaining: TimeInterval, total: TimeInterval, fraction: Double) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func timer(_ remaining: TimeInterval, total: TimeInterval, fraction: Double, active: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(Format.clock(remaining))
-                    .font(.timer(34))
-                    .foregroundStyle(Theme.label)
+                TimerText(text: Format.clock(remaining), size: 40)
                 Text("sur \(Int((total / 60).rounded())) min")
-                    .font(.system(size: 12))
+                    .font(.text(13))
                     .foregroundStyle(Theme.label2)
             }
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Theme.track)
-                    Capsule()
-                        .fill(engine.phase == .focusing || engine.phase == .onBreak ? Theme.accent : Theme.label3)
-                        .frame(width: proxy.size.width * max(0, min(1, fraction)))
-                }
-            }
-            .frame(height: 4)
+            ProgressBar(fraction: fraction, color: active ? Theme.ring : Theme.label3)
         }
-        .padding(.top, 8)
-    }
-}
-
-/// Ligne façon menu macOS, surlignée au survol.
-private struct MenuRow: View {
-    let title: String
-    let shortcut: String
-    let action: () -> Void
-    @State private var hovered = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(shortcut)
-                    .foregroundStyle(hovered ? Color.white.opacity(0.8) : Theme.label2)
-            }
-            .font(.system(size: 13))
-            .foregroundStyle(hovered ? Color.white : Theme.label)
-            .padding(.horizontal, 6)
-            .frame(height: 24)
-            .background(hovered ? Theme.accent : Color.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovered = $0 }
+        .padding(.top, 14)
     }
 }

@@ -9,7 +9,8 @@ struct StatsView: View {
         var id: String { rawValue }
     }
 
-    @State private var tab: Tab = .focus
+    /// Choisi dans la barre du haut (`StatsTabPicker`).
+    let tab: Tab
 
     var body: some View {
         ScrollView {
@@ -19,21 +20,22 @@ struct StatsView: View {
                 case .backlog: BacklogStatsView()
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
+            .padding(.leading, 32)
+            .padding(.trailing, 40)
+            .padding(.top, 4)
             .padding(.bottom, 24)
         }
+        .scrollIndicators(.never)
         .environment(\.locale, Locale(identifier: "fr_FR"))
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Vue", selection: $tab) {
-                    ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 180)
-            }
-        }
+    }
+}
+
+/// Choix Focus / Backlog, en verre, au centre de la barre du haut.
+struct StatsTabPicker: View {
+    @Binding var selection: StatsView.Tab
+
+    var body: some View {
+        GlassSegmented(selection: $selection, options: StatsView.Tab.allCases.map { (value: $0, title: $0.rawValue) })
     }
 }
 
@@ -49,102 +51,85 @@ struct FocusStatsView: View {
         let facts = sessions.filter { week.contains($0.startedAt) }.map(\.fact)
         let days = Stats.byDay(facts, in: week)
         let projects = Stats.byProject(facts)
-        let reasons = Stats.interruptions(facts)
+        let interruptions = Stats.interruptions(facts).reduce(0) { $0 + $1.count }
+        let checked = facts.filter { $0.outcome == .done }.count
 
-        VStack(alignment: .leading, spacing: 16) {
-            PeriodHeader(title: Format.weekTitle(week), canGoForward: weekOffset < 0) { weekOffset += $0 }
+        VStack(alignment: .leading, spacing: 0) {
+            PeriodHeader(title: weekTitle, subtitle: Format.weekRange(week), canGoForward: weekOffset < 0) { weekOffset += $0 }
 
-            HStack(spacing: 12) {
-                StatTile(title: "Temps de focus", value: Format.minutes(Stats.totalMinutes(facts)))
-                StatTile(title: "Sessions", value: "\(facts.count)")
-                StatTile(title: "Tâches cochées", value: "\(facts.filter { $0.outcome == .done }.count)")
-                StatTile(title: "Interruptions", value: "\(reasons.reduce(0) { $0 + $1.count })")
-            }
+            HeroNumber(
+                value: Format.minutes(Stats.totalMinutes(facts)),
+                caption: "de focus · \(plural(facts.count, "session")) · \(plural(checked, "tâche cochée", "tâches cochées")) · \(plural(interruptions, "interruption"))"
+            )
+            .padding(.top, 24)
 
-            HStack(alignment: .top, spacing: 16) {
-                ChartCard(title: "Minutes de focus par jour") {
-                    if facts.isEmpty {
-                        EmptyChart(message: "Aucune session cette semaine. Elles apparaîtront ici dès ta première session.")
+            HStack(alignment: .top, spacing: 20) {
+                StatsCard(title: "Par jour") {
+                    DailyBars(days: days)
+                }
+                .frame(minWidth: 360, maxWidth: .infinity)
+
+                StatsCard(title: "Par projet") {
+                    if projects.isEmpty {
+                        Text("Pas encore de session cette semaine.")
+                            .font(.text(13))
+                            .foregroundStyle(Theme.label2)
                     } else {
-                        DailyFocusChart(days: days)
-                    }
-                }
-                .frame(minWidth: 280, maxWidth: .infinity)
-
-                VStack(spacing: 16) {
-                    ChartCard(title: "Temps par projet") {
-                        if projects.isEmpty {
-                            EmptyChart(message: "Pas encore de données.")
-                        } else {
-                            let longest = projects.map(\.minutes).max() ?? 1
-                            VStack(spacing: 14) {
-                                ForEach(projects) { project in
-                                    MeterRow(label: project.name, value: Format.minutes(project.minutes), fraction: project.minutes / max(longest, 1), color: Theme.accent)
-                                }
-                            }
-                        }
-                    }
-                    ChartCard(title: "Interruptions par raison") {
-                        let most = Double(reasons.map(\.count).max() ?? 0)
-                        VStack(spacing: 14) {
-                            ForEach(reasons) { item in
-                                MeterRow(label: item.reason.label, value: "\(item.count)", fraction: most > 0 ? Double(item.count) / most : 0, color: Theme.label2)
+                        let longest = projects.map(\.minutes).max() ?? 1
+                        VStack(spacing: 18) {
+                            ForEach(projects) { project in
+                                MeterRow(label: project.name, value: Format.minutes(project.minutes), fraction: project.minutes / max(longest, 1))
                             }
                         }
                     }
                 }
-                .frame(minWidth: 240, idealWidth: 360, maxWidth: 380)
+                .frame(width: 340)
             }
+            .padding(.top, 24)
+        }
+    }
+
+    private var weekTitle: String {
+        switch weekOffset {
+        case 0: "Cette semaine"
+        case -1: "La semaine dernière"
+        default: "Il y a \(-weekOffset) semaines"
         }
     }
 }
 
-private struct DailyFocusChart: View {
+/// Barres de minutes par jour, du lundi au dimanche.
+private struct DailyBars: View {
     let days: [Stats.DayFocus]
 
     var body: some View {
-        let top = max(60, ((days.map(\.minutes).max() ?? 0) / 60).rounded(.up) * 60)
-        Chart(days) { day in
-            BarMark(
-                x: .value("Jour", day.day, unit: .day),
-                y: .value("Minutes", day.minutes),
-                width: .ratio(0.45)
-            )
-            .foregroundStyle(Theme.accent)
-            .cornerRadius(4)
-            .annotation(position: .top, spacing: 4) {
-                if day.minutes > 0 {
-                    Text(Format.minutes(day.minutes))
-                        .font(.system(size: 11).monospacedDigit())
-                        .foregroundStyle(Theme.label2)
-                }
-            }
-        }
-        .chartYScale(domain: 0...top)
-        .chartYAxis {
-            AxisMarks(position: .trailing, values: .stride(by: 60)) { value in
-                AxisGridLine().foregroundStyle(Theme.separator)
-                AxisValueLabel {
-                    if let minutes = value.as(Double.self) {
-                        Text(Format.hours(minutes))
-                            .font(.system(size: 10).monospacedDigit())
+        let longest = max(days.map(\.minutes).max() ?? 0, 60)
+        HStack(alignment: .bottom, spacing: 0) {
+            ForEach(days) { day in
+                let isToday = Calendar.current.isDateInToday(day.day)
+                VStack(spacing: 8) {
+                    if day.minutes > 0 {
+                        Text(Format.minutes(day.minutes))
+                            .font(.text(12))
                             .foregroundStyle(Theme.label2)
+                            .lineLimit(1)
+                            .fixedSize()
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Theme.ring)
+                            .frame(width: 44, height: max(12, 210 * day.minutes / longest))
+                    } else {
+                        Capsule()
+                            .fill(Theme.track)
+                            .frame(width: 44, height: 6)
                     }
+                    Text(Format.weekdayShort(day.day))
+                        .font(.text(12, isToday ? .bold : .regular))
+                        .foregroundStyle(isToday ? Theme.label : Theme.label2)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
-        .chartXAxis {
-            AxisMarks(values: days.map(\.day)) { value in
-                AxisValueLabel(centered: true) {
-                    if let date = value.as(Date.self) {
-                        Text(Format.weekdayInitial(date))
-                            .font(.system(size: 11, weight: Calendar.current.isDateInToday(date) ? .bold : .regular))
-                            .foregroundStyle(Calendar.current.isDateInToday(date) ? Theme.label : Theme.label2)
-                    }
-                }
-            }
-        }
-        .frame(height: 260)
+        .frame(height: 270, alignment: .bottom)
     }
 }
 
@@ -163,23 +148,20 @@ struct BacklogStatsView: View {
         let points = snapshots.filter { window.contains($0.day) }
         let overTarget = numbers.activeCount > rules.maxActive
 
-        VStack(alignment: .leading, spacing: 16) {
-            PeriodHeader(title: windowTitle(window), canGoForward: windowOffset < 0) { windowOffset += $0 }
+        VStack(alignment: .leading, spacing: 0) {
+            PeriodHeader(title: "Backlog", subtitle: windowTitle(window), canGoForward: windowOffset < 0) { windowOffset += $0 }
 
-            HStack(spacing: 12) {
-                StatTile(title: "Chantiers ouverts", value: "\(numbers.openTopLevel)")
-                StatTile(title: "Âge moyen", value: "\(Int(numbers.averageAgeDays.rounded())) j")
-                StatTile(
-                    title: "Chantiers actifs",
-                    value: "\(numbers.activeCount)",
-                    suffix: " / \(rules.maxActive)",
-                    detail: overTarget ? "Cible dépassée" : nil,
-                    tint: overTarget ? Theme.orangeText : Theme.label
-                )
-                StatTile(title: "Fermés cette semaine", value: "\(closed.last?.count ?? 0)")
-            }
+            HeroNumber(
+                value: "\(numbers.openTopLevel)",
+                caption: "chantiers ouverts · âge moyen \(Int(numbers.averageAgeDays.rounded())) j · \(closed.last?.count ?? 0) fermés cette semaine"
+            )
+            .padding(.top, 24)
+            Text("\(numbers.activeCount) chantiers actifs pour \(rules.maxActive) visés")
+                .font(.text(13, .medium))
+                .foregroundStyle(overTarget ? Theme.orangeText : Theme.accentText)
+                .padding(.top, 8)
 
-            Grid(horizontalSpacing: 16, verticalSpacing: 16) {
+            Grid(horizontalSpacing: 20, verticalSpacing: 20) {
                 GridRow {
                     TrendCard(title: "Chantiers ouverts", value: "\(numbers.openTopLevel)", window: window, points: points.map { TrendPoint(day: $0.day, value: Double($0.openTopLevel)) })
                     TrendCard(title: "Âge moyen", value: "\(Int(numbers.averageAgeDays.rounded())) j", window: window, points: points.map { TrendPoint(day: $0.day, value: $0.averageAgeDays) })
@@ -193,11 +175,12 @@ struct BacklogStatsView: View {
                         points: points.map { TrendPoint(day: $0.day, value: Double($0.activeCount)) },
                         target: Double(rules.maxActive)
                     )
-                    ChartCard(title: "Chantiers fermés par semaine", value: "\(closed.last?.count ?? 0)") {
-                        ClosedPerWeekChart(weeks: closed)
+                    StatsCard(title: "Fermés par semaine", value: "\(closed.last?.count ?? 0)") {
+                        WeeklyBars(weeks: closed)
                     }
                 }
             }
+            .padding(.top, 24)
         }
         .task { await model.loadCompleted() }
     }
@@ -225,17 +208,20 @@ private struct TrendCard: View {
     var target: Double?
 
     var body: some View {
-        ChartCard(title: title, value: value, valueColor: valueColor) {
-            VStack(spacing: 6) {
+        StatsCard(title: title, value: value, valueColor: valueColor) {
+            VStack(spacing: 8) {
                 if points.count < 2 {
-                    EmptyChart(message: "La courbe se remplit au fil des jours : une photo du backlog est prise à chaque synchro.")
-                        .frame(height: 110)
+                    Text("La courbe se remplit au fil des jours : une photo du backlog est prise à chaque synchro.")
+                        .font(.text(12))
+                        .foregroundStyle(Theme.label2)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, minHeight: 110)
                 } else {
                     Chart {
                         ForEach(points) { point in
                             LineMark(x: .value("Jour", point.day, unit: .day), y: .value("Valeur", point.value))
-                                .foregroundStyle(Theme.accent)
-                                .lineStyle(StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                                .foregroundStyle(Theme.ring)
+                                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                         }
                         if let target {
                             RuleMark(y: .value("Cible", target))
@@ -261,120 +247,109 @@ private struct TrendCard: View {
                     }
                     Text(Format.shortDate(window.end.addingTimeInterval(-1)))
                 }
-                .font(.system(size: 10))
+                .font(.mono(10, medium: false))
                 .foregroundStyle(Theme.label2)
             }
         }
     }
 }
 
-private struct ClosedPerWeekChart: View {
+/// Chantiers fermés par semaine, la semaine en cours en accent plein.
+private struct WeeklyBars: View {
     let weeks: [Stats.WeekCount]
 
     var body: some View {
-        let current = weeks.last.map { Format.weekNumber($0.weekStart) }
-        Chart(weeks) { week in
-            BarMark(x: .value("Semaine", Format.weekNumber(week.weekStart)), y: .value("Fermés", week.count), width: .ratio(0.8))
-                .foregroundStyle(week.weekStart == weeks.last?.weekStart ? Theme.accent : Theme.accent.opacity(0.5))
-                .cornerRadius(3)
-        }
-        .chartYAxis(.hidden)
-        .chartXAxis {
-            AxisMarks { value in
-                AxisValueLabel {
-                    if let label = value.as(String.self) {
-                        Text(label)
-                            .font(.system(size: 10, weight: label == current ? .bold : .regular))
-                            .foregroundStyle(label == current ? Theme.label : Theme.label2)
-                    }
+        let most = max(weeks.map(\.count).max() ?? 0, 1)
+        HStack(alignment: .bottom, spacing: 6) {
+            ForEach(weeks) { week in
+                let isCurrent = week.weekStart == weeks.last?.weekStart
+                VStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(isCurrent ? Theme.ring : Theme.ring.opacity(0.45))
+                        .frame(height: week.count > 0 ? max(8, 100 * Double(week.count) / Double(most)) : 4)
+                    Text(Format.weekNumber(week.weekStart))
+                        .font(.mono(10, medium: isCurrent))
+                        .foregroundStyle(isCurrent ? Theme.label : Theme.label2)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
-        .frame(height: 128)
+        .frame(height: 128, alignment: .bottom)
     }
 }
 
 // MARK: Composants des stats
 
+/// Titre de période, sous-titre et flèches en verre.
 private struct PeriodHeader: View {
     let title: String
+    let subtitle: String
     let canGoForward: Bool
     let move: (Int) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .bottom, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.display(30, bold: true))
+                    .tracking(-0.45)
+                Text(subtitle)
+                    .font(.text(15))
+                    .foregroundStyle(Theme.label2)
+            }
+            Spacer()
             Button { move(-1) } label: { Image(systemName: "chevron.left") }
-                .buttonStyle(RoundIconButtonStyle())
+                .buttonStyle(RoundGlassButtonStyle())
                 .help("Période précédente")
             Button { move(1) } label: { Image(systemName: "chevron.right") }
-                .buttonStyle(RoundIconButtonStyle())
+                .buttonStyle(RoundGlassButtonStyle())
                 .disabled(!canGoForward)
                 .opacity(canGoForward ? 1 : 0.4)
                 .help("Période suivante")
-            Text(title)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.label)
-                .padding(.leading, 8)
         }
     }
 }
 
-struct StatTile: View {
-    let title: String
+/// Grand chiffre en DM Mono, suivi de sa légende.
+private struct HeroNumber: View {
     let value: String
-    var suffix: String?
-    var detail: String?
-    var tint: Color = Theme.label
+    let caption: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 11))
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
+            TimerText(text: value, size: 64, color: Theme.accentText)
+            Text(caption)
+                .font(.text(15))
                 .foregroundStyle(Theme.label2)
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text(value)
-                    .font(.system(size: 26, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(tint)
-                if let suffix {
-                    Text(suffix)
-                        .font(.system(size: 17, weight: .medium).monospacedDigit())
-                        .foregroundStyle(Theme.label2)
-                }
-            }
-            if let detail {
-                Text(detail)
-                    .font(.system(size: 11))
-                    .foregroundStyle(tint)
-            }
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 50, alignment: .topLeading)
-        .panelStyle()
     }
 }
 
-private struct ChartCard<Content: View>: View {
+/// Carte des stats : étiquette en DM Mono, valeur optionnelle à droite.
+private struct StatsCard<Content: View>: View {
     let title: String
     var value: String?
     var valueColor: Color = Theme.label
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.label)
+                Eyebrow(text: title)
                 Spacer()
                 if let value {
                     Text(value)
-                        .font(.system(size: 15, weight: .semibold).monospacedDigit())
+                        .font(.mono(17))
                         .foregroundStyle(valueColor)
                 }
             }
             content
         }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .panelStyle()
+        .surface(radius: 20)
     }
 }
 
@@ -383,39 +358,40 @@ private struct MeterRow: View {
     let label: String
     let value: String
     let fraction: Double
-    let color: Color
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             HStack {
                 Text(label)
-                    .foregroundStyle(Theme.label)
                     .lineLimit(1)
                 Spacer()
                 Text(value)
-                    .monospacedDigit()
                     .foregroundStyle(Theme.label2)
             }
-            .font(.system(size: 13))
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Theme.track)
-                    Capsule().fill(color).frame(width: proxy.size.width * max(0, min(1, fraction)))
-                }
-            }
-            .frame(height: 6)
+            .font(.text(14))
+            ProgressBar(fraction: fraction, height: 10)
         }
     }
 }
 
-private struct EmptyChart: View {
-    let message: String
+/// Résumé d'une journée, partagé avec le bilan du soir.
+struct StatTile: View {
+    let title: String
+    let value: String
 
     var body: some View {
-        Text(message)
-            .font(.system(size: 12))
-            .foregroundStyle(Theme.label2)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 80)
+        VStack(alignment: .leading, spacing: 6) {
+            Eyebrow(text: title)
+            Text(value)
+                .font(.mono(26))
+                .tracking(-0.8)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .surface(radius: 16)
     }
+}
+
+private func plural(_ count: Int, _ singular: String, _ pluralForm: String? = nil) -> String {
+    "\(count) \(count > 1 ? (pluralForm ?? singular + "s") : singular)"
 }

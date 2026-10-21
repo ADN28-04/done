@@ -19,42 +19,38 @@ struct BreakdownSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Découper")
             Text("Quelle est la prochaine action concrète ?")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Theme.label)
-                .padding(.top, 12)
+                .font(.display(24))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10)
             Text(task.content)
-                .font(.system(size: 13))
+                .font(.text(14))
                 .foregroundStyle(Theme.label2)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
             TextField("Ex. : lister les fiches à mettre à jour", text: $text)
                 .textFieldStyle(.plain)
-                .font(.system(size: 15))
+                .font(.text(15))
                 .focused($fieldFocused)
                 .onSubmit(save)
-                .padding(.horizontal, 12)
-                .frame(height: 36)
-                .background(Theme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .padding(.horizontal, 14)
+                .frame(height: 40)
+                .surface(radius: 12)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(fieldFocused ? Theme.accent.opacity(0.4) : Theme.separator, lineWidth: fieldFocused ? 3 : 1)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Theme.ring.opacity(fieldFocused ? 0.45 : 0), lineWidth: 2)
                 )
-                .padding(.top, 20)
+                .padding(.top, 22)
             Text("Une action qui tient en une session et commence par un verbe : écrire, appeler, lister, envoyer.")
-                .font(.system(size: 12))
+                .font(.text(12))
                 .foregroundStyle(Theme.label2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 8)
             if let errorMessage {
-                Text(errorMessage)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.redText)
+                NoticeBox(text: errorMessage, tone: .error)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Theme.redTint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .padding(.top, 16)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Spacer()
                 Button("Annuler") { dismiss() }
                     .buttonStyle(PillButtonStyle())
@@ -73,11 +69,11 @@ struct BreakdownSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(trimmed.isEmpty || isSaving)
             }
-            .padding(.top, 24)
+            .padding(.top, 26)
         }
         .padding(28)
-        .frame(width: 480)
-        .background(Theme.background)
+        .frame(width: 500)
+        .background(Backdrop(style: .wash))
         .onAppear { fieldFocused = true }
     }
 
@@ -98,26 +94,6 @@ struct BreakdownSheet: View {
                 errorMessage = "La sous-tâche n'a pas été créée : \(error.localizedDescription)"
             }
         }
-    }
-}
-
-/// Encart de la carte Focus quand la tâche n'a pas encore de sous-tâche.
-struct BreakdownHint: View {
-    let action: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text("Pas encore de sous-tâche. La découper en une première action aide à démarrer.")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.accentText)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            Button("Découper…", action: action)
-                .buttonStyle(PillButtonStyle())
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Theme.accentTint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 
@@ -142,70 +118,67 @@ struct GuardrailSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Garde-fou")
             Text("Trop de chantiers actifs")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Theme.label)
-                .padding(.top, 12)
+                .font(.display(26, bold: true))
+                .padding(.top, 10)
             Text("\(active.count) tâches portent @\(Rules.activeLabel), pour une cible de \(target). Mets en file d'attente celles que tu n'avances pas cette semaine.")
-                .font(.system(size: 13))
+                .font(.text(14))
                 .foregroundStyle(Theme.label2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
 
-            VStack(spacing: 0) {
-                ForEach(active) { task in
-                    HStack(spacing: 12) {
-                        TaskRowContent(task: task)
-                            .opacity(parked.contains(task.id) ? 0.5 : 1)
-                        if plan.contains(task.id) {
-                            Text("Dans le plan")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Theme.accentText)
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(active.enumerated()), id: \.element.id) { offset, task in
+                        if offset > 0 {
+                            Hairline().padding(.horizontal, 12)
                         }
-                        Picker("État", selection: binding(for: task.id)) {
-                            Text("Actif").tag(false)
-                            Text("En attente").tag(true)
+                        HStack(spacing: 12) {
+                            TaskRowContent(task: task)
+                                .opacity(parked.contains(task.id) ? 0.5 : 1)
+                            if plan.contains(task.id) {
+                                Text("Dans le plan")
+                                    .font(.mono(11))
+                                    .foregroundStyle(Theme.accentText)
+                                    .padding(.horizontal, 8)
+                                    .frame(height: 20)
+                                    .background(Theme.accentTint, in: Capsule())
+                            }
+                            GlassSegmented(selection: binding(for: task.id), options: [(value: false, title: "Actif"), (value: true, title: "En attente")])
                         }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .fixedSize()
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
                 }
+                .padding(6)
+                .surface(radius: 18)
+                .padding(.bottom, 2)
             }
-            .padding(4)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .scrollIndicators(.never)
+            // Une ligne fait environ 58 pt : au-delà de six chantiers, la liste défile.
+            .frame(height: min(CGFloat(active.count) * 58 + 14, 362))
             .padding(.top, 20)
 
-            HStack(spacing: 6) {
-                Text("Restent actifs :")
-                    .foregroundStyle(Theme.label2)
+            HStack(spacing: 8) {
+                Eyebrow(text: "Restent actifs")
                 Text("\(remaining) / \(target)")
-                    .monospacedDigit()
-                    .fontWeight(.semibold)
+                    .font(.mono(15))
                     .foregroundStyle(remaining > target ? Theme.orangeText : Theme.accentText)
             }
-            .font(.system(size: 13))
-            .padding(.top, 12)
+            .padding(.top, 14)
 
             Text("Done retire le label @\(Rules.activeLabel) dans Todoist, sur la tâche et ses sous-tâches. Elles restent à leur place.")
-                .font(.system(size: 12))
+                .font(.text(12))
                 .foregroundStyle(Theme.label2)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 4)
+                .padding(.top, 6)
 
             if let errorMessage {
-                Text(errorMessage)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.redText)
+                NoticeBox(text: errorMessage, tone: .error)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Theme.redTint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .padding(.top, 16)
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Button("Annuler") { dismiss() }
                     .buttonStyle(PillButtonStyle(kind: .plain))
                     .keyboardShortcut(.cancelAction)
@@ -229,11 +202,11 @@ struct GuardrailSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(isSaving)
             }
-            .padding(.top, 24)
+            .padding(.top, 26)
         }
         .padding(28)
-        .frame(width: 620)
-        .background(Theme.background)
+        .frame(width: 640)
+        .background(Backdrop(style: .wash))
         .onAppear {
             // Par défaut, les chantiers absents du plan du jour partent en file d'attente.
             guard !prepared else { return }
@@ -291,9 +264,9 @@ struct ReviewSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Bilan du soir")
             Text("Ta journée")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Theme.label)
-                .padding(.top, 12)
+                .font(.display(30, bold: true))
+                .tracking(-0.45)
+                .padding(.top, 10)
 
             HStack(spacing: 10) {
                 StatTile(title: "Temps de focus", value: Format.minutes(summary.focusMinutes))
@@ -301,48 +274,67 @@ struct ReviewSheet: View {
                 StatTile(title: "Tâches cochées", value: "\(summary.checked)")
                 StatTile(title: "Interruptions", value: "\(summary.interruptions)")
             }
-            .padding(.top, 16)
+            .padding(.top, 18)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 22) {
                     if !checked.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 10) {
                             Eyebrow(text: "Terminé aujourd'hui")
-                            ForEach(checked, id: \.self) { title in
-                                Label(title, systemImage: "checkmark.circle.fill")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Theme.label)
-                                    .labelStyle(CheckLabelStyle())
+                                .padding(.leading, 2)
+                            VStack(alignment: .leading, spacing: 10) {
+                                ForEach(checked, id: \.self) { title in
+                                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Theme.ring)
+                                        Text(title)
+                                            .font(.text(14))
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .surface(radius: 18)
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Eyebrow(text: "Pas terminé")
+                            .padding(.leading, 2)
                         if unfinished.isEmpty {
                             Text("Tout le plan du jour est terminé.")
-                                .font(.system(size: 13))
+                                .font(.text(14))
                                 .foregroundStyle(Theme.accentText)
+                                .padding(.leading, 2)
                         } else {
                             VStack(spacing: 0) {
-                                ForEach(unfinished) { task in
+                                ForEach(Array(unfinished.enumerated()), id: \.element.id) { offset, task in
+                                    if offset > 0 {
+                                        Hairline().padding(.horizontal, 12)
+                                    }
                                     unfinishedRow(task)
                                 }
                             }
-                            .padding(4)
-                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .padding(6)
+                            .surface(radius: 18)
                             Text("« Demain » remet la tâche dans le plan de demain matin. « Plus tard » la laisse dans Todoist, hors du plan.")
-                                .font(.system(size: 12))
+                                .font(.text(12))
                                 .foregroundStyle(Theme.label2)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .padding(.leading, 2)
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 20)
+                .padding(.top, 22)
+                .padding(.bottom, 2)
             }
+            .scrollIndicators(.never)
 
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Button("Annuler") { dismiss() }
                     .buttonStyle(PillButtonStyle(kind: .plain))
                     .keyboardShortcut(.cancelAction)
@@ -357,8 +349,8 @@ struct ReviewSheet: View {
             .padding(.top, 20)
         }
         .padding(28)
-        .frame(width: 640, height: 600)
-        .background(Theme.background)
+        .frame(width: 660, height: 620)
+        .background(Backdrop(style: .wash))
         .sheet(item: $breakdownTask) { task in
             BreakdownSheet(task: task) { _ in decisions[task.id] = .tomorrow }
                 .environment(model)
@@ -370,60 +362,22 @@ struct ReviewSheet: View {
             TaskRowContent(task: task)
             if Planner.needsBreakdown(action: task, root: task, in: model.index) {
                 Button("Découper…") { breakdownTask = task }
-                    .buttonStyle(PillButtonStyle(kind: .plain))
+                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
             }
-            Picker("Suite", selection: Binding(
-                get: { decisions[task.id, default: .tomorrow] },
-                set: { decisions[task.id] = $0 }
-            )) {
-                ForEach(Review.Decision.allCases) { decision in
-                    Text(decision.label).tag(decision)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
+            GlassSegmented(
+                selection: Binding(
+                    get: { decisions[task.id, default: .tomorrow] },
+                    set: { decisions[task.id] = $0 }
+                ),
+                options: Review.Decision.allCases.map { (value: $0, title: $0.label) }
+            )
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     private func uniqueTitles(_ sessions: [FocusSession]) -> [String] {
         var seen = Set<String>()
         return sessions.map(\.title).filter { seen.insert($0).inserted }
-    }
-}
-
-/// Coche verte devant les tâches terminées du bilan.
-private struct CheckLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 8) {
-            configuration.icon
-                .foregroundStyle(Theme.accent)
-            configuration.title
-        }
-    }
-}
-
-/// Bandeau qui propose le bilan, en fin de journée.
-struct ReviewBanner: View {
-    let action: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "moon.stars")
-                .foregroundStyle(Theme.accent)
-            Text("C'est l'heure du bilan : deux minutes pour clore la journée et préparer demain.")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.label)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            Button("Faire le bilan", action: action)
-                .buttonStyle(PillButtonStyle(kind: .primary))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.accent.opacity(0.35), lineWidth: 1))
     }
 }

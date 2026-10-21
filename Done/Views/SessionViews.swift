@@ -10,41 +10,38 @@ struct SessionView: View {
             let paused = engine.phase == .paused
             VStack(spacing: 0) {
                 Text(context(current))
-                    .font(.system(size: 13))
+                    .font(.text(13))
                     .foregroundStyle(Theme.label2)
                 Text(current.action.content)
-                    .font(.system(size: 30, weight: .semibold))
-                    .tracking(-0.3)
-                    .foregroundStyle(Theme.label)
+                    .font(.display(26))
                     .multilineTextAlignment(.center)
-                    .frame(maxWidth: 640)
-                    .padding(.top, 8)
+                    .frame(maxWidth: 620)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
 
                 ZStack {
-                    ProgressRing(fraction: engine.remainingFraction, color: paused ? Theme.label3 : Theme.accent)
+                    ProgressRing(fraction: engine.remainingFraction, color: paused ? Theme.label3 : Theme.ring, lineWidth: 14)
                     VStack(spacing: 6) {
-                        Text(Format.clock(engine.remaining))
-                            .font(.timer(72))
-                            .foregroundStyle(paused ? Theme.label2 : Theme.label)
+                        TimerText(text: Format.clock(engine.remaining), size: 80, color: paused ? Theme.label2 : Theme.label)
                         Text(paused ? "En pause" : "sur \(Int(current.planned / 60)) min")
-                            .font(.system(size: 13, weight: paused ? .semibold : .regular))
+                            .font(.text(14, paused ? .semibold : .regular))
                             .foregroundStyle(Theme.label2)
                     }
                 }
-                .frame(width: 280, height: 280)
-                .padding(.top, 40)
+                .frame(width: 320, height: 320)
+                .padding(.top, 36)
 
                 HStack(spacing: 10) {
                     if paused {
-                        Button { engine.resume() } label: { ShortcutLabel(title: "Reprendre", hint: "espace") }
+                        Button("Reprendre") { engine.resume() }
                             .buttonStyle(PillButtonStyle(kind: .primary))
                             .keyboardShortcut(.space, modifiers: [])
                     } else {
-                        Button { engine.pause() } label: { ShortcutLabel(title: "Pause", hint: "espace") }
+                        Button("Pause") { engine.pause() }
                             .buttonStyle(PillButtonStyle())
                             .keyboardShortcut(.space, modifiers: [])
                     }
-                    Button { showReasons = true } label: { ShortcutLabel(title: "Interrompre", hint: "▼") }
+                    Button("Interrompre") { showReasons = true }
                         .buttonStyle(PillButtonStyle())
                         .popover(isPresented: $showReasons, arrowEdge: .bottom) {
                             ReasonMenu { reason in
@@ -53,11 +50,10 @@ struct SessionView: View {
                             }
                         }
                     Button("Terminer") { engine.finishEarly() }
-                        .buttonStyle(PillButtonStyle(kind: paused ? .secondary : .primary))
+                        .buttonStyle(PillButtonStyle(kind: paused ? .glass : .primary))
                 }
                 .padding(.top, 40)
             }
-            .padding(.bottom, 40)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
@@ -78,12 +74,12 @@ private struct ReasonMenu: View {
             ForEach(InterruptionReason.allCases) { reason in
                 Button { onPick(reason) } label: {
                     Text(reason.label)
-                        .font(.system(size: 13))
+                        .font(.text(13))
                         .foregroundStyle(hovered == reason ? Color.white : Theme.label)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)
-                        .frame(height: 26)
-                        .background(hovered == reason ? Theme.accent : Color.clear, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .frame(height: 28)
+                        .background(hovered == reason ? Theme.accent : Color.clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -95,7 +91,7 @@ private struct ReasonMenu: View {
     }
 }
 
-/// Session interrompue : on garde la place et on attend la suite.
+/// Session interrompue : le temps de l'interruption défile, la tâche attend.
 struct InterruptionView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
@@ -103,17 +99,32 @@ struct InterruptionView: View {
     @State private var showPicker = false
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            VStack(spacing: 16) {
-                if let ongoing = model.meetingsToday.first(where: { $0.contains(context.date) }) {
-                    MeetingBanner(ongoing: ongoing)
-                }
-                card
+        VStack(spacing: 0) {
+            Eyebrow(text: "Interrompu · \(reason.label)")
+            TimerText(text: Format.clock(interruptionDuration), size: 88)
+                .padding(.top, 16)
+            if let current = engine.current {
+                Text("\(Text(current.action.content).foregroundStyle(Theme.label)) attend, \(Format.clock(engine.remaining)) restantes")
+                    .font(.text(15))
+                    .foregroundStyle(Theme.label2)
+                    .lineSpacing(3)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 520)
+                    .padding(.top, 24)
             }
-            .frame(width: focusCardWidth)
-            .padding(.top, 40)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            HStack(spacing: 10) {
+                Button("Choisir autre chose") { engine.stop(as: .interrupted) }
+                    .buttonStyle(PillButtonStyle())
+                Button("Reprendre") { engine.resume() }
+                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 36)
+            Button("Insérer une tâche urgente…") { showPicker = true }
+                .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                .padding(.top, 10)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showPicker) {
             TaskPickerView(title: "Tâche urgente à mettre en tête du plan") { task in
                 model.putFirst(task.id)
@@ -123,53 +134,9 @@ struct InterruptionView: View {
         }
     }
 
-    private var card: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 16) {
-                Image(systemName: reason.symbol)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Theme.label2)
-                    .frame(width: 52, height: 52)
-                    .background(Theme.fill, in: Circle())
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Interrompu : \(reason.label)")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(Theme.label)
-                    if let since = engine.interruptedAt {
-                        Text("Depuis \(Format.minutes(engine.now.timeIntervalSince(since) / 60))")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.label2)
-                    }
-                }
-            }
-            Hairline().padding(.top, 24)
-            if let current = engine.current {
-                Eyebrow(text: "Tâche en pause")
-                    .padding(.top, 20)
-                Text(current.action.content)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Theme.label)
-                    .padding(.top, 10)
-                Text("Il restait \(Format.clock(engine.remaining)) sur \(Int(current.planned / 60)) min")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.label2)
-                    .padding(.top, 4)
-            }
-            Hairline().padding(.top, 24)
-            HStack(spacing: 8) {
-                Button("Choisir autre chose") { engine.stop(as: .interrupted) }
-                    .buttonStyle(PillButtonStyle())
-                Button("Insérer une tâche urgente…") { showPicker = true }
-                    .buttonStyle(PillButtonStyle())
-                Spacer(minLength: 8)
-                Button("Reprendre") { engine.resume() }
-                    .buttonStyle(PillButtonStyle(kind: .primary))
-                    .keyboardShortcut(.defaultAction)
-            }
-            .padding(.top, 20)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle()
+    private var interruptionDuration: TimeInterval {
+        guard let since = engine.interruptedAt else { return 0 }
+        return max(0, engine.now.timeIntervalSince(since))
     }
 }
 
@@ -179,27 +146,26 @@ struct OutcomeView: View {
 
     var body: some View {
         if let current = engine.current {
-            VStack(alignment: .leading, spacing: 0) {
-                ProgressRing(fraction: 1, lineWidth: 6)
-                    .frame(width: 56, height: 56)
+            VStack(spacing: 0) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 88, height: 88)
+                    .background(Theme.accent, in: Circle())
                 Text("Session terminée")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Theme.label)
-                    .padding(.top, 20)
+                    .font(.display(36, bold: true))
+                    .tracking(-0.54)
+                    .padding(.top, 24)
                 Text("\(Format.minutes(engine.elapsed / 60)) sur « \(current.action.content) »")
-                    .font(.system(size: 15))
+                    .font(.text(16))
                     .foregroundStyle(Theme.label2)
                     .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 6)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 520)
+                    .padding(.top, 10)
                 if let error = engine.errorMessage {
-                    Text(error)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.redText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(Theme.redTint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    NoticeBox(text: error, tone: .error)
+                        .frame(width: 360)
                         .padding(.top, 20)
                 }
                 VStack(spacing: 10) {
@@ -208,35 +174,34 @@ struct OutcomeView: View {
                     } label: {
                         if engine.isClosing {
                             HStack(spacing: 8) {
-                                ProgressView().controlSize(.small).tint(.white)
+                                ProgressView().controlSize(.small)
                                 Text("Envoi à Todoist…")
                             }
                         } else {
-                            Text(engine.errorMessage == nil ? "Terminé, cocher dans Todoist" : "Réessayer de cocher dans Todoist")
+                            Text(engine.errorMessage == nil ? "Cocher dans Todoist" : "Réessayer de cocher dans Todoist")
                         }
                     }
                     .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
                     .keyboardShortcut(.defaultAction)
-                    HStack(spacing: 8) {
-                        Button("Je continue (\(Int(current.planned / 60)) min)") { engine.continueSameAction() }
+                    HStack(spacing: 10) {
+                        Button("Continuer \(Int(current.planned / 60)) min") { engine.continueSameAction() }
                             .buttonStyle(PillButtonStyle(fullWidth: true))
                         Button("Pause") { engine.takeBreakAfterSession() }
                             .buttonStyle(PillButtonStyle(fullWidth: true))
-                        Button("Arrêter là") { engine.stop(as: .partial) }
-                            .buttonStyle(PillButtonStyle(fullWidth: true))
                     }
+                    Button("Arrêter là") { engine.stop(as: .partial) }
+                        .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
                 }
+                .frame(width: 360)
                 .disabled(engine.isClosing)
-                .padding(.top, 28)
+                .padding(.top, 36)
             }
-            .frame(width: focusCardWidth - 64, alignment: .leading)
-            .cardStyle()
-            .padding(.top, 110)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
 
+/// Pause café : halo sable, anneau qui se vide.
 struct BreakView: View {
     @Environment(FocusEngine.self) private var engine
 
@@ -244,27 +209,23 @@ struct BreakView: View {
         VStack(spacing: 0) {
             Eyebrow(text: "Pause")
             ZStack {
-                ProgressRing(fraction: engine.breakRemainingFraction)
+                ProgressRing(fraction: engine.breakRemainingFraction, lineWidth: 12)
                 VStack(spacing: 6) {
-                    Text(Format.clock(engine.breakRemaining))
-                        .font(.timer(72))
-                        .foregroundStyle(Theme.label)
+                    TimerText(text: Format.clock(engine.breakRemaining), size: 72)
                     Text("sur \(Int((engine.breakDuration / 60).rounded())) min")
-                        .font(.system(size: 13))
+                        .font(.text(14))
                         .foregroundStyle(Theme.label2)
                 }
             }
             .frame(width: 280, height: 280)
             .padding(.top, 24)
             Text("Lève-toi, bois de l'eau, regarde loin de l'écran.")
-                .font(.system(size: 17))
-                .foregroundStyle(Theme.label)
-                .padding(.top, 40)
+                .font(.text(17))
+                .padding(.top, 32)
             Button("Passer la pause") { engine.skipBreak() }
                 .buttonStyle(PillButtonStyle())
-                .padding(.top, 24)
+                .padding(.top, 28)
         }
-        .padding(.bottom, 40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

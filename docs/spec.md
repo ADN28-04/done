@@ -36,7 +36,7 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Connexion Todoist | Token API personnel collé une fois dans les réglages, stocké dans le Trousseau. Pas d'OAuth. |
 | Lecture des tâches | Tâches, sous-tâches, projets, sections, labels, priorités, échéances, durées. |
 | Liste de candidates | Filtre fixe : P1/P2, sans `Waiting`, avec `Chantier-actif` ou échéance dans les 3 jours. |
-| Plan du jour | Je choisis et ordonne 3 tâches (5 maximum). Le plan est gardé pour la journée. |
+| Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. |
 | Prochaine action | Proposition de la première sous-tâche faisable de la tâche en cours. |
 | Durée adaptée | `Quick` : 15 min. Par défaut : 25 min. `Deepwork` : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
 | Minuteur | Démarrer, pause, reprendre, terminer. Notification de fin de session et de fin de pause. |
@@ -103,7 +103,7 @@ Focus → Démarrer → Session en cours
 
 ### Navigation
 
-Une fenêtre sans barre latérale. La navigation passe par une barre d'onglets flottante, centrée en bas, façon iOS : une pilule en Liquid Glass (verre dépoli avant macOS 26) avec Focus, Plan du jour, Stats et Réglages, accessibles aussi par ⌘1 à ⌘4. Pendant une session (minuteur en cours ou en pause), la barre s'efface et revient quand la souris approche du bas de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘R recharge les tâches Todoist.
+Une fenêtre sans barre latérale. La navigation passe par une barre d'onglets flottante, centrée en bas, façon iOS : une pilule en Liquid Glass (verre dépoli avant macOS 26) avec Focus, Plan du jour, Stats et Réglages, accessibles aussi par ⌘1 à ⌘4. Pendant une session (minuteur, pause, interruption, fin de session, pause café), la barre s'efface et revient quand la souris approche du bas de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘R recharge les tâches Todoist.
 
 ## 4. Données
 

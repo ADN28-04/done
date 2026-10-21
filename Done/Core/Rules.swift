@@ -17,6 +17,7 @@ enum SettingsKey {
     static let dndOffShortcut = "rules.dndOffShortcut"
     static let reviewHour = "rules.reviewHour"
     static let reviewReminder = "rules.reviewReminder"
+    static let planSize = "rules.planSize"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
@@ -45,13 +46,14 @@ struct Rules {
     var reviewHour = 17
     /// Notification de rappel du bilan, du lundi au vendredi.
     var reviewReminder = true
+    /// Nombre de tâches mises en avant dans le plan du jour.
+    var planSize = 3
 
     static let activeLabel = "Chantier-actif"
     static let waitingLabel = "Waiting"
     static let quickLabel = "Quick"
     static let deepworkLabel = "Deepwork"
 
-    static let recommendedPlanSize = 3
     static let maxPlanSize = 5
 
     static var current: Rules {
@@ -75,6 +77,7 @@ struct Rules {
         rules.dndOnShortcut = defaults.string(forKey: SettingsKey.dndOnShortcut) ?? base.dndOnShortcut
         rules.dndOffShortcut = defaults.string(forKey: SettingsKey.dndOffShortcut) ?? base.dndOffShortcut
         rules.reviewHour = int(SettingsKey.reviewHour, base.reviewHour)
+        rules.planSize = min(max(int(SettingsKey.planSize, base.planSize), 1), Rules.maxPlanSize)
         rules.reviewReminder = (defaults.object(forKey: SettingsKey.reviewReminder) as? Bool) ?? base.reviewReminder
         return rules
     }
