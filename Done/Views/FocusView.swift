@@ -187,12 +187,12 @@ struct SuggestionView: View {
         let tasks = model.planIDs.compactMap { model.index[$0] }
         return VStack(spacing: 0) {
             Eyebrow(text: "Plan en attente")
-            Text("Tout ton plan dépend de quelqu'un d'autre")
+            Text("Ton plan est bloqué pour l'instant")
                 .font(.display(36))
                 .tracking(-0.54)
                 .frame(maxWidth: 640)
                 .padding(.top, 16)
-            Text("Aucune des \(tasks.count) tâches ne peut avancer pour l'instant.")
+            Text(tasks.count > 1 ? "Aucune des \(tasks.count) tâches ne peut avancer pour l'instant." : "Cette tâche ne peut pas avancer pour l'instant.")
                 .font(.text(15))
                 .foregroundStyle(Theme.label2)
                 .padding(.top, 10)
@@ -208,7 +208,7 @@ struct SuggestionView: View {
                             .font(.text(14))
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("En attente")
+                        Text(blockedReason(task))
                             .font(.text(12))
                             .foregroundStyle(Theme.label2)
                     }
@@ -229,6 +229,14 @@ struct SuggestionView: View {
             }
             .padding(.top, 32)
         }
+    }
+
+    /// En attente de quelqu'un, ou suite datée plus tard dans Todoist.
+    private func blockedReason(_ task: TodoistTask) -> String {
+        if let day = Planner.resumeDay(of: task, in: model.index, rules: model.rules) {
+            return "Prévue le \(Format.day(day))"
+        }
+        return "En attente"
     }
 
     @ViewBuilder

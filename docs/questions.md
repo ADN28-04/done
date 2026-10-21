@@ -21,7 +21,7 @@ Points à trancher pendant l'usage de la V1.
 ## Règles à valider à l'usage
 
 4. **Le filtre des candidates est-il le bon ?**
-   P1/P2, sans `Waiting`, avec `Chantier-actif` ou échéance sous 3 jours. À tester une semaine. Risque : liste trop longue si beaucoup de P2, ou tâche importante absente faute de label. Le bouton « Chercher une autre tâche » sert de filet.
+   P1/P2, sans `Waiting`, avec `Chantier-actif` ou échéance sous 3 jours. Une tâche datée plus loin est écartée, même `Chantier-actif`, car la date sert de « pas avant » (exemple : retirer des promos en fin de mois). À tester une semaine. Risque : liste trop longue si beaucoup de P2, ou tâche importante absente faute de label. Le bouton « Chercher une autre tâche » sert de filet.
 
 5. **Durées par label.**
    15 / 25 / 50 minutes pour `Quick` / défaut / `Deepwork` est un point de départ, réglable dans l'app.

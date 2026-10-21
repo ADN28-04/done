@@ -74,7 +74,15 @@ final class AppModel {
             return task.content.localizedCaseInsensitiveContains(text)
                 || projectName(for: task).localizedCaseInsensitiveContains(text)
         }
-        return Array(matches.sorted(by: Planner.priorityOrder).prefix(200))
+        // Les tâches datées plus tard restent trouvables, mais en fin de liste.
+        let now = Date.now
+        let sorted = matches.sorted { a, b in
+            let laterA = Planner.isScheduledLater(a, rules: currentRules, now: now)
+            let laterB = Planner.isScheduledLater(b, rules: currentRules, now: now)
+            if laterA != laterB { return laterB }
+            return Planner.priorityOrder(a, b)
+        }
+        return Array(sorted.prefix(200))
     }
 
     // MARK: Connexion

@@ -89,7 +89,7 @@ struct SettingsView: View {
                     stepperRow("Tâches par jour", value: $planSize, range: 1...Rules.maxPlanSize, step: 1, unit: nil)
                 }
 
-                SettingsSection("Plan du jour", footer: "Une tâche datée avec une heure et qui commence par le préfixe est une réunion. Si son titre contient un des mots-clés (séparés par des virgules), c'est un bloc de travail : il ne raccourcit pas les sessions.") {
+                SettingsSection("Plan du jour", footer: "Une tâche P1 ou P2 datée dans l'échéance proche devient candidate. Datée plus loin, Done ne la propose pas avant : ni au plan, ni comme prochaine action. Une tâche datée avec une heure et qui commence par le préfixe est une réunion. Si son titre contient un des mots-clés (séparés par des virgules), c'est un bloc de travail : il ne raccourcit pas les sessions.") {
                     stepperRow("Échéance proche", value: $horizonDays, range: 0...14, step: 1, unit: horizonDays > 1 ? "jours" : "jour")
                     RowDivider()
                     textRow("Préfixe des réunions", text: $meetingPrefix)

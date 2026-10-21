@@ -56,7 +56,8 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 ## Règles de l'app
 
 - **Candidates du matin** : P1 ou P2, sans `@Waiting`, avec `@Chantier-actif` ou une échéance dans les 3 jours.
-- **Prochaine action** : la première sous-tâche sans `@Waiting`, dans l'ordre de Todoist.
+- **Dates lointaines** : une tâche datée au-delà de ces 3 jours n'est pas proposée (ni candidate, ni prochaine action, ni tâche rapide avant une réunion), même avec `@Chantier-actif`. Elle reste trouvable avec « Chercher une autre tâche », en fin de liste. Une échéance Todoist (deadline) proche l'emporte sur la date.
+- **Prochaine action** : la première sous-tâche sans `@Waiting` et pas datée plus tard, dans l'ordre de Todoist.
 - **Durée** : 15 min pour `@Quick`, 50 min pour `@Deepwork`, 25 min sinon. Pause de 10 min après une session Deepwork, 5 min sinon.
 - **Réunions** : tâches datées avec une heure et dont le titre commence par « Réunion ». Si le titre contient « deepwork », « deepword » ou « focus », c'est un bloc de travail.
 - **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.

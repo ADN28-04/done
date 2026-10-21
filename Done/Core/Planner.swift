@@ -96,6 +96,21 @@ enum Planner {
         task.hasLabel(Rules.waitingLabel)
     }
 
+    /// Dernier jour couvert par l'horizon « Échéance proche ».
+    static func horizonLimit(rules: Rules, now: Date, calendar: Calendar = .current) -> Date {
+        let today = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: rules.horizonDays, to: today) ?? today
+    }
+
+    /// Tâche datée exprès au-delà de l'horizon : elle attend sa date, Done ne la propose pas avant.
+    /// Une échéance Todoist (deadline) dans l'horizon l'emporte sur la date.
+    static func isScheduledLater(_ task: TodoistTask, rules: Rules, now: Date = .now, calendar: Calendar = .current) -> Bool {
+        let limit = horizonLimit(rules: rules, now: now, calendar: calendar)
+        guard let day = task.due?.day, day > limit else { return false }
+        if let deadline = task.deadline?.day, deadline <= limit { return false }
+        return true
+    }
+
     static func isMeeting(_ task: TodoistTask, rules: Rules) -> Bool {
         guard let due = task.due, due.hasTime, !rules.meetingPrefix.isEmpty else { return false }
         return task.content.hasPrefix(rules.meetingPrefix)
@@ -130,14 +145,14 @@ enum Planner {
         .sorted { $0.start < $1.start }
     }
 
-    /// Candidates du rituel du matin : P1/P2, hors Waiting et réunions,
+    /// Candidates du rituel du matin : P1/P2, hors Waiting, réunions et tâches datées plus tard,
     /// avec Chantier-actif ou une échéance proche. Une sous-tâche n'apparaît pas
     /// si son parent est déjà candidat.
     static func candidates(in index: TaskIndex, rules: Rules, now: Date = .now, calendar: Calendar = .current) -> [TodoistTask] {
-        let today = calendar.startOfDay(for: now)
-        let limit = calendar.date(byAdding: .day, value: rules.horizonDays, to: today) ?? today
+        let limit = horizonLimit(rules: rules, now: now, calendar: calendar)
         let eligible = index.all.filter { task in
-            guard !isMeeting(task, rules: rules), !isWaiting(task), task.priority >= 3 else { return false }
+            guard !isMeeting(task, rules: rules), !isWaiting(task), task.priority >= 3,
+                  !isScheduledLater(task, rules: rules, now: now, calendar: calendar) else { return false }
             if task.hasLabel(Rules.activeLabel) { return true }
             if let day = task.due?.day, day <= limit { return true }
             if let day = task.deadline?.day, day <= limit { return true }
@@ -159,17 +174,35 @@ enum Planner {
     }
 
     /// Première action faisable en descendant dans les sous-tâches, dans l'ordre Todoist.
-    /// `nil` quand tout ce qui reste est en Waiting.
-    static func nextAction(for task: TodoistTask, in index: TaskIndex, depth: Int = 0) -> TodoistTask? {
+    /// Les sous-tâches datées plus tard sont sautées ; la tâche de départ, choisie à la main, ne l'est pas.
+    /// `nil` quand tout ce qui reste est en Waiting ou daté plus tard.
+    static func nextAction(for task: TodoistTask, in index: TaskIndex, rules: Rules, now: Date = .now, depth: Int = 0) -> TodoistTask? {
         guard !isWaiting(task), depth < 10 else { return nil }
+        if depth > 0, isScheduledLater(task, rules: rules, now: now) { return nil }
         let children = index.children(of: task.id)
         if children.isEmpty { return task }
         for child in children {
-            if let action = nextAction(for: child, in: index, depth: depth + 1) {
+            if let action = nextAction(for: child, in: index, rules: rules, now: now, depth: depth + 1) {
                 return action
             }
         }
         return nil
+    }
+
+    /// Jour où une tâche bloquée redevient faisable, quand ce sont des sous-tâches datées plus tard
+    /// qui la bloquent. `nil` si elle attend quelqu'un (Waiting).
+    static func resumeDay(of task: TodoistTask, in index: TaskIndex, rules: Rules, now: Date = .now) -> Date? {
+        var queue = index.children(of: task.id)
+        var days: [Date] = []
+        while let next = queue.popLast() {
+            guard !isWaiting(next) else { continue }
+            if isScheduledLater(next, rules: rules, now: now), let day = next.due?.day {
+                days.append(day)
+            } else {
+                queue.append(contentsOf: index.children(of: next.id))
+            }
+        }
+        return days.min()
     }
 
     /// Durée selon le label de l'action, puis celui de la tâche du plan.
@@ -209,7 +242,7 @@ enum Planner {
         }
 
         let options = live.enumerated().compactMap { offset, root -> Option? in
-            guard let action = nextAction(for: root, in: index) else { return nil }
+            guard let action = nextAction(for: root, in: index, rules: rules, now: now) else { return nil }
             return Option(position: offset + 1, root: root, action: action, minutes: minutes(for: action, root: root, rules: rules))
         }
         guard let first = options.first else {
@@ -246,6 +279,7 @@ enum Planner {
                     task.hasLabel(Rules.quickLabel)
                         && !isWaiting(task)
                         && !isMeeting(task, rules: rules)
+                        && !isScheduledLater(task, rules: rules, now: now)
                         && index.children(of: task.id).isEmpty
                 }
                 .sorted(by: priorityOrder)

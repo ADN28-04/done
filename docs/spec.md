@@ -35,9 +35,9 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 |---|---|
 | Connexion Todoist | Token API personnel collé une fois dans les réglages, stocké dans le Trousseau. Pas d'OAuth. |
 | Lecture des tâches | Tâches, sous-tâches, projets, sections, labels, priorités, échéances, durées. |
-| Liste de candidates | Filtre fixe : P1/P2, sans `Waiting`, avec `Chantier-actif` ou échéance dans les 3 jours. |
+| Liste de candidates | Filtre fixe : P1/P2, sans `Waiting`, avec `Chantier-actif` ou échéance dans les 3 jours. Une tâche datée au-delà de cet horizon n'est pas proposée, même `Chantier-actif` : la date est volontaire (« pas avant »). Une échéance Todoist (deadline) dans l'horizon l'emporte sur la date. |
 | Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. |
-| Prochaine action | Proposition de la première sous-tâche faisable de la tâche en cours. |
+| Prochaine action | Proposition de la première sous-tâche faisable de la tâche en cours : ni `Waiting`, ni datée au-delà de l'horizon. Si plus rien n'est faisable, l'écran Focus indique la date de reprise. |
 | Durée adaptée | `Quick` : 15 min. Par défaut : 25 min. `Deepwork` : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
 | Minuteur | Démarrer, pause, reprendre, terminer. Notification de fin de session et de fin de pause. |
 | Réunions | Lecture des tâches « Réunion · … » datées dans Todoist pour connaître les créneaux du jour. Proposition d'une tâche qui tient avant la prochaine réunion. |
