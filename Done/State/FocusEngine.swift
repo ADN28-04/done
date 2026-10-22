@@ -216,7 +216,8 @@ final class FocusEngine {
             Notifier.breakEnd,
             title: "Fin de la pause",
             body: "Ta prochaine tâche t'attend dans Done.",
-            after: seconds
+            after: seconds,
+            sound: !Rules.current.endSound
         )
         startTicker()
     }
@@ -275,7 +276,8 @@ final class FocusEngine {
             Notifier.focusEnd,
             title: "Session terminée",
             body: current.action.content,
-            after: remaining
+            after: remaining,
+            sound: !Rules.current.endSound
         )
     }
 
@@ -304,11 +306,14 @@ final class FocusEngine {
             if remaining <= 0 {
                 closeSegment()
                 transition(to: .awaitingOutcome)
+                // Son et Dock : la fin se remarque même sans notification.
+                let rules = Rules.current
+                if rules.endSound { SystemBridge.playSound("Glass") }
                 SystemBridge.requestAttention()
-                if Rules.current.dndEnabled, let title = current?.action.content {
+                if rules.dndEnabled, let title = current?.action.content {
                     Task {
                         await DoNotDisturb.shared.settle()
-                        Notifier.shared.notifyNow(Notifier.focusEnd, title: "Session terminée", body: title)
+                        Notifier.shared.notifyNow(Notifier.focusEnd, title: "Session terminée", body: title, sound: !rules.endSound)
                     }
                 }
             }
@@ -316,6 +321,7 @@ final class FocusEngine {
             if breakRemaining <= 0 {
                 endBreak()
                 transition(to: .idle)
+                if Rules.current.endSound { SystemBridge.playSound("Hero") }
             }
         default:
             break

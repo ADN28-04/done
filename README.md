@@ -37,6 +37,16 @@ macOS ne laisse pas une app piloter les modes de concentration. Done passe par l
 
 Done active le mode quand le minuteur de focus tourne, et le coupe en pause, en interruption, en fin de session et quand l'app se ferme. Si Done est arrêté brutalement (par exemple avec le bouton Stop d'Xcode), le mode reste actif : il faut le couper dans le Centre de contrôle.
 
+### Si les notifications n'arrivent pas
+
+Dans Done, Réglages › Notifications indique ce que macOS autorise, avec un bouton Tester.
+
+- **« Refusées » ou « sans bannière »** : bouton Réglages, puis autoriser Done et choisir le style Bannières.
+- **« macOS bloque les notifications de Done »** : l'app est probablement signée seulement en local. Dans Xcode, cible Done › Signing & Capabilities, choisir une équipe (un Apple ID gratuit suffit), puis relancer `./scripts/install.sh`.
+- **Pendant « Ne pas déranger »** : macOS masque les notifications, sauf si Done fait partie des apps autorisées de ce mode (Réglages Système › Concentration).
+
+Dans tous les cas, Done joue un son à la fin des sessions et des pauses, et son icône rebondit dans le Dock jusqu'à ce que tu reviennes dans l'app.
+
 ## Organisation du code
 
 ```

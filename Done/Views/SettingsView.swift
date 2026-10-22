@@ -21,10 +21,13 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.reviewReminder) private var reviewReminder = Rules().reviewReminder
     @AppStorage(SettingsKey.meetingReminder) private var meetingReminder = Rules().meetingReminder
     @AppStorage(SettingsKey.meetingReminderMinutes) private var meetingReminderMinutes = Rules().meetingReminderMinutes
+    @AppStorage(SettingsKey.endSound) private var endSound = Rules().endSound
 
     @State private var newToken = ""
     @State private var isEditingToken = false
     @State private var dndStatus: DndStatus = .unknown
+    @State private var notificationStatus: Notifier.Permission?
+    @State private var notificationTestError: String?
 
     private enum DndStatus: Equatable {
         case unknown, checking, ready, problem(String)
@@ -149,12 +152,32 @@ struct SettingsView: View {
                     }
                 }
 
-                SettingsSection("Notifications", footer: "Si les notifications ne s'affichent pas, autorise Done dans Réglages Système › Notifications. Pendant « Ne pas déranger », macOS les masque : pour garder le rappel de réunion, ajoute Done aux apps autorisées dans Réglages Système › Concentration › Ne pas déranger.") {
+                SettingsSection("Notifications", footer: "Pendant « Ne pas déranger », macOS masque les notifications : pour les garder, ajoute Done aux apps autorisées dans Réglages Système › Concentration › Ne pas déranger. Le son de fin, lui, passe toujours.") {
+                    SettingsRow {
+                        notificationStatusLabel
+                    } trailing: {
+                        HStack(spacing: 6) {
+                            if notificationStatus == .notDetermined {
+                                Button("Autoriser") {
+                                    Task { notificationStatus = await Notifier.shared.requestPermission() }
+                                }
+                                .buttonStyle(PillButtonStyle(kind: .primary, size: .mini))
+                            }
+                            Button("Réglages") { SystemBridge.openNotificationSettings() }
+                                .buttonStyle(PillButtonStyle(size: .mini))
+                            Button("Tester") { Task { await testNotification() } }
+                                .buttonStyle(PillButtonStyle(size: .mini))
+                        }
+                    }
+                    RowDivider()
+                    toggleRow("Son à la fin des sessions et des pauses", isOn: $endSound)
+                    RowDivider()
                     toggleRow("Réunion proche", isOn: $meetingReminder)
                     RowDivider()
                     stepperRow("Prévenir avant la réunion", value: $meetingReminderMinutes, range: 1...30, step: 1, unit: "min")
                         .disabled(!meetingReminder)
                 }
+                .task { notificationStatus = await Notifier.shared.permission() }
                 .onChange(of: meetingReminder) { model.updateMeetingReminders() }
                 .onChange(of: meetingReminderMinutes) { model.updateMeetingReminders() }
             }
@@ -221,7 +244,42 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var notificationStatusLabel: some View {
+        if let notificationTestError {
+            Label("macOS a refusé la notification : \(notificationTestError)", systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(Theme.orangeText)
+                .lineLimit(2)
+        } else {
+            switch notificationStatus {
+            case nil:
+                ProgressView().controlSize(.small)
+            case .allowed:
+                Label("Notifications autorisées", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(Theme.accentText)
+            case .notDetermined:
+                Text("Autorisation pas encore donnée")
+                    .foregroundStyle(Theme.label2)
+            case .denied:
+                Label("Refusées dans Réglages Système", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Theme.orangeText)
+            case .silent:
+                Label("Autorisées, mais sans bannière", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Theme.orangeText)
+            case .failed(let message):
+                Label("macOS bloque les notifications de Done : \(message)", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Theme.orangeText)
+                    .lineLimit(2)
+            }
+        }
+    }
+
     // MARK: Actions
+
+    private func testNotification() async {
+        notificationTestError = await Notifier.shared.sendTest()
+        notificationStatus = await Notifier.shared.permission()
+    }
 
     private var scope: Set<String> { Rules.parseIDs(backlogProjectIDs) }
 

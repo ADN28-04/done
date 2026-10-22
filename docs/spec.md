@@ -39,7 +39,7 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. |
 | Prochaine action | Proposition de la première sous-tâche faisable de la tâche en cours : ni `Waiting`, ni datée au-delà de l'horizon. Si plus rien n'est faisable, l'écran Focus indique la date de reprise. |
 | Durée adaptée | `Quick` : 15 min. Par défaut : 25 min. `Deepwork` : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
-| Minuteur | Démarrer, pause, reprendre, terminer. Notification de fin de session et de fin de pause. |
+| Minuteur | Démarrer, pause, reprendre, terminer. Notification de fin de session et de fin de pause, doublée d'un son joué par Done et du Dock qui rebondit jusqu'au retour dans l'app : la fin se remarque même si les notifications sont bloquées ou masquées. Réglages › Notifications montre si macOS les autorise et permet d'en envoyer une de test. |
 | Réunions | Lecture des tâches « Réunion · … » datées dans Todoist pour connaître les créneaux du jour. Proposition d'une tâche qui tient avant la prochaine réunion. |
 | Interruptions | Bouton Interrompre avec raison (réunion, urgence, autre). Temps partiel enregistré. |
 | Clôture | Cocher la sous-tâche ou la tâche dans Todoist depuis l'app. |

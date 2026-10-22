@@ -5,9 +5,14 @@ import AppKit
 enum SystemBridge {
     private static var activity: NSObjectProtocol?
 
-    /// Fait rebondir l'icône du Dock quand une session se termine.
+    /// Fait rebondir l'icône du Dock quand une session se termine, jusqu'au retour dans Done.
     static func requestAttention() {
-        NSApp.requestUserAttention(.informationalRequest)
+        NSApp.requestUserAttention(.criticalRequest)
+    }
+
+    /// Son système de macOS (« Glass », « Hero »…), joué par Done lui-même.
+    static func playSound(_ name: String) {
+        NSSound(named: NSSound.Name(name))?.play()
     }
 
     static func bringToFront() {
@@ -38,6 +43,14 @@ enum SystemBridge {
             queue: .main
         ) { _ in
             MainActor.assumeIsolated { action() }
+        }
+    }
+
+    /// Ouvre les réglages de notifications de Done dans Réglages Système.
+    static func openNotificationSettings() {
+        let id = Bundle.main.bundleIdentifier ?? ""
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)") {
+            NSWorkspace.shared.open(url)
         }
     }
 

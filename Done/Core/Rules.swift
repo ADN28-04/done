@@ -20,6 +20,7 @@ enum SettingsKey {
     static let planSize = "rules.planSize"
     static let meetingReminder = "rules.meetingReminder"
     static let meetingReminderMinutes = "rules.meetingReminderMinutes"
+    static let endSound = "rules.endSound"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
@@ -53,6 +54,9 @@ struct Rules {
     /// Notification quelques minutes avant chaque réunion lue dans Todoist.
     var meetingReminder = true
     var meetingReminderMinutes = 5
+    /// Son joué par Done à la fin des sessions et des pauses, même si les notifications
+    /// sont bloquées ou masquées par « Ne pas déranger ».
+    var endSound = true
 
     static let activeLabel = "Chantier-actif"
     static let waitingLabel = "Waiting"
@@ -86,6 +90,7 @@ struct Rules {
         rules.reviewReminder = (defaults.object(forKey: SettingsKey.reviewReminder) as? Bool) ?? base.reviewReminder
         rules.meetingReminder = (defaults.object(forKey: SettingsKey.meetingReminder) as? Bool) ?? base.meetingReminder
         rules.meetingReminderMinutes = min(max(int(SettingsKey.meetingReminderMinutes, base.meetingReminderMinutes), 1), 30)
+        rules.endSound = (defaults.object(forKey: SettingsKey.endSound) as? Bool) ?? base.endSound
         return rules
     }
 
