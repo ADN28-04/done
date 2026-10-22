@@ -22,14 +22,21 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.meetingReminder) private var meetingReminder = Rules().meetingReminder
     @AppStorage(SettingsKey.meetingReminderMinutes) private var meetingReminderMinutes = Rules().meetingReminderMinutes
     @AppStorage(SettingsKey.endSound) private var endSound = Rules().endSound
+    @AppStorage(SettingsKey.claudeModel) private var claudeModel = Rules().claudeModel.rawValue
+    @AppStorage(SettingsKey.claudeContextFolder) private var claudeContextFolder = Rules().claudeContextFolder
+    @AppStorage(SettingsKey.claudeMethod) private var claudeMethod = Rules().claudeMethod
 
     @State private var newToken = ""
     @State private var isEditingToken = false
-    @State private var dndStatus: DndStatus = .unknown
+    @State private var dndStatus: CheckStatus = .unknown
     @State private var notificationStatus: Notifier.Permission?
+    @State private var claudeKey = ""
+    @State private var claudeKeyStatus: CheckStatus = .unknown
+    @State private var contextFileCount: Int?
     @State private var notificationTestError: String?
 
-    private enum DndStatus: Equatable {
+    /// Résultat d'une vérification : raccourcis « Ne pas déranger » ou clé Claude.
+    private enum CheckStatus: Equatable {
         case unknown, checking, ready, problem(String)
     }
 
@@ -129,6 +136,96 @@ struct SettingsView: View {
                 }
                 .onChange(of: reviewHour) { updateReviewReminder() }
                 .onChange(of: reviewReminder) { updateReviewReminder() }
+
+                SettingsSection("Claude", footer: "Dans « Découper… », Claude propose trois premières actions. Done lui envoie la tâche, ta méthode, quelques-unes de tes sous-tâches comme exemples et la liste des fichiers du dossier ; Claude lit ensuite ceux qui l'aident. Tout cela part chez Anthropic. Fichiers lus : Markdown, texte, CSV, JSON, PDF, Word et RTF.") {
+                    SettingsRow {
+                        Text("Clé API")
+                    } trailing: {
+                        if model.hasClaudeKey {
+                            HStack(spacing: 8) {
+                                Text("Enregistrée")
+                                    .foregroundStyle(Theme.label2)
+                                Button("Supprimer") { model.deleteClaudeKey() }
+                                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+                            }
+                        } else {
+                            HStack(spacing: 6) {
+                                SecureField("sk-ant-…", text: $claudeKey)
+                                    .textFieldStyle(.plain)
+                                    .frame(width: 200)
+                                Button("Enregistrer") { Task { await saveClaudeKey() } }
+                                    .buttonStyle(PillButtonStyle(kind: .primary, size: .mini))
+                                    .disabled(claudeKey.trimmingCharacters(in: .whitespaces).isEmpty || claudeKeyStatus == .checking)
+                            }
+                        }
+                    }
+                    if case .problem(let message) = claudeKeyStatus {
+                        Text(message)
+                            .font(.text(12))
+                            .foregroundStyle(Theme.orangeText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 10)
+                    }
+                    if !model.hasClaudeKey {
+                        Link("Créer une clé sur console.anthropic.com", destination: URL(string: "https://console.anthropic.com/settings/keys")!)
+                            .font(.text(12))
+                            .foregroundStyle(Theme.accentText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 10)
+                    }
+                    RowDivider()
+                    SettingsRow {
+                        Text("Modèle")
+                    } trailing: {
+                        GlassSegmented(
+                            selection: Binding(
+                                get: { ClaudeModel(rawValue: claudeModel) ?? .opus },
+                                set: { claudeModel = $0.rawValue }
+                            ),
+                            options: ClaudeModel.allCases.map { (value: $0, title: $0.label) }
+                        )
+                    }
+                    RowDivider()
+                    SettingsRow {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Dossier de contexte")
+                            Text(contextFolderCaption)
+                                .font(.text(12))
+                                .foregroundStyle(Theme.label2)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    } trailing: {
+                        HStack(spacing: 6) {
+                            if !claudeContextFolder.isEmpty {
+                                Button("Retirer") { claudeContextFolder = "" }
+                                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+                            }
+                            Button("Choisir…") {
+                                if let url = SystemBridge.chooseFolder(prompt: "Utiliser ce dossier") {
+                                    claudeContextFolder = url.path
+                                }
+                            }
+                            .buttonStyle(PillButtonStyle(size: .mini))
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    RowDivider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Ta méthode pour découper")
+                        TextEditor(text: $claudeMethod)
+                            .font(.text(13))
+                            .scrollContentBackground(.hidden)
+                            .frame(height: 84)
+                            .padding(8)
+                            .background(Theme.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .font(.text(14))
+                    .padding(16)
+                }
+                .task(id: claudeContextFolder) { await countContextFiles() }
 
                 SettingsSection("Ne pas déranger", footer: "macOS ne laisse pas une app activer ce mode directement. Crée deux raccourcis dans l'app Raccourcis avec l'action « Définir la concentration » (Set Focus) : le premier active « Ne pas déranger » jusqu'à désactivation, le second le désactive. Donne-leur exactement les noms ci-dessus.") {
                     toggleRow("Pendant les sessions", isOn: $dndEnabled)
@@ -275,6 +372,33 @@ struct SettingsView: View {
     }
 
     // MARK: Actions
+
+    private var contextFolderCaption: String {
+        guard !claudeContextFolder.isEmpty else { return "Aucun : Claude ne voit que la tâche et ta méthode" }
+        let path = (claudeContextFolder as NSString).abbreviatingWithTildeInPath
+        guard let contextFileCount else { return path }
+        return "\(path) · \(contextFileCount) fichier\(contextFileCount > 1 ? "s" : "") lisible\(contextFileCount > 1 ? "s" : "")"
+    }
+
+    private func countContextFiles() async {
+        contextFileCount = nil
+        guard !claudeContextFolder.isEmpty else { return }
+        let folder = ContextFolder(root: URL(fileURLWithPath: claudeContextFolder))
+        contextFileCount = await Task.detached { folder.files().count }.value
+    }
+
+    private func saveClaudeKey() async {
+        claudeKeyStatus = .checking
+        do {
+            try await model.saveClaudeKey(claudeKey)
+            claudeKey = ""
+            claudeKeyStatus = .unknown
+        } catch {
+            claudeKeyStatus = (error as? ClaudeError) == .unauthorized
+                ? .problem("Claude refuse cette clé. Copie-la à nouveau depuis console.anthropic.com.")
+                : .problem("Clé non enregistrée : \(error.localizedDescription)")
+        }
+    }
 
     private func testNotification() async {
         notificationTestError = await Notifier.shared.sendTest()

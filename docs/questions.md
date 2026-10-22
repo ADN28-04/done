@@ -41,7 +41,7 @@ Points à trancher pendant l'usage de la V1.
    Le jour du cadrage, six tâches portaient `Chantier-actif`, dont quatre en P1. La cible est fixée à 2 par défaut dans les réglages. À confirmer.
 
 10. **Données professionnelles.**
-    Le Todoist contient des informations de travail (noms de collègues, projets internes). Elles transitent entre l'API Todoist et le Mac, et l'historique des sessions reste en local. Vérifier que c'est compatible avec les règles de l'employeur.
+    Le Todoist contient des informations de travail (noms de collègues, projets internes). Elles transitent entre l'API Todoist et le Mac, et l'historique des sessions reste en local. Avec le découpage par Claude, la tâche, la méthode, la liste des fichiers du dossier de contexte et les fichiers que Claude lit partent chez Anthropic. Vérifier que c'est compatible avec les règles de l'employeur.
 
 11. **« Ne pas déranger » pendant une pause manuelle ?**
     Aujourd'hui, le mode est coupé dès que le minuteur est en pause ou interrompu. Si les pauses sont très courtes, on pourrait le garder actif pour éviter les allers-retours.

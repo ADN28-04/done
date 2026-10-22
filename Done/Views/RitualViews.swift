@@ -13,6 +13,8 @@ struct BreakdownSheet: View {
     @State private var text = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var suggestions: [Breakdown.Suggestion] = []
+    @State private var isAsking = false
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
@@ -45,6 +47,15 @@ struct BreakdownSheet: View {
                 .foregroundStyle(Theme.label2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 8)
+            if model.hasClaudeKey {
+                claudeSuggestions
+                    .padding(.top, 18)
+            } else {
+                Text("Ajoute une clé API Claude dans Réglages › Claude pour obtenir des propositions.")
+                    .font(.text(12))
+                    .foregroundStyle(Theme.label3)
+                    .padding(.top, 14)
+            }
             if let errorMessage {
                 NoticeBox(text: errorMessage, tone: .error)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,14 +88,83 @@ struct BreakdownSheet: View {
         .onAppear { fieldFocused = true }
     }
 
+    /// Trois propositions de Claude : un clic les met dans le champ, à retoucher si besoin.
+    @ViewBuilder
+    private var claudeSuggestions: some View {
+        if suggestions.isEmpty {
+            Button {
+                Task { await askClaude() }
+            } label: {
+                if isAsking {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Claude lit ton contexte…")
+                    }
+                } else {
+                    Label("Proposer avec Claude", systemImage: "sparkles")
+                }
+            }
+            .buttonStyle(PillButtonStyle(size: .small))
+            .disabled(isAsking)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Eyebrow(text: "Propositions de Claude")
+                    .padding(.leading, 2)
+                VStack(spacing: 0) {
+                    ForEach(suggestions) { suggestion in
+                        Button {
+                            text = suggestion.title
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(suggestion.title)
+                                    .font(.text(14, .medium))
+                                    .foregroundStyle(Theme.label)
+                                Text(suggestion.why)
+                                    .font(.text(12))
+                                    .foregroundStyle(Theme.label2)
+                            }
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(trimmed == suggestion.title ? Theme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(6)
+                .surface(radius: 16)
+                Button(isAsking ? "Claude lit ton contexte…" : "Autres propositions") {
+                    Task { await askClaude() }
+                }
+                .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+                .disabled(isAsking)
+            }
+        }
+    }
+
     private var trimmed: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private func askClaude() async {
+        isAsking = true
+        defer { isAsking = false }
+        errorMessage = nil
+        do {
+            suggestions = try await model.suggestBreakdown(for: task)
+        } catch {
+            errorMessage = "Claude n'a pas pu proposer d'action : \(error.localizedDescription)"
+        }
+    }
+
     private func save() {
         guard !trimmed.isEmpty, !isSaving else { return }
+        // Posé tout de suite : Entrée et le bouton ne créent jamais deux sous-tâches.
+        isSaving = true
         Task {
-            isSaving = true
             defer { isSaving = false }
             do {
                 let created = try await model.addSubtask(trimmed, to: task)

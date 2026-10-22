@@ -12,6 +12,8 @@ final class AppModel {
     private(set) var isLoading = false
     private(set) var lastRefresh: Date?
     private(set) var hasToken: Bool
+    /// Clé API Claude présente dans le trousseau.
+    private(set) var hasClaudeKey = Keychain.read(Keychain.anthropicAccount) != nil
     private(set) var plan: DayPlan?
     /// Jour du dernier bilan du soir (`Format.dayKey`).
     private(set) var lastReviewDay: String?
@@ -218,6 +220,58 @@ final class AppModel {
         let defaults = UserDefaults.standard
         defaults.set(try? JSONEncoder().encode(carry), forKey: Self.carryOverKey)
         defaults.set(carry.fromDay, forKey: Self.lastReviewKey)
+    }
+
+    // MARK: Claude
+
+    /// Vérifie la clé auprès de l'API, puis la range dans le trousseau.
+    func saveClaudeKey(_ rawKey: String) async throws {
+        let key = rawKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { throw ClaudeError.missingKey }
+        try await ClaudeClient(apiKey: key).checkKey()
+        Keychain.save(key, account: Keychain.anthropicAccount)
+        hasClaudeKey = true
+    }
+
+    func deleteClaudeKey() {
+        Keychain.delete(Keychain.anthropicAccount)
+        hasClaudeKey = false
+    }
+
+    /// Trois premières actions proposées par Claude, avec le contexte de Todoist et du dossier choisi.
+    func suggestBreakdown(for task: TodoistTask) async throws -> [Breakdown.Suggestion] {
+        guard let key = Keychain.read(Keychain.anthropicAccount) else { throw ClaudeError.missingKey }
+        let rules = rules
+        let folder = rules.claudeContextFolder.isEmpty ? nil : ContextFolder(root: URL(fileURLWithPath: rules.claudeContextFolder))
+        // Parcourir le dossier peut prendre un moment : hors du fil principal.
+        let (files, entries) = await Task.detached { () -> ([ContextFolder.File], [Breakdown.ContextEntry]) in
+            guard let folder else { return ([], []) }
+            let files = folder.files()
+            return (files, folder.entries(of: files))
+        }.value
+
+        let parent = task.parentId.flatMap { index[$0] }
+        let siblings = task.parentId.map { index.children(of: $0).filter { $0.id != task.id } } ?? []
+        let system = Breakdown.systemPrompt(
+            method: rules.claudeMethod,
+            examples: Breakdown.examples(in: index, preferring: task.projectId, excluding: task.id, rules: rules),
+            files: entries
+        )
+        let prompt = Breakdown.taskPrompt(
+            task: task,
+            projectName: projectName(for: task),
+            parent: parent,
+            siblings: siblings,
+            resumeNote: resumeNote(for: task.id)?.text
+        )
+        return try await ClaudeClient(apiKey: key, model: rules.claudeModel).suggestActions(
+            system: system,
+            prompt: prompt,
+            offersFiles: !files.isEmpty
+        ) { paths in
+            guard let folder else { return "" }
+            return await folder.read(paths, in: files)
+        }
     }
 
     // MARK: Note de reprise

@@ -21,6 +21,9 @@ enum SettingsKey {
     static let meetingReminder = "rules.meetingReminder"
     static let meetingReminderMinutes = "rules.meetingReminderMinutes"
     static let endSound = "rules.endSound"
+    static let claudeModel = "claude.model"
+    static let claudeContextFolder = "claude.contextFolder"
+    static let claudeMethod = "claude.method"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
@@ -57,6 +60,10 @@ struct Rules {
     /// Son joué par Done à la fin des sessions et des pauses, même si les notifications
     /// sont bloquées ou masquées par « Ne pas déranger ».
     var endSound = true
+    /// Découpage assisté par Claude : modèle, dossier de contexte (chemin) et méthode de découpage.
+    var claudeModel = ClaudeModel.opus
+    var claudeContextFolder = ""
+    var claudeMethod = Breakdown.defaultMethod
 
     static let activeLabel = "Chantier-actif"
     static let waitingLabel = "Waiting"
@@ -91,6 +98,9 @@ struct Rules {
         rules.meetingReminder = (defaults.object(forKey: SettingsKey.meetingReminder) as? Bool) ?? base.meetingReminder
         rules.meetingReminderMinutes = min(max(int(SettingsKey.meetingReminderMinutes, base.meetingReminderMinutes), 1), 30)
         rules.endSound = (defaults.object(forKey: SettingsKey.endSound) as? Bool) ?? base.endSound
+        rules.claudeModel = defaults.string(forKey: SettingsKey.claudeModel).flatMap(ClaudeModel.init(rawValue:)) ?? base.claudeModel
+        rules.claudeContextFolder = defaults.string(forKey: SettingsKey.claudeContextFolder) ?? base.claudeContextFolder
+        rules.claudeMethod = defaults.string(forKey: SettingsKey.claudeMethod) ?? base.claudeMethod
         return rules
     }
 

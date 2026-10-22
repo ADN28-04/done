@@ -1,4 +1,5 @@
 import AppKit
+import PDFKit
 
 /// Appels AppKit utilisés par la logique, regroupés ici.
 @MainActor
@@ -51,6 +52,32 @@ enum SystemBridge {
         let id = Bundle.main.bundleIdentifier ?? ""
         if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)") {
             NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Fenêtre de choix d'un dossier. `nil` si l'utilisateur annule.
+    static func chooseFolder(prompt: String) -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = prompt
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    /// Texte d'un PDF, d'un document Word ou RTF, extrait par macOS (sur le fil principal, comme AppKit le demande).
+    static func documentText(at url: URL) -> String? {
+        switch url.pathExtension.lowercased() {
+        case "pdf":
+            return PDFDocument(url: url)?.string
+        case "docx":
+            let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [.documentType: NSAttributedString.DocumentType.officeOpenXML]
+            return try? NSAttributedString(url: url, options: options, documentAttributes: nil).string
+        case "rtf":
+            let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [.documentType: NSAttributedString.DocumentType.rtf]
+            return try? NSAttributedString(url: url, options: options, documentAttributes: nil).string
+        default:
+            return nil
         }
     }
 
