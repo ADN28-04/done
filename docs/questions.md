@@ -27,7 +27,7 @@ Points à trancher pendant l'usage de la V1.
    15 / 25 / 50 minutes pour `Quick` / défaut / `Deepwork` est un point de départ, réglable dans l'app.
 
 6. **Le découpage assisté suffit-il ?**
-   Done propose de créer une seule prochaine action. Si l'usage montre qu'on veut souvent poser deux ou trois étapes d'un coup, on ajoutera la saisie de plusieurs sous-tâches.
+   Tranché à l'usage : une seule prochaine action ne suffisait pas, la tâche paraissait abandonnée après la première étape. Done crée maintenant toutes les étapes d'un coup, dans l'ordre, et les propose l'une après l'autre.
 
 7. **« Plus tard » et « en file d'attente » ne déplacent rien dans Todoist.**
    Le bilan « Plus tard » laisse la tâche où elle est, et le garde-fou retire seulement `@Chantier-actif`. Faut-il aussi déplacer la tâche dans « Plus tard › File d'attente », comme dans ta méthode actuelle ?

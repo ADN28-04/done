@@ -23,12 +23,10 @@ enum ClaudeModel: String, CaseIterable, Identifiable {
 
 /// Découpage assisté par Claude : consignes, contexte de la tâche et lecture de la réponse, sans réseau.
 enum Breakdown {
-    /// Une première action proposée par Claude.
-    struct Suggestion: Codable, Equatable, Identifiable {
-        let title: String
-        let why: String
-
-        var id: String { title }
+    /// Découpage proposé par Claude : l'approche en une phrase, puis les étapes dans l'ordre.
+    struct Plan: Equatable {
+        let approach: String
+        let steps: [String]
     }
 
     /// Fichier du dossier de contexte, tel que Claude le voit dans la liste.
@@ -65,6 +63,8 @@ enum Breakdown {
     static let maxIndexEntries = 300
     /// Nombre maximal d'allers-retours avec Claude pour un découpage.
     static let maxRounds = 5
+    /// Au-delà, les étapes restantes sont ignorées : une tâche qui en demande plus est un projet.
+    static let maxSteps = 10
     // Pièces jointes : choisies par la personne, donc plus généreuses que le dossier de contexte.
     static let maxAttachments = 5
     static let maxAttachmentCharacters = 60_000
@@ -76,15 +76,17 @@ enum Breakdown {
     static func systemPrompt(method: String, examples: [String], files: [ContextEntry]) -> String {
         var parts = [
             """
-            Tu aides une personne à démarrer une tâche Todoist trop large, en proposant sa prochaine action concrète. Done, son app de sessions de focus, créera l'action choisie comme sous-tâche dans Todoist.
+            Tu aides une personne à finir une tâche Todoist trop large en la découpant en étapes. Done, son app de sessions de focus, créera toutes les étapes comme sous-tâches dans Todoist, dans ton ordre, puis les lui proposera une par une jusqu'à ce que la tâche soit finie.
 
-            Une bonne action :
+            Découpe la tâche entière, de la première action jusqu'à la dernière qui la clôt : pas seulement le premier pas. Les étapes se suivent dans l'ordre où la personne les fera, et chacune prépare la suivante. Vise 3 à 8 étapes ; si la tâche en demande plus, regroupe les petites.
+
+            Une bonne étape :
             - commence par un verbe à l'infinitif et nomme un résultat visible ;
             - tient en une session de focus d'environ 25 minutes ;
-            - peut démarrer tout de suite, sans attendre quelqu'un ;
+            - peut se faire sans attendre quelqu'un : quand il faut l'avis d'une autre personne, l'étape est l'envoi de la demande (« Envoyer la page à Camille pour relecture ») ;
             - tient sur une ligne et reprend le vocabulaire de la personne.
 
-            Propose trois actions différentes, de la plus évidente à la plus utile pour faire avancer la tâche. Pour chacune, une phrase dit pourquoi c'est un bon premier pas. Écris en français, sans point d'exclamation.
+            Ne répète pas les sous-tâches déjà présentes dans Todoist. Donne aussi une phrase qui résume l'approche. Écris en français, sans point d'exclamation.
             """,
         ]
         let trimmedMethod = method.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -112,6 +114,7 @@ enum Breakdown {
         projectName: String,
         parent: TodoistTask?,
         siblings: [TodoistTask],
+        existing: [TodoistTask] = [],
         resumeNote: String?,
         now: Date = .now
     ) -> String {
@@ -122,6 +125,9 @@ enum Breakdown {
         if let parent { lines.append("Tâche parente : « \(parent.content) »") }
         if !siblings.isEmpty {
             lines.append("Autres sous-tâches encore ouvertes au même niveau : " + siblings.map { "« \($0.content) »" }.joined(separator: ", "))
+        }
+        if !existing.isEmpty {
+            lines.append("Sous-tâches déjà présentes sous cette tâche, à ne pas répéter : " + existing.map { "« \($0.content) »" }.joined(separator: ", "))
         }
         if !task.labels.isEmpty { lines.append("Labels : " + task.labels.map { "@\($0)" }.joined(separator: ", ")) }
         if let due = Format.due(task, now: now) { lines.append("Date : \(due)") }
@@ -191,14 +197,20 @@ enum Breakdown {
 
     // MARK: Réponse
 
-    /// Lit la réponse JSON de Claude. `nil` si elle ne suit pas le format attendu.
-    static func parse(_ text: String) -> [Suggestion]? {
-        struct Payload: Decodable { let actions: [Suggestion] }
+    /// Lit la réponse JSON de Claude. `nil` si elle ne suit pas le format attendu ou ne contient aucune étape.
+    static func parse(_ text: String) -> Plan? {
+        struct Step: Decodable { let title: String }
+        struct Payload: Decodable {
+            let approach: String
+            let steps: [Step]
+        }
         guard let payload = try? JSONDecoder().decode(Payload.self, from: Data(text.utf8)) else { return nil }
-        let actions = payload.actions
-            .map { Suggestion(title: $0.title.trimmingCharacters(in: .whitespacesAndNewlines), why: $0.why.trimmingCharacters(in: .whitespacesAndNewlines)) }
-            .filter { !$0.title.isEmpty }
-        return actions.isEmpty ? nil : Array(actions.prefix(3))
+        var seen = Set<String>()
+        let steps = payload.steps
+            .map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+        guard !steps.isEmpty else { return nil }
+        return Plan(approach: payload.approach.trimmingCharacters(in: .whitespacesAndNewlines), steps: Array(steps.prefix(maxSteps)))
     }
 
     /// Chemins demandés par Claude qui existent vraiment dans le dossier, sans doublon ni dépassement.
@@ -220,25 +232,26 @@ enum Breakdown {
 
     // MARK: Formats de l'API
 
-    /// Format imposé à la réponse finale : trois actions avec leur raison.
+    /// Format imposé à la réponse finale : l'approche, puis toutes les étapes dans l'ordre.
     static var outputSchema: [String: Any] {
         [
             "type": "object",
             "properties": [
-                "actions": [
+                "approach": ["type": "string", "description": "Une phrase : comment ces étapes mènent la tâche au bout."],
+                "steps": [
                     "type": "array",
+                    "description": "Toutes les étapes, de la première à celle qui clôt la tâche, dans l'ordre.",
                     "items": [
                         "type": "object",
                         "properties": [
-                            "title": ["type": "string", "description": "L'action, prête à devenir une sous-tâche Todoist."],
-                            "why": ["type": "string", "description": "Une phrase : pourquoi c'est un bon premier pas."],
+                            "title": ["type": "string", "description": "L'étape, prête à devenir une sous-tâche Todoist."],
                         ],
-                        "required": ["title", "why"],
+                        "required": ["title"],
                         "additionalProperties": false,
                     ],
                 ],
             ],
-            "required": ["actions"],
+            "required": ["approach", "steps"],
             "additionalProperties": false,
         ]
     }

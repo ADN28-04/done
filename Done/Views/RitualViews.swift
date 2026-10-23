@@ -3,29 +3,39 @@ import SwiftUI
 
 // MARK: Découpage assisté
 
-/// Demande la prochaine action concrète d'une tâche et la crée comme sous-tâche dans Todoist.
+/// Découpe une tâche en étapes, dans l'ordre, et les crée toutes comme sous-tâches dans Todoist.
+/// Claude peut proposer le découpage ; chaque étape reste modifiable avant l'envoi.
 struct BreakdownSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let task: TodoistTask
     var onAdded: (TodoistTask) -> Void = { _ in }
-    /// Demande des propositions à Claude dès l'ouverture.
+    /// Demande un découpage à Claude dès l'ouverture.
     var askClaudeOnOpen = false
 
-    @State private var text = ""
+    /// Une ligne de la liste. L'identifiant garde le focus sur la bonne ligne.
+    private struct Step: Identifiable, Equatable {
+        let id = UUID()
+        var text: String
+    }
+
+    @State private var steps = [Step(text: "")]
+    /// Approche résumée par Claude, affichée au-dessus des étapes.
+    @State private var approach: String?
     @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var suggestions: [Breakdown.Suggestion] = []
     @State private var isAsking = false
     /// Pièces jointes au moment de la dernière demande, pour proposer de relancer Claude.
     @State private var askedWith: [String]?
     @State private var isDropTargeted = false
-    @FocusState private var fieldFocused: Bool
+    @FocusState private var focusedStep: UUID?
+
+    private static let rowHeight: CGFloat = 40
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Découper")
-            Text("Quelle est la prochaine action concrète ?")
+            Text("Quelles étapes pour finir cette tâche ?")
                 .font(.display(24))
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 10)
@@ -34,35 +44,24 @@ struct BreakdownSheet: View {
                 .foregroundStyle(Theme.label2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
-            TextField("Ex. : lister les fiches à mettre à jour", text: $text)
-                .textFieldStyle(.plain)
-                .font(.text(15))
-                .focused($fieldFocused)
-                .onSubmit(save)
-                .padding(.horizontal, 14)
-                .frame(height: 40)
-                .surface(radius: 12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Theme.ring.opacity(fieldFocused ? 0.45 : 0), lineWidth: 2)
-                )
-                .padding(.top, 22)
-            Text("Une action qui tient en une session et commence par un verbe : écrire, appeler, lister, envoyer.")
-                .font(.text(12))
-                .foregroundStyle(Theme.label2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 8)
             if model.hasClaudeKey {
                 attachmentsBlock
                     .padding(.top, 18)
-                claudeSuggestions
+                claudeRow
                     .padding(.top, 14)
             } else {
-                Text("Ajoute une clé API Claude dans Réglages › Claude pour obtenir des propositions.")
+                Text("Ajoute une clé API Claude dans Réglages › Claude pour obtenir un découpage.")
                     .font(.text(12))
                     .foregroundStyle(Theme.label3)
                     .padding(.top, 14)
             }
+            stepsList
+                .padding(.top, 16)
+            Text("Chaque étape tient en une session et commence par un verbe. Done te les propose une par une, dans cet ordre. Entrée ajoute une ligne.")
+                .font(.text(12))
+                .foregroundStyle(Theme.label2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
             if let errorMessage {
                 NoticeBox(text: errorMessage, tone: .error)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,20 +76,22 @@ struct BreakdownSheet: View {
                     if isSaving {
                         HStack(spacing: 8) {
                             ProgressView().controlSize(.small)
-                            Text("Ajout…")
+                            Text("Ajout dans Todoist…")
                         }
                     } else {
-                        Text("Ajouter dans Todoist")
+                        Text(filledSteps.count > 1 ? "Ajouter \(filledSteps.count) étapes dans Todoist" : "Ajouter dans Todoist")
                     }
                 }
                 .buttonStyle(PillButtonStyle(kind: .primary))
-                .keyboardShortcut(.defaultAction)
-                .disabled(trimmed.isEmpty || isSaving)
+                // Entrée sert à ajouter une ligne : l'envoi passe par ⌘ Entrée.
+                .keyboardShortcut(.return, modifiers: .command)
+                .help("⌘ Entrée")
+                .disabled(filledSteps.isEmpty || isSaving || isAsking)
             }
             .padding(.top, 26)
         }
         .padding(28)
-        .frame(width: 500)
+        .frame(width: 540)
         .background(Backdrop(style: .wash))
         .overlay {
             if isDropTargeted {
@@ -107,12 +108,133 @@ struct BreakdownSheet: View {
         } isTargeted: { targeted in
             isDropTargeted = targeted && model.hasClaudeKey
         }
-        .onAppear { fieldFocused = true }
+        .onAppear { focusedStep = steps.first?.id }
         .task {
-            if askClaudeOnOpen, model.hasClaudeKey, suggestions.isEmpty {
+            if askClaudeOnOpen, model.hasClaudeKey, approach == nil {
                 await askClaude()
             }
         }
+    }
+
+    // MARK: Étapes
+
+    private var stepsList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(steps.enumerated()), id: \.element.id) { offset, step in
+                        if offset > 0 {
+                            Hairline().padding(.horizontal, 12)
+                        }
+                        HStack(spacing: 12) {
+                            Text("\(offset + 1)")
+                                .font(.mono(15))
+                                .foregroundStyle(Theme.accentText)
+                                .frame(width: 22, alignment: .trailing)
+                            TextField(offset == 0 ? "Ex. : lister les fiches à mettre à jour" : "Étape suivante", text: text(of: step.id))
+                                .textFieldStyle(.plain)
+                                .font(.text(14))
+                                .focused($focusedStep, equals: step.id)
+                                .onSubmit { insertStep(after: step.id) }
+                            Button {
+                                removeStep(step.id)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Theme.label2)
+                                    .frame(width: 20, height: 20)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help("Retirer cette étape")
+                            .opacity(steps.count > 1 ? 1 : 0)
+                            .disabled(steps.count <= 1)
+                        }
+                        .padding(.horizontal, 12)
+                        .frame(height: Self.rowHeight)
+                    }
+                }
+                .padding(4)
+            }
+            .scrollIndicators(.never)
+            // Six lignes visibles, la liste défile au-delà.
+            .frame(height: min(CGFloat(steps.count), 6) * (Self.rowHeight + 1) + 8)
+            .surface(radius: 14)
+            Button {
+                insertStep(after: steps.last?.id)
+            } label: {
+                Label("Ajouter une étape", systemImage: "plus")
+            }
+            .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+            .disabled(steps.count >= Breakdown.maxSteps)
+        }
+    }
+
+    private var filledSteps: [String] {
+        steps
+            .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func text(of id: UUID) -> Binding<String> {
+        Binding(
+            get: { steps.first { $0.id == id }?.text ?? "" },
+            set: { value in
+                if let index = steps.firstIndex(where: { $0.id == id }) {
+                    steps[index].text = value
+                }
+            }
+        )
+    }
+
+    private func insertStep(after id: UUID?) {
+        guard steps.count < Breakdown.maxSteps else { return }
+        let step = Step(text: "")
+        let position = id.flatMap { id in steps.firstIndex { $0.id == id } }.map { $0 + 1 } ?? steps.count
+        steps.insert(step, at: position)
+        focusedStep = step.id
+    }
+
+    private func removeStep(_ id: UUID) {
+        steps.removeAll { $0.id == id }
+        if steps.isEmpty { steps = [Step(text: "")] }
+    }
+
+    // MARK: Claude
+
+    private var claudeRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let approach, !approach.isEmpty {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.accentText)
+                    Text(approach)
+                        .font(.text(13))
+                        .foregroundStyle(Theme.label2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Button {
+                Task { await askClaude() }
+            } label: {
+                if isAsking {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Claude prépare le découpage…")
+                    }
+                } else {
+                    Label(claudeButtonTitle, systemImage: "sparkles")
+                }
+            }
+            .buttonStyle(PillButtonStyle(size: .small))
+            .disabled(isAsking || isSaving)
+        }
+    }
+
+    private var claudeButtonTitle: String {
+        guard approach != nil else { return "Découper avec Claude" }
+        return askedWith == model.attachments(for: task.id) ? "Proposer un autre découpage" : "Relancer avec les pièces jointes"
     }
 
     /// Fichiers joints à la tâche : envoyés à Claude en entier, gardés pour les prochains découpages.
@@ -180,92 +302,40 @@ struct BreakdownSheet: View {
         errorMessage = problems.isEmpty ? nil : problems.joined(separator: " ")
     }
 
-    /// Trois propositions de Claude : un clic les met dans le champ, à retoucher si besoin.
-    @ViewBuilder
-    private var claudeSuggestions: some View {
-        if suggestions.isEmpty {
-            Button {
-                Task { await askClaude() }
-            } label: {
-                if isAsking {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text("Claude lit ton contexte…")
-                    }
-                } else {
-                    Label("Proposer avec Claude", systemImage: "sparkles")
-                }
-            }
-            .buttonStyle(PillButtonStyle(size: .small))
-            .disabled(isAsking)
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                Eyebrow(text: "Propositions de Claude")
-                    .padding(.leading, 2)
-                VStack(spacing: 0) {
-                    ForEach(suggestions) { suggestion in
-                        Button {
-                            text = suggestion.title
-                        } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(suggestion.title)
-                                    .font(.text(14, .medium))
-                                    .foregroundStyle(Theme.label)
-                                Text(suggestion.why)
-                                    .font(.text(12))
-                                    .foregroundStyle(Theme.label2)
-                            }
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(trimmed == suggestion.title ? Theme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(6)
-                .surface(radius: 16)
-                Button(isAsking ? "Claude lit ton contexte…" : (askedWith == model.attachments(for: task.id) ? "Autres propositions" : "Relancer avec les pièces jointes")) {
-                    Task { await askClaude() }
-                }
-                .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
-                .disabled(isAsking)
-            }
-        }
-    }
-
-    private var trimmed: String {
-        text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
     private func askClaude() async {
         isAsking = true
         defer { isAsking = false }
         errorMessage = nil
         askedWith = model.attachments(for: task.id)
         do {
-            suggestions = try await model.suggestBreakdown(for: task)
+            let plan = try await model.suggestBreakdown(for: task)
+            approach = plan.approach
+            steps = plan.steps.map { Step(text: $0) }
         } catch {
-            errorMessage = "Claude n'a pas pu proposer d'action : \(error.localizedDescription)"
+            errorMessage = "Claude n'a pas pu découper la tâche : \(error.localizedDescription)"
         }
     }
 
+    // MARK: Envoi
+
     private func save() {
-        guard !trimmed.isEmpty, !isSaving else { return }
-        // Posé tout de suite : Entrée et le bouton ne créent jamais deux sous-tâches.
+        let contents = filledSteps
+        guard !contents.isEmpty, !isSaving else { return }
+        // Posé tout de suite : un double clic ne crée jamais les étapes deux fois.
         isSaving = true
         Task {
             defer { isSaving = false }
-            do {
-                let created = try await model.addSubtask(trimmed, to: task)
-                onAdded(created)
+            let (created, error) = await model.addSubtasks(contents, to: task)
+            if let first = created.first { onAdded(first) }
+            guard let error else {
                 dismiss()
-            } catch {
-                errorMessage = "La sous-tâche n'a pas été créée : \(error.localizedDescription)"
+                return
             }
+            // Les étapes déjà créées sortent de la liste : un nouvel essai ne les recrée pas.
+            steps = contents.dropFirst(created.count).map { Step(text: $0) }
+            errorMessage = created.isEmpty
+                ? "Les étapes n'ont pas été créées : \(error.localizedDescription)"
+                : "\(created.count) étape\(created.count > 1 ? "s" : "") sur \(contents.count) dans Todoist. Les autres n'ont pas été créées : \(error.localizedDescription)"
         }
     }
 }

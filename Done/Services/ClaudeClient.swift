@@ -61,9 +61,9 @@ struct ClaudeClient {
         }
     }
 
-    /// Demande trois premières actions. Claude peut d'abord lire des fichiers du dossier de contexte.
+    /// Demande le découpage complet d'une tâche. Claude peut d'abord lire des fichiers du dossier de contexte.
     /// `userContent` : blocs du premier message (pièces jointes, puis la tâche).
-    func suggestActions(system: String, userContent: [[String: Any]], offersFiles: Bool, readFiles: FileReader) async throws -> [Breakdown.Suggestion] {
+    func suggestPlan(system: String, userContent: [[String: Any]], offersFiles: Bool, readFiles: FileReader) async throws -> Breakdown.Plan {
         var messages: [[String: Any]] = [["role": "user", "content": userContent]]
         for round in 1...Breakdown.maxRounds {
             // Au dernier tour, plus de lecture : Claude doit répondre avec ce qu'il a.
@@ -89,8 +89,8 @@ struct ClaudeClient {
                     .filter { $0["type"] as? String == "text" }
                     .compactMap { $0["text"] as? String }
                     .joined()
-                guard let suggestions = Breakdown.parse(text) else { throw ClaudeError.badResponse }
-                return suggestions
+                guard let plan = Breakdown.parse(text) else { throw ClaudeError.badResponse }
+                return plan
             case "refusal":
                 throw ClaudeError.refused
             case "max_tokens":

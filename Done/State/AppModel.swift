@@ -195,6 +195,20 @@ final class AppModel {
         return created
     }
 
+    /// Crée les étapes d'un découpage dans l'ordre, une par une. S'arrête à la première erreur
+    /// et renvoie celles déjà créées, pour qu'un nouvel essai ne les recrée pas.
+    func addSubtasks(_ contents: [String], to parent: TodoistTask) async -> (created: [TodoistTask], error: Error?) {
+        var created: [TodoistTask] = []
+        for content in contents {
+            do {
+                created.append(try await addSubtask(content, to: parent))
+            } catch {
+                return (created, error)
+            }
+        }
+        return (created, nil)
+    }
+
     /// Met des chantiers en file d'attente : retire @Chantier-actif dans Todoist, puis recharge.
     func park(_ tasks: [TodoistTask]) async throws {
         guard let token else { throw TodoistError.unauthorized }
@@ -244,8 +258,8 @@ final class AppModel {
         hasClaudeKey = false
     }
 
-    /// Trois premières actions proposées par Claude, avec le contexte de Todoist et du dossier choisi.
-    func suggestBreakdown(for task: TodoistTask) async throws -> [Breakdown.Suggestion] {
+    /// Découpage complet proposé par Claude, avec le contexte de Todoist, du dossier choisi et des pièces jointes.
+    func suggestBreakdown(for task: TodoistTask) async throws -> Breakdown.Plan {
         guard let key = Keychain.read(Keychain.anthropicAccount) else { throw ClaudeError.missingKey }
         let rules = rules
         let folder = rules.claudeContextFolder.isEmpty ? nil : ContextFolder(root: URL(fileURLWithPath: rules.claudeContextFolder))
@@ -268,13 +282,14 @@ final class AppModel {
             projectName: projectName(for: task),
             parent: parent,
             siblings: siblings,
+            existing: index.children(of: task.id),
             resumeNote: resumeNote(for: task.id)?.text
         )
         var attachments: [Breakdown.Attachment] = []
         for path in taskAttachments[task.id] {
             attachments.append(try await AttachmentLoader.load(URL(fileURLWithPath: path)))
         }
-        return try await ClaudeClient(apiKey: key, model: rules.claudeModel).suggestActions(
+        return try await ClaudeClient(apiKey: key, model: rules.claudeModel).suggestPlan(
             system: system,
             userContent: Breakdown.userContent(prompt: prompt, attachments: attachments),
             offersFiles: !files.isEmpty
