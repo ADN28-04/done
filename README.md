@@ -46,6 +46,8 @@ Done active le mode quand le minuteur de focus tourne, et le coupe en pause, en 
 
 Sur l'écran Focus, sous l'action proposée, « Découper avec Claude… » ouvre la feuille de découpage et lance Claude, qui reçoit la tâche, la méthode, quelques sous-tâches existantes comme exemples et la liste des fichiers du dossier. Claude lit ceux qui l'aident (5 par appel, 30 000 caractères par fichier au plus) et propose trois actions. Seuls les fichiers qu'il demande quittent le Mac. Claude Opus 5.5 est le modèle par défaut ; Sonnet 5.5 et Haiku 5.5 coûtent moins cher.
 
+Pour un document propre à la tâche (brief, maquette, capture d'écran, export PDF d'un tableau), utilise « Joindre un fichier… » dans la feuille de découpage, ou glisse le fichier dessus. Claude le reçoit en entier, et il reste attaché à la tâche pour les découpages suivants (5 fichiers au plus par tâche, PDF de 15 Mo au plus). Les images sont réduites à 2000 px avant l'envoi. Après avoir joint un fichier, « Relancer avec les pièces jointes » redemande des propositions.
+
 La première fois, macOS peut demander l'autorisation d'accéder au dossier (Documents, Bureau, iCloud Drive).
 
 ### Si les notifications n'arrivent pas

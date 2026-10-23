@@ -17,6 +17,9 @@ struct BreakdownSheet: View {
     @State private var errorMessage: String?
     @State private var suggestions: [Breakdown.Suggestion] = []
     @State private var isAsking = false
+    /// Pièces jointes au moment de la dernière demande, pour proposer de relancer Claude.
+    @State private var askedWith: [String]?
+    @State private var isDropTargeted = false
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
@@ -50,8 +53,10 @@ struct BreakdownSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 8)
             if model.hasClaudeKey {
-                claudeSuggestions
+                attachmentsBlock
                     .padding(.top, 18)
+                claudeSuggestions
+                    .padding(.top, 14)
             } else {
                 Text("Ajoute une clé API Claude dans Réglages › Claude pour obtenir des propositions.")
                     .font(.text(12))
@@ -87,12 +92,92 @@ struct BreakdownSheet: View {
         .padding(28)
         .frame(width: 500)
         .background(Backdrop(style: .wash))
+        .overlay {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Theme.ring, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                    .padding(8)
+                    .allowsHitTesting(false)
+            }
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            guard model.hasClaudeKey else { return false }
+            attach(urls)
+            return true
+        } isTargeted: { targeted in
+            isDropTargeted = targeted && model.hasClaudeKey
+        }
         .onAppear { fieldFocused = true }
         .task {
             if askClaudeOnOpen, model.hasClaudeKey, suggestions.isEmpty {
                 await askClaude()
             }
         }
+    }
+
+    /// Fichiers joints à la tâche : envoyés à Claude en entier, gardés pour les prochains découpages.
+    private var attachmentsBlock: some View {
+        let paths = model.attachments(for: task.id)
+        return VStack(alignment: .leading, spacing: 8) {
+            if !paths.isEmpty {
+                Eyebrow(text: "Pièces jointes")
+                    .padding(.leading, 2)
+                VStack(spacing: 6) {
+                    ForEach(paths, id: \.self) { path in
+                        HStack(spacing: 8) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.label2)
+                            Text((path as NSString).lastPathComponent)
+                                .font(.text(13))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .help(path)
+                            Spacer(minLength: 0)
+                            Button {
+                                model.detach(path, from: task.id)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Theme.label2)
+                                    .frame(width: 20, height: 20)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help("Retirer cette pièce jointe")
+                        }
+                        .padding(.horizontal, 12)
+                        .frame(height: 32)
+                        .background(Theme.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                }
+            }
+            Button {
+                attach(SystemBridge.chooseFiles(prompt: "Joindre"))
+            } label: {
+                Label("Joindre un fichier…", systemImage: "paperclip")
+            }
+            .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+            .disabled(paths.count >= Breakdown.maxAttachments)
+            .help("PDF, image, Word, Markdown ou texte : Claude le lit en entier. Tu peux aussi glisser un fichier sur cette fenêtre.")
+        }
+    }
+
+    private func attach(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
+        var problems: [String] = []
+        var accepted: [String] = []
+        for url in urls {
+            if let problem = AttachmentLoader.problem(with: url) {
+                problems.append(problem.localizedDescription)
+            } else {
+                accepted.append(url.path)
+            }
+        }
+        if !model.attach(accepted, to: task.id).isEmpty {
+            problems.append("\(Breakdown.maxAttachments) pièces jointes au plus par tâche.")
+        }
+        errorMessage = problems.isEmpty ? nil : problems.joined(separator: " ")
     }
 
     /// Trois propositions de Claude : un clic les met dans le champ, à retoucher si besoin.
@@ -143,7 +228,7 @@ struct BreakdownSheet: View {
                 }
                 .padding(6)
                 .surface(radius: 16)
-                Button(isAsking ? "Claude lit ton contexte…" : "Autres propositions") {
+                Button(isAsking ? "Claude lit ton contexte…" : (askedWith == model.attachments(for: task.id) ? "Autres propositions" : "Relancer avec les pièces jointes")) {
                     Task { await askClaude() }
                 }
                 .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
@@ -160,6 +245,7 @@ struct BreakdownSheet: View {
         isAsking = true
         defer { isAsking = false }
         errorMessage = nil
+        askedWith = model.attachments(for: task.id)
         do {
             suggestions = try await model.suggestBreakdown(for: task)
         } catch {

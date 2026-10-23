@@ -81,5 +81,5 @@ Carré arrondi en dégradé (#16988C vers #0A7D72), anneau blanc à 28 % et arc 
 - Les réglages gardent toutes les options réelles de l'app (durées par label, nombre de tâches par jour, mots-clés des blocs, bilan du soir, Ne pas déranger). La maquette montrait une version simplifiée.
 - Les stats affichent le nombre d'interruptions dans la légende du chiffre clé, sans carte dédiée. L'onglet Backlog, absent de la maquette, reprend les mêmes cartes.
 - Les feuilles (découpage, garde-fou, bilan du soir), absentes de la maquette, reprennent le fond `wash`, les surfaces et les boutons des écrans.
-- La note de reprise (écrans Fin de session, Interruption, Focus et Session), les réglages « Réunion proche » et « Claude », et les propositions de Claude dans la feuille de découpage ne figurent pas dans la maquette : ils reprennent les champs, surfaces et lignes de réglages existants.
+- La note de reprise (écrans Fin de session, Interruption, Focus et Session), les réglages « Réunion proche » et « Claude », et les propositions et pièces jointes de Claude dans la feuille de découpage ne figurent pas dans la maquette : ils reprennent les champs, surfaces et lignes de réglages existants.
 - Le menu « Interrompre » est un popover stylé plutôt qu'un menu système, pour garder le style pilule.

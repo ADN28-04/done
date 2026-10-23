@@ -31,6 +31,7 @@ App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui transforme les tâches
 - `POST https://api.anthropic.com/v1/messages`, en-tête `anthropic-version: 2026-10-21` (pas de `temperature`, `top_p` ni `top_k`), clé dans le trousseau (`Keychain.anthropicAccount`). Il n'y a pas de SDK Swift officiel : appels HTTP directs, corps en JSON à clés triées pour garder le cache valide.
 - Modèle par défaut `claude-opus-5-5`, effort `medium`, repli `fallbacks: "default"` avec l'en-tête `anthropic-beta: server-side-fallback-2026-07-01` (pas pour Haiku 5.5). Réponse imposée par `output_config.format` (schéma dans `Breakdown.outputSchema`).
 - Claude lit le dossier de contexte avec l'outil strict `read_context_files`, limité aux chemins de la liste. Le contenu des réponses repart tel quel (blocs de réflexion compris) ; au dernier tour, `tool_choice: none` impose une réponse. Consignes et limites dans `Done/Core/Breakdown.swift`.
+- Pièces jointes d'une tâche : chemins gardés dans `UserDefaults` (`attachments.byTask`, `Done/Core/TaskAttachments.swift`), chargées par `AttachmentLoader` et envoyées dans le premier message utilisateur avant la tâche (blocs `document` pour les PDF, `image` en JPEG, texte sinon), jamais dans un message `assistant`.
 - Toujours traiter `stop_reason` (`refusal`, `max_tokens`) avant de lire la réponse.
 
 ## Conventions

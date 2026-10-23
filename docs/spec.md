@@ -47,7 +47,7 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Stats de base | Temps de focus par jour et par semaine, sessions par jour, interruptions par raison, temps par projet. |
 | Stats backlog | Tâches ouvertes du backlog Shop, âge moyen, nombre de `Chantier-actif` en parallèle, tâches parentes fermées par semaine. |
 | Barre de menus | Temps restant affiché en permanence, avec Pause, Reprendre et Ouvrir Done. |
-| Découpage assisté | L'écran Focus propose « Découper… » sur l'action en cours (sauf `Quick`), mis en avant quand la tâche du plan n'a pas encore de sous-tâche : je saisis la prochaine action concrète, Done la crée comme sous-tâche dans Todoist et la propose aussitôt. Aussi disponible depuis le bilan du soir. Avec une clé API Claude, le bouton devient « Découper avec Claude… » et Claude propose trois premières actions dès l'ouverture : Claude reçoit la tâche (projet, parent, sous-tâches voisines, note de reprise), ma méthode de découpage, quelques sous-tâches existantes comme exemples et la liste des fichiers d'un dossier de contexte choisi dans les Réglages, dont il lit ceux qui l'aident (5 par appel au plus). Je clique une proposition, je la retouche, puis Done la crée comme avant. |
+| Découpage assisté | L'écran Focus propose « Découper… » sur l'action en cours (sauf `Quick`), mis en avant quand la tâche du plan n'a pas encore de sous-tâche : je saisis la prochaine action concrète, Done la crée comme sous-tâche dans Todoist et la propose aussitôt. Aussi disponible depuis le bilan du soir. Avec une clé API Claude, le bouton devient « Découper avec Claude… » et Claude propose trois premières actions dès l'ouverture : Claude reçoit la tâche (projet, parent, sous-tâches voisines, note de reprise), ma méthode de découpage, quelques sous-tâches existantes comme exemples et la liste des fichiers d'un dossier de contexte choisi dans les Réglages, dont il lit ceux qui l'aident (5 par appel au plus). Je peux joindre à la tâche jusqu'à 5 fichiers (PDF, images, Word, Markdown, texte) par un bouton ou en les glissant sur la feuille : Claude les reçoit en entier avec la demande, et ils restent attachés à la tâche pour les découpages suivants. Je clique une proposition, je la retouche, puis Done la crée comme avant. |
 | Garde-fou des chantiers actifs | À la validation du plan, si plus de tâches portent `Chantier-actif` que la cible (2 par défaut), une fenêtre propose de mettre en file d'attente les chantiers absents du plan. Done retire alors le label dans Todoist, sur la tâche et ses sous-tâches. Une fois par jour au plus. |
 | Bilan du soir | À partir de 17 h (réglable), l'écran Focus propose le bilan : temps de focus, sessions, tâches cochées, interruptions, ce qui est terminé, et pour chaque tâche du plan non finie : Demain (reprise dans le plan du lendemain matin, marquée « Reportée ») ou Plus tard. Rappel par notification du lundi au vendredi. |
 | Ne pas déranger | Activé pendant le focus, coupé en pause, en interruption, en fin de session et à la fermeture de Done. Passe par deux raccourcis de l'app Raccourcis, faute d'API publique. Désactivé par défaut. |
@@ -117,6 +117,7 @@ Une fenêtre sans barre latérale. La navigation passe par une barre d'onglets f
 | Notes de reprise (texte, date, par tâche) | App | UserDefaults (`resume.notes`) |
 | Clé API Claude | Moi | Trousseau du Mac |
 | Dossier de contexte, modèle et méthode de découpage | App | UserDefaults (`claude.*`). Le dossier reste sur le Mac ; seuls les fichiers que Claude demande sont envoyés |
+| Pièces jointes des tâches (chemins des fichiers, par tâche) | App | UserDefaults (`attachments.byTask`), oubliées quand la tâche est cochée ou disparaît de Todoist |
 | Plan du jour (date, IDs ordonnés, IDs terminés) | App | SwiftData, local |
 | Sessions (tâche, tâche du plan, projet, labels, début, fin, durée prévue, durée réelle, issue) | App | SwiftData, local |
 | Interruptions (raison, début, fin, session) | App | SwiftData, local |
@@ -127,7 +128,7 @@ Remarques :
 
 - Les sessions gardent une copie du titre et du projet de la tâche, pour que les stats restent lisibles une fois la tâche fermée ou supprimée dans Todoist.
 - L'âge des tâches vient du champ `added_at` de Todoist. La photo quotidienne permet de tracer la courbe sans dépendre de l'historique de Todoist.
-- Les données SwiftData restent sur le Mac. Rien n'est envoyé ailleurs que vers l'API Todoist, sauf, au découpage avec Claude, la tâche, la méthode, quelques exemples, la liste des fichiers du dossier et les fichiers lus, vers l'API d'Anthropic.
+- Les données SwiftData restent sur le Mac. Rien n'est envoyé ailleurs que vers l'API Todoist, sauf, au découpage avec Claude, la tâche, la méthode, quelques exemples, la liste des fichiers du dossier, les fichiers lus et les pièces jointes, vers l'API d'Anthropic.
 
 ## 5. Choix techniques
 

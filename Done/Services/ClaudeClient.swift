@@ -62,8 +62,9 @@ struct ClaudeClient {
     }
 
     /// Demande trois premières actions. Claude peut d'abord lire des fichiers du dossier de contexte.
-    func suggestActions(system: String, prompt: String, offersFiles: Bool, readFiles: FileReader) async throws -> [Breakdown.Suggestion] {
-        var messages: [[String: Any]] = [["role": "user", "content": prompt]]
+    /// `userContent` : blocs du premier message (pièces jointes, puis la tâche).
+    func suggestActions(system: String, userContent: [[String: Any]], offersFiles: Bool, readFiles: FileReader) async throws -> [Breakdown.Suggestion] {
+        var messages: [[String: Any]] = [["role": "user", "content": userContent]]
         for round in 1...Breakdown.maxRounds {
             // Au dernier tour, plus de lecture : Claude doit répondre avec ce qu'il a.
             let response = try await send(system: system, messages: messages, offersFiles: offersFiles, lastRound: round == Breakdown.maxRounds)

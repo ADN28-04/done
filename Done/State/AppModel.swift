@@ -21,11 +21,14 @@ final class AppModel {
     private(set) var carryOver: CarryOver?
     /// Notes « où j'en suis » des tâches quittées en cours de route.
     private(set) var resumeNotes = ResumeNotes()
+    /// Fichiers joints aux tâches pour le découpage avec Claude.
+    private(set) var taskAttachments = TaskAttachments()
     var errorMessage: String?
 
     private static let lastReviewKey = "review.lastDay"
     private static let carryOverKey = "review.carryOver"
     private static let resumeNotesKey = "resume.notes"
+    private static let attachmentsKey = "attachments.byTask"
 
     let context: ModelContext
     @ObservationIgnored private var token: String?
@@ -40,6 +43,7 @@ final class AppModel {
         self.lastReviewDay = defaults.string(forKey: Self.lastReviewKey)
         self.carryOver = defaults.data(forKey: Self.carryOverKey).flatMap { try? JSONDecoder().decode(CarryOver.self, from: $0) }
         self.resumeNotes = defaults.data(forKey: Self.resumeNotesKey).flatMap { try? JSONDecoder().decode(ResumeNotes.self, from: $0) } ?? ResumeNotes()
+        self.taskAttachments = defaults.data(forKey: Self.attachmentsKey).flatMap { try? JSONDecoder().decode(TaskAttachments.self, from: $0) } ?? TaskAttachments()
         loadPlan()
     }
 
@@ -139,6 +143,7 @@ final class AppModel {
             loadPlan()
             recordSnapshot()
             updateResumeNotes { $0.keepOnly(Set(tasks.map(\.id))) }
+            updateAttachments { $0.keepOnly(Set(tasks.map(\.id))) }
             updateMeetingReminders()
         } catch {
             errorMessage = error.localizedDescription
@@ -167,6 +172,7 @@ final class AppModel {
         try await TodoistClient(token: token).closeTask(id: task.id)
         index = index.removing(task.id)
         updateResumeNotes { $0.remove(task.id) }
+        updateAttachments { $0.removeAll(for: task.id) }
         if let plan = todayPlan, plan.taskIDs.contains(task.id) {
             plan.taskIDs.removeAll { $0 == task.id }
             plan.doneIDs.append(task.id)
@@ -264,14 +270,44 @@ final class AppModel {
             siblings: siblings,
             resumeNote: resumeNote(for: task.id)?.text
         )
+        var attachments: [Breakdown.Attachment] = []
+        for path in taskAttachments[task.id] {
+            attachments.append(try await AttachmentLoader.load(URL(fileURLWithPath: path)))
+        }
         return try await ClaudeClient(apiKey: key, model: rules.claudeModel).suggestActions(
             system: system,
-            prompt: prompt,
+            userContent: Breakdown.userContent(prompt: prompt, attachments: attachments),
             offersFiles: !files.isEmpty
         ) { paths in
             guard let folder else { return "" }
             return await folder.read(paths, in: files)
         }
+    }
+
+    // MARK: Pièces jointes
+
+    func attachments(for taskID: String) -> [String] {
+        taskAttachments[taskID]
+    }
+
+    /// Joint des fichiers à une tâche. Renvoie ceux refusés faute de place.
+    @discardableResult
+    func attach(_ paths: [String], to taskID: String) -> [String] {
+        var refused: [String] = []
+        updateAttachments { refused = $0.add(paths, to: taskID) }
+        return refused
+    }
+
+    func detach(_ path: String, from taskID: String) {
+        updateAttachments { $0.remove(path, from: taskID) }
+    }
+
+    private func updateAttachments(_ change: (inout TaskAttachments) -> Void) {
+        var attachments = taskAttachments
+        change(&attachments)
+        guard attachments != taskAttachments else { return }
+        taskAttachments = attachments
+        UserDefaults.standard.set(try? JSONEncoder().encode(attachments), forKey: Self.attachmentsKey)
     }
 
     // MARK: Note de reprise

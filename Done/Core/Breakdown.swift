@@ -41,6 +41,18 @@ enum Breakdown {
         let firstLine: String?
     }
 
+    /// Fichier joint à la tâche, envoyé en entier avec la demande.
+    struct Attachment: Equatable {
+        enum Content: Equatable {
+            case text(String)
+            case pdf(Data)
+            case image(Data, mediaType: String)
+        }
+
+        let name: String
+        let content: Content
+    }
+
     /// Méthode par défaut, modifiable dans les Réglages.
     static let defaultMethod = """
     Une action commence par un verbe à l'infinitif et nomme un résultat visible : « Lister les 9 fiches à modifier », pas « Fiches ».
@@ -53,6 +65,10 @@ enum Breakdown {
     static let maxIndexEntries = 300
     /// Nombre maximal d'allers-retours avec Claude pour un découpage.
     static let maxRounds = 5
+    // Pièces jointes : choisies par la personne, donc plus généreuses que le dossier de contexte.
+    static let maxAttachments = 5
+    static let maxAttachmentCharacters = 60_000
+    static let maxPDFBytes = 15 * 1_024 * 1_024
 
     // MARK: Consignes
 
@@ -111,6 +127,33 @@ enum Breakdown {
         if let due = Format.due(task, now: now) { lines.append("Date : \(due)") }
         if let resumeNote, !resumeNote.isEmpty { lines.append("Note laissée à la dernière session : « \(resumeNote) »") }
         return lines.joined(separator: "\n")
+    }
+
+    /// Contenu du message envoyé à Claude : les pièces jointes d'abord, puis la tâche.
+    static func userContent(prompt: String, attachments: [Attachment]) -> [[String: Any]] {
+        var blocks: [[String: Any]] = []
+        for attachment in attachments {
+            switch attachment.content {
+            case .text(let text):
+                let clipped = text.count > maxAttachmentCharacters
+                    ? String(text.prefix(maxAttachmentCharacters)) + "\n[… coupé à \(maxAttachmentCharacters) caractères]"
+                    : text
+                blocks.append(["type": "text", "text": "<piece_jointe nom=\"\(attachment.name)\">\n\(clipped)\n</piece_jointe>"])
+            case .pdf(let data):
+                blocks.append(["type": "text", "text": "Pièce jointe : \(attachment.name)"])
+                blocks.append(["type": "document", "source": ["type": "base64", "media_type": "application/pdf", "data": data.base64EncodedString()]])
+            case .image(let data, let mediaType):
+                blocks.append(["type": "text", "text": "Pièce jointe : \(attachment.name)"])
+                blocks.append(["type": "image", "source": ["type": "base64", "media_type": mediaType, "data": data.base64EncodedString()]])
+            }
+        }
+        var text = prompt
+        if !attachments.isEmpty {
+            let names = attachments.map { "« \($0.name) »" }.joined(separator: ", ")
+            text += "\n\nPièces jointes ci-dessus, choisies pour cette tâche : \(names). Appuie-toi dessus en priorité."
+        }
+        blocks.append(["type": "text", "text": text])
+        return blocks
     }
 
     /// Liste des fichiers, une ligne par fichier, plafonnée.
