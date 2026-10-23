@@ -9,6 +9,8 @@ struct BreakdownSheet: View {
     @Environment(\.dismiss) private var dismiss
     let task: TodoistTask
     var onAdded: (TodoistTask) -> Void = { _ in }
+    /// Demande des propositions à Claude dès l'ouverture.
+    var askClaudeOnOpen = false
 
     @State private var text = ""
     @State private var isSaving = false
@@ -86,6 +88,11 @@ struct BreakdownSheet: View {
         .frame(width: 500)
         .background(Backdrop(style: .wash))
         .onAppear { fieldFocused = true }
+        .task {
+            if askClaudeOnOpen, model.hasClaudeKey, suggestions.isEmpty {
+                await askClaude()
+            }
+        }
     }
 
     /// Trois propositions de Claude : un clic les met dans le champ, à retoucher si besoin.
@@ -432,7 +439,7 @@ struct ReviewSheet: View {
         .frame(width: 660, height: 620)
         .background(Backdrop(style: .wash))
         .sheet(item: $breakdownTask) { task in
-            BreakdownSheet(task: task) { _ in decisions[task.id] = .tomorrow }
+            BreakdownSheet(task: task, onAdded: { _ in decisions[task.id] = .tomorrow }, askClaudeOnOpen: model.hasClaudeKey)
                 .environment(model)
         }
     }
@@ -441,7 +448,7 @@ struct ReviewSheet: View {
         HStack(spacing: 12) {
             TaskRowContent(task: task)
             if Planner.needsBreakdown(action: task, root: task, in: model.index) {
-                Button("Découper…") { breakdownTask = task }
+                Button(model.hasClaudeKey ? "Découper avec Claude…" : "Découper…") { breakdownTask = task }
                     .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
             }
             GlassSegmented(

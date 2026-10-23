@@ -36,6 +36,11 @@ extension Planner {
         return updates
     }
 
+    /// Toute action peut être découpée en une étape plus petite, sauf une tâche rapide.
+    static func canBreakDown(action: TodoistTask, root: TodoistTask) -> Bool {
+        !action.hasLabel(Rules.quickLabel) && !root.hasLabel(Rules.quickLabel)
+    }
+
     /// Une tâche du plan sans sous-tâche gagne à être découpée en une première action,
     /// sauf si elle est déjà rapide.
     static func needsBreakdown(action: TodoistTask, root: TodoistTask, in index: TaskIndex) -> Bool {

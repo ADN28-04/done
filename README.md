@@ -44,7 +44,7 @@ Done active le mode quand le minuteur de focus tourne, et le coupe en pause, en 
 3. Choisir le dossier de contexte : celui où sont le plan marcomm, les priorités, le lexique. Done lit le Markdown, le texte, le CSV, le JSON, le PDF, le Word et le RTF ; il ignore les fichiers cachés et les autres formats (Excel, PowerPoint, images).
 4. Ajuster « Ta méthode pour découper » si besoin.
 
-Dans « Découper… », le bouton « Proposer avec Claude » envoie la tâche, la méthode, quelques sous-tâches existantes comme exemples et la liste des fichiers du dossier. Claude lit ceux qui l'aident (5 par appel, 30 000 caractères par fichier au plus) et propose trois actions. Seuls les fichiers qu'il demande quittent le Mac. Claude Opus 5.5 est le modèle par défaut ; Sonnet 5.5 et Haiku 5.5 coûtent moins cher.
+Sur l'écran Focus, sous l'action proposée, « Découper avec Claude… » ouvre la feuille de découpage et lance Claude, qui reçoit la tâche, la méthode, quelques sous-tâches existantes comme exemples et la liste des fichiers du dossier. Claude lit ceux qui l'aident (5 par appel, 30 000 caractères par fichier au plus) et propose trois actions. Seuls les fichiers qu'il demande quittent le Mac. Claude Opus 5.5 est le modèle par défaut ; Sonnet 5.5 et Haiku 5.5 coûtent moins cher.
 
 La première fois, macOS peut demander l'autorisation d'accéder au dossier (Documents, Bureau, iCloud Drive).
 
@@ -84,7 +84,7 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.
 - **Note de reprise** : en fin de session ou pendant une interruption, une ligne « Où tu en es ? », réaffichée la prochaine fois que la tâche revient. Effacée quand la tâche est cochée.
 - **Réunion proche** : notification 5 minutes avant chaque réunion (réglable). Pendant « Ne pas déranger », macOS la masque, sauf si Done fait partie des apps autorisées de ce mode.
-- **Découpage assisté** : une tâche du plan sans sous-tâche (hors `@Quick`) peut être découpée depuis la carte Focus ; Done crée la prochaine action dans Todoist. Avec une clé API Claude, Done propose trois premières actions.
+- **Découpage assisté** : sur l'écran Focus, « Découper… » sous l'action en cours (hors `@Quick`) crée une étape plus petite dans Todoist, qui devient la prochaine action. Avec une clé API Claude, le bouton s'appelle « Découper avec Claude… » et Claude propose trois actions dès l'ouverture.
 - **Garde-fou** : à la validation du plan, au-delà de 2 tâches `@Chantier-actif`, Done propose d'en mettre en file d'attente (retrait du label dans Todoist). Une fois par jour.
 - **Bilan du soir** : à partir de 17 h, Done propose de clore la journée ; les tâches non finies marquées « Demain » sont reprises dans le plan du lendemain.
 - **Avant une réunion** : si la tâche prévue ne tient pas, Done propose la suivante du plan qui tient, puis une tâche `@Quick`, puis la préparation de la réunion ou une pause.

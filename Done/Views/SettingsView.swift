@@ -137,7 +137,7 @@ struct SettingsView: View {
                 .onChange(of: reviewHour) { updateReviewReminder() }
                 .onChange(of: reviewReminder) { updateReviewReminder() }
 
-                SettingsSection("Claude", footer: "Dans « Découper… », Claude propose trois premières actions. Done lui envoie la tâche, ta méthode, quelques-unes de tes sous-tâches comme exemples et la liste des fichiers du dossier ; Claude lit ensuite ceux qui l'aident. Tout cela part chez Anthropic. Fichiers lus : Markdown, texte, CSV, JSON, PDF, Word et RTF.") {
+                SettingsSection("Claude", footer: "Sur l'écran Focus, « Découper avec Claude… » sous l'action proposée : Claude propose trois premières actions, et un clic en met une dans le champ. Done lui envoie la tâche, ta méthode, quelques-unes de tes sous-tâches comme exemples et la liste des fichiers du dossier ; Claude lit ensuite ceux qui l'aident. Tout cela part chez Anthropic. Fichiers lus : Markdown, texte, CSV, JSON, PDF, Word et RTF.") {
                     SettingsRow {
                         Text("Clé API")
                     } trailing: {

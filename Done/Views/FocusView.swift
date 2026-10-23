@@ -79,7 +79,7 @@ struct SuggestionView: View {
                 .environment(model)
         }
         .sheet(item: $breakdownTask) { task in
-            BreakdownSheet(task: task)
+            BreakdownSheet(task: task, askClaudeOnOpen: model.hasClaudeKey)
                 .environment(model)
         }
         .sheet(isPresented: $showReview) {
@@ -95,7 +95,8 @@ struct SuggestionView: View {
     private func ready(_ suggestion: Suggestion) -> some View {
         if let action = suggestion.action, let root = suggestion.planTask {
             let minutes = customMinutes.flatMap { $0.taskID == action.id ? $0.minutes : nil } ?? suggestion.minutes
-            let canBreakDown = Planner.needsBreakdown(action: action, root: root, in: model.index)
+            let canBreakDown = Planner.canBreakDown(action: action, root: root)
+            let invitesBreakdown = Planner.needsBreakdown(action: action, root: root, in: model.index)
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     PlanDots(position: suggestion.position, count: suggestion.planCount)
@@ -154,9 +155,10 @@ struct SuggestionView: View {
                             .help("Mettre cette tâche en fin de plan")
                     }
                     if canBreakDown {
-                        Button("Découper en une première action…") { breakdownTask = root }
+                        // Découpe l'action proposée : la nouvelle étape devient la prochaine action.
+                        Button(breakdownTitle(invites: invitesBreakdown)) { breakdownTask = action }
                             .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-                            .help("Cette tâche n'a pas encore de sous-tâche")
+                            .help(invitesBreakdown ? "Cette tâche n'a pas encore de sous-tâche" : "Ajouter une étape plus petite sous cette action")
                     }
                 }
                 .font(.text(13))
@@ -164,6 +166,11 @@ struct SuggestionView: View {
                 .padding(.top, 12)
             }
         }
+    }
+
+    private func breakdownTitle(invites: Bool) -> String {
+        if model.hasClaudeKey { return "Découper avec Claude…" }
+        return invites ? "Découper en une première action…" : "Découper…"
     }
 
     // MARK: Autres états
