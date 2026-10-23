@@ -44,3 +44,24 @@ struct SessionFact {
     let outcome: SessionOutcome
     let interruptions: [InterruptionReason]
 }
+
+/// Pause due avant de passer à une autre tâche principale, posée à la fin d'une session
+/// qui n'a pas été suivie d'une pause.
+struct BreakDue: Equatable {
+    let rootID: String
+    let minutes: Int
+    let since: Date
+
+    /// Une autre tâche principale attend la pause ; la même tâche peut reprendre tout de suite.
+    /// Le temps passé depuis la fin de la session compte comme une pause (réunion, déjeuner…).
+    func blocks(rootID other: String, now: Date = .now) -> Bool {
+        other != rootID && now < end
+    }
+
+    /// Minutes de pause encore dues, arrondies au-dessus.
+    func remainingMinutes(now: Date = .now) -> Int {
+        max(0, Int((end.timeIntervalSince(now) / 60).rounded(.up)))
+    }
+
+    private var end: Date { since.addingTimeInterval(TimeInterval(minutes * 60)) }
+}

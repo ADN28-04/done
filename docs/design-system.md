@@ -62,6 +62,7 @@ Les symboles SF gardent `.font(.system(size:))`.
 - **Pastille de réunion** : en haut au centre, en verre. Point plein pour une réunion en cours, point accent pour un bloc de travail, point évidé pour la prochaine réunion.
 - **Anneau** (`ProgressRing`) : la part restante, partant du haut, dans le sens horaire. 320 pt et trait de 14 pt en session, 280 pt et trait de 12 pt en pause. Gris quand le minuteur est en pause.
 - **Encadré** (`NoticeBox`) : orange pour une contrainte de temps, rouge pour une erreur.
+- **Repère d'étapes** (`StepsBadge`) : capsule `accentTint` de 24 pt, texte accent 12 pt medium, « Encore N étapes après celle-ci » ou « Dernière étape ». En session sous le titre, et dans la carte « Ensuite » de l'écran Étape terminée.
 - **Note de reprise** : champ « Où tu en es ? » (`ResumeNoteField`), surface de 40 pt aux coins de 12, liseré `ring` quand il a le focus ; rappel sur l'écran Focus (`ResumeNoteCard`), légende « Où tu en étais » et texte de 15 pt sur une surface.
 
 ## Navigation
@@ -81,5 +82,6 @@ Carré arrondi en dégradé (#16988C vers #0A7D72), anneau blanc à 28 % et arc 
 - Les réglages gardent toutes les options réelles de l'app (durées par label, nombre de tâches par jour, mots-clés des blocs, bilan du soir, Ne pas déranger). La maquette montrait une version simplifiée.
 - Les stats affichent le nombre d'interruptions dans la légende du chiffre clé, sans carte dédiée. L'onglet Backlog, absent de la maquette, reprend les mêmes cartes.
 - Les feuilles (découpage, garde-fou, bilan du soir), absentes de la maquette, reprennent le fond `wash`, les surfaces et les boutons des écrans.
+- L'écran Étape terminée (carte « Ensuite », bouton Enchaîner), le repère d'étapes, la rallonge et la pause obligatoire ne figurent pas dans la maquette : ils reprennent la fin de session, les surfaces et les boutons existants.
 - La note de reprise (écrans Fin de session, Interruption, Focus et Session), les réglages « Réunion proche » et « Claude », et les propositions et pièces jointes de Claude dans la feuille de découpage ne figurent pas dans la maquette : ils reprennent les champs, surfaces et lignes de réglages existants.
 - Le menu « Interrompre » est un popover stylé plutôt qu'un menu système, pour garder le style pilule.

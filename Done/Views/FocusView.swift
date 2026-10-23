@@ -67,7 +67,7 @@ struct SuggestionView: View {
                 case .noTimeBeforeMeeting:
                     noTime(suggestion)
                 case .ready:
-                    ready(suggestion)
+                    ready(suggestion, now: context.date)
                 }
                 Spacer(minLength: 16)
             }
@@ -92,7 +92,7 @@ struct SuggestionView: View {
     // MARK: Prêt
 
     @ViewBuilder
-    private func ready(_ suggestion: Suggestion) -> some View {
+    private func ready(_ suggestion: Suggestion, now: Date) -> some View {
         if let action = suggestion.action, let root = suggestion.planTask {
             let minutes = customMinutes.flatMap { $0.taskID == action.id ? $0.minutes : nil } ?? suggestion.minutes
             let canBreakDown = Planner.canBreakDown(action: action, root: root)
@@ -126,16 +126,32 @@ struct SuggestionView: View {
                         .frame(maxWidth: 520)
                         .padding(.top, 20)
                 }
+                // Nouvelle tâche principale juste après une session : la pause passe d'abord.
+                let pause = engine.needsBreak(before: root, now: now) ? engine.breakDue?.remainingMinutes(now: now) : nil
+                if let pause {
+                    Text("Tu changes de tâche : \(pause) min de pause d'abord.")
+                        .font(.text(14, .medium))
+                        .foregroundStyle(Theme.accentText)
+                        .padding(.top, 28)
+                }
                 HStack(spacing: 10) {
-                    Button("Démarrer · \(minutes) min") {
-                        engine.start(action: action, root: root, minutes: minutes)
+                    if let pause {
+                        Button("Démarrer la pause · \(pause) min") {
+                            engine.takeBreak(minutes: pause, mandatory: true)
+                        }
+                        .buttonStyle(PillButtonStyle(kind: .primary))
+                        .keyboardShortcut(.defaultAction)
+                    } else {
+                        Button("Démarrer · \(minutes) min") {
+                            engine.start(action: action, root: root, minutes: minutes)
+                        }
+                        .buttonStyle(PillButtonStyle(kind: .primary))
+                        .keyboardShortcut(.defaultAction)
                     }
-                    .buttonStyle(PillButtonStyle(kind: .primary))
-                    .keyboardShortcut(.defaultAction)
                     Button("Changer de tâche") { showPicker = true }
                         .buttonStyle(PillButtonStyle())
                 }
-                .padding(.top, 40)
+                .padding(.top, pause == nil ? 40 : 14)
                 HStack(spacing: 2) {
                     Menu {
                         ForEach(durationOptions(including: minutes), id: \.self) { value in

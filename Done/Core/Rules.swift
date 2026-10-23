@@ -71,6 +71,9 @@ struct Rules {
     static let deepworkLabel = "Deepwork"
 
     static let maxPlanSize = 5
+    /// Rallonge d'un pomodoro : par pas de 5 minutes, 10 au plus.
+    static let extensionStepMinutes = 5
+    static let maxExtensionMinutes = 10
 
     static var current: Rules {
         let defaults = UserDefaults.standard

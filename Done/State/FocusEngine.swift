@@ -16,10 +16,12 @@ final class FocusEngine {
     }
 
     struct Current {
-        let action: TodoistTask
+        /// Change quand on enchaîne sur l'étape suivante dans le même pomodoro.
+        var action: TodoistTask
         let root: TodoistTask
         let projectName: String
-        let planned: TimeInterval
+        /// Durée du pomodoro, rallonge comprise.
+        var planned: TimeInterval
     }
 
     private(set) var phase: Phase = .idle
@@ -31,9 +33,22 @@ final class FocusEngine {
     private(set) var breakDuration: TimeInterval = 0
     private(set) var isClosing = false
     var errorMessage: String?
+    /// Minutes ajoutées à ce pomodoro.
+    private(set) var extendedSeconds: TimeInterval = 0
+    /// Action cochée avant la fin du pomodoro : l'écran de fin propose la suite.
+    private(set) var checkedAction: TodoistTask?
+    private(set) var followUp: Planner.FollowUp?
+    /// Pause entre deux tâches principales : elle ne se passe pas.
+    private(set) var breakIsMandatory = false
+    /// Pause due avant de changer de tâche principale.
+    private(set) var breakDue: BreakDue?
 
     private var elapsedBefore: TimeInterval = 0
     private var segmentStart: Date?
+    /// Temps du pomodoro déjà compté dans les étapes précédentes, quand on enchaîne.
+    @ObservationIgnored private var recordOffset: TimeInterval = 0
+    /// Tâche principale de la session qui précède la pause en cours.
+    @ObservationIgnored private var breakRootID: String?
 
     @ObservationIgnored private var record: FocusSession?
     @ObservationIgnored private var openInterruption: Interruption?
@@ -56,6 +71,9 @@ final class FocusEngine {
 
     var remaining: TimeInterval { max(0, (current?.planned ?? 0) - elapsed) }
 
+    /// Temps passé sur l'action en cours, sans les étapes déjà cochées de ce pomodoro.
+    var stepElapsed: TimeInterval { max(0, elapsed - recordOffset) }
+
     var breakRemaining: TimeInterval { max(0, (breakEnd ?? now).timeIntervalSince(now)) }
 
     /// Part restante du minuteur, pour l'anneau qui se vide depuis le haut.
@@ -66,6 +84,22 @@ final class FocusEngine {
 
     var breakRemainingFraction: Double {
         breakDuration > 0 ? breakRemaining / breakDuration : 0
+    }
+
+    /// Pause longue après un pomodoro long, courte sinon.
+    var breakMinutesAfterSession: Int {
+        let rules = Rules.current
+        let wasLong = (current?.planned ?? 0) >= TimeInterval(rules.deepworkMinutes * 60)
+        return wasLong ? rules.longBreakMinutes : rules.shortBreakMinutes
+    }
+
+    var canExtend: Bool {
+        current != nil && checkedAction == nil && extendedSeconds < TimeInterval(Rules.maxExtensionMinutes * 60)
+    }
+
+    /// Changer de tâche principale juste après une session demande d'abord une pause.
+    func needsBreak(before root: TodoistTask, now: Date = .now) -> Bool {
+        breakDue?.blocks(rootID: root.id, now: now) ?? false
     }
 
     var menuBarText: String {
@@ -85,6 +119,11 @@ final class FocusEngine {
         let projectName = model.projectName(for: root)
         current = Current(action: action, root: root, projectName: projectName, planned: planned)
         elapsedBefore = 0
+        recordOffset = 0
+        extendedSeconds = 0
+        checkedAction = nil
+        followUp = nil
+        breakDue = nil
         segmentStart = .now
         now = .now
         interruptedAt = nil
@@ -140,56 +179,137 @@ final class FocusEngine {
         Notifier.shared.cancel(Notifier.focusEnd)
     }
 
-    /// L'action est finie : on la coche dans Todoist, puis pause.
+    /// L'action est finie : on la coche dans Todoist, puis on décide de la suite.
+    /// Étape suivante de la même tâche et du temps devant soi : l'écran de fin propose d'enchaîner.
+    /// Tâche principale finie : pause obligatoire avant la suivante.
     func markDone() async {
         guard let current, !isClosing else { return }
         isClosing = true
         defer { isClosing = false }
         do {
             try await model.close(current.action)
-            finishRecord(.done)
-            startBreakAfterSession()
         } catch {
             if let todoistError = error as? TodoistError, case .unauthorized = todoistError {
                 errorMessage = error.localizedDescription
             } else {
                 errorMessage = "Todoist n'a pas répondu : la tâche n'est pas cochée. Vérifie ta connexion et réessaie."
             }
+            return
+        }
+        finishRecord(.done)
+        errorMessage = nil
+        let next = Planner.followUp(after: current.action, root: current.root, in: model.index, rules: Rules.current)
+        switch next {
+        case .step:
+            if remaining >= 60 {
+                checkedAction = current.action
+                followUp = next
+            } else {
+                startBreakAfterSession(mandatory: false)
+            }
+        case .closeRoot:
+            checkedAction = current.action
+            followUp = next
+        case .switchTask:
+            startBreakAfterSession(mandatory: true)
         }
     }
 
-    /// Nouvelle session sur la même action, même durée.
-    func continueSameAction() {
-        guard let current else { return }
-        finishRecord(.partial)
-        start(action: current.action, root: current.root, minutes: Int(current.planned / 60))
+    /// Enchaîne sur l'étape suivante de la même tâche, dans le temps qui reste au pomodoro.
+    func chainToNext() {
+        guard var current = self.current, case .step(let next)? = followUp, remaining > 0 else { return }
+        current.action = next
+        self.current = current
+        let session = FocusSession(action: next, root: current.root, projectName: current.projectName, plannedSeconds: remaining)
+        context.insert(session)
+        record = session
+        recordOffset = elapsedBefore
+        checkedAction = nil
+        followUp = nil
+        segmentStart = .now
+        now = .now
+        transition(to: .focusing)
+        scheduleFocusEnd()
+        startTicker()
+        save()
     }
 
-    /// Pause sans cocher la tâche.
+    /// Toutes les étapes sont faites : coche la tâche principale, puis pause obligatoire.
+    func closeRoot() async {
+        guard case .closeRoot(let root)? = followUp, !isClosing else { return }
+        isClosing = true
+        defer { isClosing = false }
+        do {
+            try await model.close(root)
+            errorMessage = nil
+            startBreakAfterSession(mandatory: true)
+        } catch {
+            errorMessage = "Todoist n'a pas répondu : « \(root.content) » n'est pas cochée. Vérifie ta connexion et réessaie."
+        }
+    }
+
+    /// Ajoute quelques minutes au pomodoro, 10 au plus en tout. Relance le minuteur s'il était fini.
+    func extend(minutes: Int = Rules.extensionStepMinutes) {
+        guard var current = self.current, checkedAction == nil else { return }
+        let added = min(TimeInterval(minutes * 60), TimeInterval(Rules.maxExtensionMinutes * 60) - extendedSeconds)
+        guard added > 0 else { return }
+        current.planned += added
+        self.current = current
+        extendedSeconds += added
+        record?.plannedSeconds += added
+        switch phase {
+        case .focusing:
+            scheduleFocusEnd()
+        case .awaitingOutcome:
+            segmentStart = .now
+            now = .now
+            errorMessage = nil
+            transition(to: .focusing)
+            scheduleFocusEnd()
+            startTicker()
+        default:
+            // En pause ou interrompu : le temps ajouté attend la reprise.
+            break
+        }
+        save()
+    }
+
+    /// Pause sans cocher la tâche, ou après une étape cochée.
     func takeBreakAfterSession() {
         guard current != nil else { return }
         finishRecord(.partial)
-        startBreakAfterSession()
+        startBreakAfterSession(mandatory: false)
     }
 
-    /// Pause libre, par exemple avant une réunion.
-    func takeBreak(minutes: Int) {
+    /// Pause libre, par exemple avant une réunion, ou obligatoire avant de changer de tâche.
+    func takeBreak(minutes: Int, mandatory: Bool = false) {
         if current != nil { stop(as: .partial) }
-        beginBreak(seconds: TimeInterval(max(1, minutes) * 60))
+        beginBreak(seconds: TimeInterval(max(1, minutes) * 60), mandatory: mandatory)
     }
 
-    /// Retour à l'écran Focus sans pause.
+    /// Retour à l'écran Focus sans pause. Sauf après une interruption, une pause reste due
+    /// avant de passer à une autre tâche principale.
     func stop(as outcome: SessionOutcome) {
+        let root = current?.root
         closeSegment()
         closeInterruption()
         finishRecord(outcome)
         reset()
+        if let root, outcome != .interrupted {
+            breakDue = BreakDue(rootID: root.id, minutes: Rules.current.shortBreakMinutes, since: .now)
+        }
     }
 
+    /// Sans effet sur une pause obligatoire. Une pause passée reste due avant de changer de tâche principale.
     func skipBreak() {
+        guard !breakIsMandatory else { return }
+        let rootID = breakRootID
         endBreak()
         transition(to: .idle)
         stopTicker()
+        if let rootID {
+            breakDue = BreakDue(rootID: rootID, minutes: Rules.current.shortBreakMinutes, since: .now)
+        }
     }
 
     // MARK: Interne
@@ -199,18 +319,19 @@ final class FocusEngine {
         return false
     }
 
-    private func startBreakAfterSession() {
-        let rules = Rules.current
-        let wasLong = (current?.planned ?? 0) >= TimeInterval(rules.deepworkMinutes * 60)
-        let minutes = wasLong ? rules.longBreakMinutes : rules.shortBreakMinutes
-        beginBreak(seconds: TimeInterval(minutes * 60))
+    private func startBreakAfterSession(mandatory: Bool) {
+        beginBreak(seconds: TimeInterval(breakMinutesAfterSession * 60), mandatory: mandatory)
     }
 
-    private func beginBreak(seconds: TimeInterval) {
+    private func beginBreak(seconds: TimeInterval, mandatory: Bool) {
+        let rootID = current?.root.id ?? breakDue?.rootID
         reset()
+        breakRootID = rootID
         now = .now
         breakEnd = now.addingTimeInterval(seconds)
         breakDuration = seconds
+        breakIsMandatory = mandatory
+        breakDue = nil
         transition(to: .onBreak)
         Notifier.shared.schedule(
             Notifier.breakEnd,
@@ -224,12 +345,18 @@ final class FocusEngine {
 
     private func endBreak() {
         breakEnd = nil
+        breakIsMandatory = false
+        breakRootID = nil
         Notifier.shared.cancel(Notifier.breakEnd)
     }
 
     private func reset() {
         current = nil
         elapsedBefore = 0
+        recordOffset = 0
+        extendedSeconds = 0
+        checkedAction = nil
+        followUp = nil
         segmentStart = nil
         interruptedAt = nil
         record = nil
@@ -243,7 +370,7 @@ final class FocusEngine {
             self.segmentStart = nil
         }
         now = .now
-        record?.focusedSeconds = elapsedBefore
+        record?.focusedSeconds = elapsedBefore - recordOffset
     }
 
     private func closeInterruption() {
@@ -254,7 +381,7 @@ final class FocusEngine {
 
     private func finishRecord(_ outcome: SessionOutcome) {
         guard let record else { return }
-        record.focusedSeconds = elapsedBefore
+        record.focusedSeconds = elapsedBefore - recordOffset
         record.endedAt = .now
         record.outcome = outcome
         self.record = nil
@@ -301,7 +428,7 @@ final class FocusEngine {
         case .focusing:
             // Sauvegarde régulière, pour ne pas tout perdre si l'app est quittée.
             if Int(now.timeIntervalSince1970) % 15 == 0 {
-                record?.focusedSeconds = elapsed
+                record?.focusedSeconds = elapsed - recordOffset
             }
             if remaining <= 0 {
                 closeSegment()

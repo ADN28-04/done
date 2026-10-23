@@ -51,3 +51,9 @@ Points à trancher pendant l'usage de la V1.
 
 13. **La note de reprise doit-elle aller dans Todoist ?**
     Elle reste sur le Mac pour l'instant. La poster en commentaire sur la tâche la rendrait visible dans Todoist, au prix d'une quatrième écriture.
+
+14. **Durée et portée de la pause obligatoire.**
+    Elle reprend la pause normale (5 min, 10 après une session Deepwork) et ne s'impose pas après une interruption, pour laisser passer une urgence. À l'usage : faut-il une durée à part, ou l'imposer aussi après « Choisir autre chose » ?
+
+15. **Seuil d'enchaînement.**
+    Done propose d'enchaîner sur l'étape suivante s'il reste au moins une minute au pomodoro. Un seuil plus haut (5 min) éviterait d'ouvrir une étape qu'on n'aura pas le temps d'avancer.

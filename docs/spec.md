@@ -39,7 +39,7 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. |
 | Prochaine action | Proposition de la première sous-tâche faisable de la tâche en cours : ni `Waiting`, ni datée au-delà de l'horizon. Si plus rien n'est faisable, l'écran Focus indique la date de reprise. |
 | Durée adaptée | `Quick` : 15 min. Par défaut : 25 min. `Deepwork` : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
-| Minuteur | Démarrer, pause, reprendre, terminer. Notification de fin de session et de fin de pause, doublée d'un son joué par Done et du Dock qui rebondit jusqu'au retour dans l'app : la fin se remarque même si les notifications sont bloquées ou masquées. Réglages › Notifications montre si macOS les autorise et permet d'en envoyer une de test. |
+| Minuteur | Démarrer, pause, reprendre, « C'est fait ». Rallonge de 5 min en cours ou en fin de session, 10 min au plus par pomodoro. Une étape cochée avant la fin enchaîne sur la suivante de la même tâche, dans le temps qui reste. Pause obligatoire avant de changer de tâche principale. Notification de fin de session et de fin de pause, doublée d'un son joué par Done et du Dock qui rebondit jusqu'au retour dans l'app : la fin se remarque même si les notifications sont bloquées ou masquées. Réglages › Notifications montre si macOS les autorise et permet d'en envoyer une de test. |
 | Réunions | Lecture des tâches « Réunion · … » datées dans Todoist pour connaître les créneaux du jour. Proposition d'une tâche qui tient avant la prochaine réunion. |
 | Interruptions | Bouton Interrompre avec raison (réunion, urgence, autre). Temps partiel enregistré. |
 | Clôture | Cocher la sous-tâche ou la tâche dans Todoist depuis l'app. |
@@ -80,10 +80,12 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 1. **Connexion** : saisie du token API Todoist. Affiché seul au premier lancement.
 2. **Plan du jour** : en haut, les réunions et blocs du jour. À gauche, les candidates triées par priorité puis échéance, avec projet, échéance, sous-tâches et labels. À droite, la liste « Aujourd'hui » que j'ordonne par glisser-déposer (3 recommandées, 5 au maximum). Bouton « Chercher une autre tâche » pour ajouter une tâche hors candidates. Bouton Valider.
 3. **Focus** (écran principal) : la tâche du plan, sa prochaine action en grand, la durée proposée (modifiable), le temps avant la prochaine réunion. Boutons Démarrer, Passer, Changer de tâche. En dessous, la suite du plan.
-4. **Session en cours** : anneau de progression, minuteur, boutons Pause (barre d'espace), Interrompre (menu des raisons), Terminer.
-5. **Fin de session** : champ « Où tu en es ? », puis « Terminé, cocher dans Todoist », « Je continue », « Pause », « Arrêter là ».
+4. **Session en cours** : anneau de progression, minuteur, repère « Encore N étapes après celle-ci » pour une tâche découpée, boutons Pause (barre d'espace), Interrompre (menu des raisons), C'est fait (⌘↩), et « Ajouter 5 min » tant que la rallonge le permet.
+5. **Fin de session** : deux cas.
+   - Minuteur fini : champ « Où tu en es ? », puis « Cocher dans Todoist », « Encore 5 min », « Pause, puis je reprends », « Arrêter là ».
+   - Étape cochée en avance : « Étape terminée », la suivante sous « Ensuite », puis « Enchaîner · MM:SS restantes », « Pause d'abord », « Arrêter là ». Quand toutes les étapes sont faites : « Cocher « tâche » dans Todoist ».
 6. **Interruption** : raison et durée de l'interruption, champ « Où tu en es ? », puis Reprendre, Choisir autre chose, ou Insérer une tâche urgente en tête du plan.
-7. **Pause** : compte à rebours, bouton Passer la pause.
+7. **Pause** : compte à rebours, la prochaine action sous « Ensuite », bouton Passer la pause. Avant une nouvelle tâche principale, la pause est obligatoire : pas de bouton pour la passer.
 8. **Stats** : onglet Focus (semaine par semaine) et onglet Backlog (évolution jour après jour).
 9. **Réglages** : token, durées par label, horizon des candidates, préfixe des réunions, mots-clés des blocs de travail, cible de chantiers actifs, projets suivis dans les stats.
 
@@ -95,10 +97,14 @@ Ouverture
        ├─ Non → Plan du jour → Valider → Focus
        └─ Oui → Focus
 Focus → Démarrer → Session en cours
-  ├─ Fin du minuteur ou Terminer → Fin de session
-  │     ├─ Terminé → coche Todoist → Pause → Focus (action suivante)
-  │     ├─ Je continue → Session en cours
-  │     └─ Pause / Arrêter là → Pause ou Focus
+  ├─ C'est fait avant la fin → coche Todoist
+  │     ├─ Étape suivante de la même tâche → Enchaîner (temps restant) ou Pause
+  │     ├─ Dernière étape → Cocher la tâche principale → Pause obligatoire → Focus
+  │     └─ Tâche principale finie ou bloquée → Pause obligatoire → Focus
+  ├─ Fin du minuteur → Fin de session
+  │     ├─ Cocher → même suite que ci-dessus, sans enchaînement (Pause)
+  │     ├─ Encore 5 min → Session en cours (10 min au plus)
+  │     └─ Pause, puis je reprends / Arrêter là → Pause ou Focus
   └─ Interrompre → Interruption → Reprendre ou Focus
 ```
 

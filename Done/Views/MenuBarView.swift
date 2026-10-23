@@ -64,14 +64,14 @@ struct MenuBarView: View {
                 .foregroundStyle(Theme.label2)
                 .padding(.top, 4)
         case .awaitingOutcome:
-            Text("Session terminée")
+            Text(engine.checkedAction == nil ? "Session terminée" : "Étape cochée")
                 .font(.text(15, .semibold))
-            Text("Ouvre Done pour cocher la tâche ou continuer.")
+            Text(engine.checkedAction == nil ? "Ouvre Done pour cocher la tâche ou ajouter du temps." : "Ouvre Done pour enchaîner sur la suite.")
                 .font(.text(12))
                 .foregroundStyle(Theme.label2)
                 .padding(.top, 4)
         case .onBreak:
-            caption("Pause café")
+            caption(engine.breakIsMandatory ? "Pause avant la tâche suivante" : "Pause café")
             timer(engine.breakRemaining, total: engine.breakDuration, fraction: engine.breakRemainingFraction, active: true)
         case .focusing, .paused, .interrupted:
             if let current = engine.current {
@@ -95,10 +95,10 @@ struct MenuBarView: View {
         case .paused, .interrupted:
             Button("Reprendre") { engine.resume() }
                 .buttonStyle(PillButtonStyle(kind: .primary, size: .small, fullWidth: true))
-        case .onBreak:
+        case .onBreak where !engine.breakIsMandatory:
             Button("Passer la pause") { engine.skipBreak() }
                 .buttonStyle(PillButtonStyle(size: .small, fullWidth: true))
-        case .idle, .awaitingOutcome:
+        case .idle, .awaitingOutcome, .onBreak:
             EmptyView()
         }
     }

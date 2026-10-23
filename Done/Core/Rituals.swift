@@ -36,6 +36,29 @@ extension Planner {
         return updates
     }
 
+    /// Suite d'une action cochée, pour ne pas perdre le fil d'une tâche découpée.
+    enum FollowUp: Equatable {
+        /// Étape suivante de la même tâche principale.
+        case step(TodoistTask)
+        /// Toutes les étapes sont faites : reste à cocher la tâche principale.
+        case closeRoot(TodoistTask)
+        /// La tâche principale est finie ou bloquée : on passe à une autre.
+        case switchTask
+    }
+
+    /// Ce qui vient après `action`, une fois cochée. `index` ne la contient déjà plus.
+    static func followUp(after action: TodoistTask, root: TodoistTask, in index: TaskIndex, rules: Rules, now: Date = .now) -> FollowUp {
+        guard let liveRoot = index[root.id],
+              let next = nextAction(for: liveRoot, in: index, rules: rules, now: now) else { return .switchTask }
+        return next.id == liveRoot.id ? .closeRoot(liveRoot) : .step(next)
+    }
+
+    /// Étapes encore ouvertes au même niveau que `action`, sans elle. `nil` pour une tâche sans parent.
+    static func stepsAfter(_ action: TodoistTask, in index: TaskIndex) -> Int? {
+        guard let parentID = action.parentId else { return nil }
+        return index.children(of: parentID).filter { $0.id != action.id && !isWaiting($0) }.count
+    }
+
     /// Toute action peut être découpée en une étape plus petite, sauf une tâche rapide.
     static func canBreakDown(action: TodoistTask, root: TodoistTask) -> Bool {
         !action.hasLabel(Rules.quickLabel) && !root.hasLabel(Rules.quickLabel)
