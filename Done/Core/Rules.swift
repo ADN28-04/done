@@ -74,6 +74,8 @@ struct Rules {
     /// Rallonge d'un pomodoro : par pas de 5 minutes, 10 au plus.
     static let extensionStepMinutes = 5
     static let maxExtensionMinutes = 10
+    /// En dessous, on ne lance pas l'étape suivante dans le pomodoro en cours : pause d'abord.
+    static let minChainSeconds: TimeInterval = 60
 
     static var current: Rules {
         let defaults = UserDefaults.standard

@@ -201,7 +201,7 @@ final class FocusEngine {
         let next = Planner.followUp(after: current.action, root: current.root, in: model.index, rules: Rules.current)
         switch next {
         case .step:
-            if remaining >= 60 {
+            if remaining >= Rules.minChainSeconds {
                 checkedAction = current.action
                 followUp = next
             } else {
@@ -217,21 +217,41 @@ final class FocusEngine {
 
     /// Enchaîne sur l'étape suivante de la même tâche, dans le temps qui reste au pomodoro.
     func chainToNext() {
-        guard var current = self.current, case .step(let next)? = followUp, remaining > 0 else { return }
-        current.action = next
-        self.current = current
-        let session = FocusSession(action: next, root: current.root, projectName: current.projectName, plannedSeconds: remaining)
-        context.insert(session)
-        record = session
-        recordOffset = elapsedBefore
-        checkedAction = nil
-        followUp = nil
-        segmentStart = .now
-        now = .now
-        transition(to: .focusing)
-        scheduleFocusEnd()
-        startTicker()
-        save()
+        guard case .step(let next)? = followUp, remaining > 0 else { return }
+        startStep(next)
+    }
+
+    /// Bloqué sur l'action : elle reste ouverte dans Todoist, avec @Waiting et un commentaire,
+    /// et on passe à l'étape suivante de la même tâche. Faute d'étape, pause obligatoire avant une autre tâche.
+    /// `false` si Todoist n'a pas répondu : la session continue telle quelle.
+    @discardableResult
+    func markBlocked(reason: String) async -> Bool {
+        guard let current, !isClosing else { return false }
+        isClosing = true
+        defer { isClosing = false }
+        do {
+            try await model.markBlocked(current.action, reason: reason)
+        } catch {
+            if let todoistError = error as? TodoistError, case .unauthorized = todoistError {
+                errorMessage = error.localizedDescription
+            } else {
+                errorMessage = "Todoist n'a pas répondu : l'étape n'est pas marquée bloquée. Vérifie ta connexion et réessaie."
+            }
+            return false
+        }
+        errorMessage = nil
+        closeSegment()
+        closeInterruption()
+        finishRecord(.partial)
+        switch Planner.followUp(blocking: current.action, root: current.root, in: model.index, rules: Rules.current) {
+        case .step(let next) where remaining >= Rules.minChainSeconds:
+            startStep(next)
+        case .step:
+            startBreakAfterSession(mandatory: false)
+        case .closeRoot, .switchTask:
+            startBreakAfterSession(mandatory: true)
+        }
+        return true
     }
 
     /// Toutes les étapes sont faites : coche la tâche principale, puis pause obligatoire.
@@ -317,6 +337,26 @@ final class FocusEngine {
     private var isInterrupted: Bool {
         if case .interrupted = phase { return true }
         return false
+    }
+
+    /// Lance `next` dans le temps qui reste au pomodoro, avec sa propre session.
+    private func startStep(_ next: TodoistTask) {
+        guard var current = self.current else { return }
+        current.action = next
+        self.current = current
+        let session = FocusSession(action: next, root: current.root, projectName: current.projectName, plannedSeconds: remaining)
+        context.insert(session)
+        record = session
+        recordOffset = elapsedBefore
+        checkedAction = nil
+        followUp = nil
+        interruptedAt = nil
+        segmentStart = .now
+        now = .now
+        transition(to: .focusing)
+        scheduleFocusEnd()
+        startTicker()
+        save()
     }
 
     private func startBreakAfterSession(mandatory: Bool) {

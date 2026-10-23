@@ -42,6 +42,7 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 | Minuteur | Démarrer, pause, reprendre, « C'est fait ». Rallonge de 5 min en cours ou en fin de session, 10 min au plus par pomodoro. Une étape cochée avant la fin enchaîne sur la suivante de la même tâche, dans le temps qui reste. Pause obligatoire avant de changer de tâche principale. Notification de fin de session et de fin de pause, doublée d'un son joué par Done et du Dock qui rebondit jusqu'au retour dans l'app : la fin se remarque même si les notifications sont bloquées ou masquées. Réglages › Notifications montre si macOS les autorise et permet d'en envoyer une de test. |
 | Réunions | Lecture des tâches « Réunion · … » datées dans Todoist pour connaître les créneaux du jour. Proposition d'une tâche qui tient avant la prochaine réunion. |
 | Interruptions | Bouton Interrompre avec raison (réunion, urgence, autre). Temps partiel enregistré. |
+| Étape bloquée | « Bloqué… » en session ou en fin de session : je dis en une ligne ce qui bloque. L'étape reste ouverte dans Todoist, avec le label `Waiting` et un commentaire « Bloqué : … », repris en note de reprise. Done passe à l'étape suivante de la même tâche dans le temps qui reste (une minute au moins, sinon pause). S'il n'y en a pas, pause obligatoire puis tâche suivante du plan. L'étape revient quand je retire `Waiting` dans Todoist. |
 | Clôture | Cocher la sous-tâche ou la tâche dans Todoist depuis l'app. |
 | Historique | Chaque session est enregistrée : tâche, projet, durée prévue, durée réelle, issue, interruptions. |
 | Stats de base | Temps de focus par jour et par semaine, sessions par jour, interruptions par raison, temps par projet. |
@@ -80,9 +81,10 @@ Le vendredi, j'ouvre l'écran Stats. Je vois le temps de focus de la semaine, le
 1. **Connexion** : saisie du token API Todoist. Affiché seul au premier lancement.
 2. **Plan du jour** : en haut, les réunions et blocs du jour. À gauche, les candidates triées par priorité puis échéance, avec projet, échéance, sous-tâches et labels. À droite, la liste « Aujourd'hui » que j'ordonne par glisser-déposer (3 recommandées, 5 au maximum). Bouton « Chercher une autre tâche » pour ajouter une tâche hors candidates. Bouton Valider.
 3. **Focus** (écran principal) : la tâche du plan, sa prochaine action en grand, la durée proposée (modifiable), le temps avant la prochaine réunion. Boutons Démarrer, Passer, Changer de tâche. En dessous, la suite du plan.
-4. **Session en cours** : anneau de progression, minuteur, repère « Encore N étapes après celle-ci » pour une tâche découpée, boutons Pause (barre d'espace), Interrompre (menu des raisons), C'est fait (⌘↩), et « Ajouter 5 min » tant que la rallonge le permet.
+4. **Session en cours** : anneau de progression, minuteur, repère « Encore N étapes après celle-ci » pour une tâche découpée, boutons Pause (barre d'espace), Interrompre (menu des raisons), C'est fait (⌘↩), « Ajouter 5 min » tant que la rallonge le permet, et « Bloqué… ».
 5. **Fin de session** : deux cas.
-   - Minuteur fini : champ « Où tu en es ? », puis « Cocher dans Todoist », « Encore 5 min », « Pause, puis je reprends », « Arrêter là ».
+   - Minuteur fini : champ « Où tu en es ? », puis « Cocher dans Todoist », « Encore 5 min », « Pause, puis je reprends », « Bloqué… », « Arrêter là ».
+   - Feuille « Bloqué » : ce qui bloque en une ligne, ce qui vient ensuite, puis « Laisser ouverte et passer à la suite ».
    - Étape cochée en avance : « Étape terminée », la suivante sous « Ensuite », puis « Enchaîner · MM:SS restantes », « Pause d'abord », « Arrêter là ». Quand toutes les étapes sont faites : « Cocher « tâche » dans Todoist ».
 6. **Interruption** : raison et durée de l'interruption, champ « Où tu en es ? », puis Reprendre, Choisir autre chose, ou Insérer une tâche urgente en tête du plan.
 7. **Pause** : compte à rebours, la prochaine action sous « Ensuite », bouton Passer la pause. Avant une nouvelle tâche principale, la pause est obligatoire : pas de bouton pour la passer.
@@ -105,6 +107,9 @@ Focus → Démarrer → Session en cours
   │     ├─ Cocher → même suite que ci-dessus, sans enchaînement (Pause)
   │     ├─ Encore 5 min → Session en cours (10 min au plus)
   │     └─ Pause, puis je reprends / Arrêter là → Pause ou Focus
+  ├─ Bloqué… → commentaire et @Waiting dans Todoist
+  │     ├─ Autre étape ouverte dans la même tâche → Session en cours sur cette étape (ou Pause s'il reste moins d'une minute)
+  │     └─ Aucune → Pause obligatoire → Focus
   └─ Interrompre → Interruption → Reprendre ou Focus
 ```
 

@@ -209,6 +209,21 @@ final class AppModel {
         return (created, nil)
     }
 
+    /// Étape bloquée laissée ouverte : label @Waiting puis commentaire dans Todoist, note de reprise dans Done.
+    /// Le label passe d'abord, sans lui Done reproposerait l'étape ; réessayer après un échec ne le double pas.
+    func markBlocked(_ task: TodoistTask, reason: String) async throws {
+        guard let token else { throw TodoistError.unauthorized }
+        let client = TodoistClient(token: token)
+        let live = index[task.id] ?? task
+        if !Planner.isWaiting(live) {
+            let updated = try await client.updateLabels(taskID: task.id, labels: live.labels + [Rules.waitingLabel])
+            index = index.replacing(updated)
+        }
+        let note = Planner.blockedNote(reason)
+        try await client.addComment(taskID: task.id, content: note)
+        setResumeNote(note, for: task.id)
+    }
+
     /// Met des chantiers en file d'attente : retire @Chantier-actif dans Todoist, puis recharge.
     func park(_ tasks: [TodoistTask]) async throws {
         guard let token else { throw TodoistError.unauthorized }

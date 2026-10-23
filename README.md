@@ -84,6 +84,7 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Durée** : 15 min pour `@Quick`, 50 min pour `@Deepwork`, 25 min sinon. Pause de 10 min après une session Deepwork, 5 min sinon.
 - **Enchaînement** : « C'est fait » coche l'action tout de suite. S'il reste au moins une minute et qu'une étape suit dans la même tâche, Done propose de l'enchaîner dans le même pomodoro ; sinon, pause. Chaque étape garde sa propre session dans les stats.
 - **Rallonge** : « Ajouter 5 min » pendant la session ou « Encore 5 min » à la fin, 10 min au plus par pomodoro. Au-delà, une pause avant de continuer la même étape.
+- **Étape bloquée** : « Bloqué… » laisse l'étape ouverte dans Todoist avec `@Waiting` et un commentaire « Bloqué : … », puis passe à l'étape suivante de la même tâche. Retire `@Waiting` dans Todoist quand c'est débloqué : l'étape revient, avec le commentaire en note de reprise.
 - **Pause obligatoire** : changer de tâche principale passe par une pause qui ne se passe pas. Après une tâche cochée, elle démarre seule ; après « Arrêter là » ou une pause passée, l'écran Focus propose « Démarrer la pause » avant une autre tâche. Une interruption n'en impose pas, pour laisser passer une urgence.
 - **Réunions** : tâches datées avec une heure et dont le titre commence par « Réunion ». Si le titre contient « deepwork », « deepword » ou « focus », c'est un bloc de travail.
 - **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.

@@ -56,13 +56,21 @@ struct TodoistClient {
         try await post("tasks/\(taskID)", body: ["labels": labels])
     }
 
+    /// Ajoute un commentaire sur une tâche, visible dans Todoist.
+    func addComment(taskID: String, content: String) async throws {
+        _ = try await postData("comments", body: ["task_id": taskID, "content": content])
+    }
+
     private func post<Body: Encodable>(_ path: String, body: Body) async throws -> TodoistTask {
+        try JSONDecoder().decode(TodoistTask.self, from: try await postData(path, body: body))
+    }
+
+    private func postData<Body: Encodable>(_ path: String, body: Body) async throws -> Data {
         var request = try makeRequest(path: path)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
-        let data = try await send(request)
-        return try JSONDecoder().decode(TodoistTask.self, from: data)
+        return try await send(request)
     }
 
     private struct Page<Item: Decodable>: Decodable {

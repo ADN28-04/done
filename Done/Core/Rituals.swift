@@ -53,6 +53,20 @@ extension Planner {
         return next.id == liveRoot.id ? .closeRoot(liveRoot) : .step(next)
     }
 
+    /// Ce qui vient après une étape bloquée, laissée ouverte. Tant qu'elle reste ouverte,
+    /// la tâche principale ne peut pas être close : faute d'autre étape, on change de tâche.
+    static func followUp(blocking action: TodoistTask, root: TodoistTask, in index: TaskIndex, rules: Rules, now: Date = .now) -> FollowUp {
+        guard action.id != root.id else { return .switchTask }
+        let next = followUp(after: action, root: root, in: index.removing(action.id), rules: rules, now: now)
+        if case .closeRoot = next { return .switchTask }
+        return next
+    }
+
+    /// Commentaire posté dans Todoist sur une étape bloquée, repris en note de reprise.
+    static func blockedNote(_ reason: String) -> String {
+        "Bloqué : \(reason.trimmingCharacters(in: .whitespacesAndNewlines))"
+    }
+
     /// Étapes encore ouvertes au même niveau que `action`, sans elle. `nil` pour une tâche sans parent.
     static func stepsAfter(_ action: TodoistTask, in index: TaskIndex) -> Int? {
         guard let parentID = action.parentId else { return nil }

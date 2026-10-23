@@ -4,6 +4,7 @@ import SwiftUI
 struct SessionView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
+    var onBlocked: () -> Void
     @State private var showReasons = false
 
     var body: some View {
@@ -73,12 +74,17 @@ struct SessionView: View {
                     .help("Cocher dans Todoist (⌘↩)")
                 }
                 .padding(.top, 40)
-                if engine.canExtend {
-                    Button("Ajouter \(Rules.extensionStepMinutes) min") { engine.extend() }
+                HStack(spacing: 2) {
+                    if engine.canExtend {
+                        Button("Ajouter \(Rules.extensionStepMinutes) min") { engine.extend() }
+                            .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                            .help("\(Rules.maxExtensionMinutes) minutes de plus au maximum par session")
+                    }
+                    Button("Bloqué…", action: onBlocked)
                         .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-                        .help("\(Rules.maxExtensionMinutes) minutes de plus au maximum par session")
-                        .padding(.top, 10)
+                        .help("Laisser cette étape ouverte avec un commentaire et passer à la suite")
                 }
+                .padding(.top, 10)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -175,6 +181,7 @@ struct InterruptionView: View {
 struct OutcomeView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
+    var onBlocked: () -> Void
     @FocusState private var noteFocused: Bool
 
     var body: some View {
@@ -325,8 +332,13 @@ struct OutcomeView: View {
                 Button("Pause, puis je reprends") { engine.takeBreakAfterSession() }
                     .buttonStyle(PillButtonStyle(fullWidth: true))
             }
-            Button("Arrêter là") { engine.stop(as: .partial) }
-                .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+            HStack(spacing: 2) {
+                Button("Bloqué…", action: onBlocked)
+                    .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                    .help("Laisser cette étape ouverte avec un commentaire et passer à la suite")
+                Button("Arrêter là") { engine.stop(as: .partial) }
+                    .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+            }
         }
         .frame(width: 360)
         .disabled(engine.isClosing)
@@ -365,6 +377,103 @@ struct StepsBadge: View {
         case 0: "Dernière étape"
         case 1: "Encore 1 étape après celle-ci"
         default: "Encore \(stepsAfter) étapes après celle-ci"
+        }
+    }
+}
+
+/// Bloqué sur une étape : elle reste ouverte dans Todoist avec un commentaire et @Waiting,
+/// et Done passe à l'étape suivante de la même tâche.
+struct BlockedSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(FocusEngine.self) private var engine
+    @Environment(\.dismiss) private var dismiss
+    @State private var reason = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Eyebrow(text: "Bloqué")
+            if let current = engine.current {
+                Text(current.action.content)
+                    .font(.display(26, bold: true))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 10)
+                Text("Elle reste ouverte dans Todoist, avec ton commentaire et le label @\(Rules.waitingLabel). Done ne la propose plus tant que le label est là : retire-le quand c'est débloqué.")
+                    .font(.text(14))
+                    .foregroundStyle(Theme.label2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
+                TextField("Ce qui bloque, en une ligne", text: $reason)
+                    .textFieldStyle(.plain)
+                    .font(.text(14))
+                    .focused($focused)
+                    .padding(.horizontal, 14)
+                    .frame(height: 40)
+                    .surface(radius: 12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Theme.ring.opacity(focused ? 0.45 : 0), lineWidth: 2)
+                    )
+                    .padding(.top, 20)
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Eyebrow(text: "Ensuite")
+                    Text(nextText(current))
+                        .font(.text(14))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 16)
+                if let error = engine.errorMessage {
+                    NoticeBox(text: error, tone: .error)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 16)
+                }
+                HStack(spacing: 10) {
+                    Button("Annuler") { dismiss() }
+                        .buttonStyle(PillButtonStyle(kind: .plain))
+                        .keyboardShortcut(.cancelAction)
+                    Spacer()
+                    Button(action: submit) {
+                        if engine.isClosing {
+                            HStack(spacing: 8) {
+                                ProgressView().controlSize(.small)
+                                Text("Envoi à Todoist…")
+                            }
+                        } else {
+                            Text("Laisser ouverte et passer à la suite")
+                        }
+                    }
+                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || engine.isClosing)
+                }
+                .padding(.top, 26)
+            }
+        }
+        .padding(28)
+        .frame(width: 520)
+        .background(Backdrop(style: .wash))
+        .onAppear {
+            engine.errorMessage = nil
+            focused = true
+        }
+    }
+
+    private func nextText(_ current: FocusEngine.Current) -> String {
+        let pause = "\(engine.breakMinutesAfterSession) min de pause"
+        switch Planner.followUp(blocking: current.action, root: current.root, in: model.index, rules: model.rules) {
+        case .step(let next) where engine.remaining >= Rules.minChainSeconds:
+            return "« \(next.content) », dans le temps qui reste (\(Format.clock(engine.remaining)))."
+        case .step(let next):
+            return "\(pause), puis « \(next.content) »."
+        case .closeRoot, .switchTask:
+            guard current.action.id != current.root.id else { return "\(pause), puis la tâche suivante du plan." }
+            return "Plus d'étape ouverte dans « \(current.root.content) » : \(pause), puis la tâche suivante du plan."
+        }
+    }
+
+    private func submit() {
+        Task {
+            if await engine.markBlocked(reason: reason) { dismiss() }
         }
     }
 }

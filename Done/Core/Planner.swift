@@ -49,6 +49,11 @@ struct TaskIndex {
         }
         return TaskIndex(all.filter { !dropped.contains($0.id) })
     }
+
+    /// Index où `task` remplace sa version précédente, après une écriture dans Todoist.
+    func replacing(_ task: TodoistTask) -> TaskIndex {
+        TaskIndex(all.map { $0.id == task.id ? task : $0 })
+    }
 }
 
 /// Créneau lu dans Todoist : une réunion, ou un bloc de travail posé dans l'agenda.
