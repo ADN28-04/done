@@ -57,6 +57,7 @@ Dans Done, Réglages › Notifications indique ce que macOS autorise, avec un bo
 - **« Refusées » ou « sans bannière »** : bouton Réglages, puis autoriser Done et choisir le style Bannières.
 - **« macOS bloque les notifications de Done »** : l'app est probablement signée seulement en local. Dans Xcode, cible Done › Signing & Capabilities, choisir une équipe (un Apple ID gratuit suffit), puis relancer `./scripts/install.sh`.
 - **Pendant « Ne pas déranger »** : macOS masque les notifications, sauf si Done fait partie des apps autorisées de ce mode (Réglages Système › Concentration).
+- **Notification sans logo** : macOS a gardé l'icône d'une copie de Done antérieure au logo (première version, build d'Xcode, copie téléchargée). Depuis le dossier du projet, lancer `./scripts/reset-notification-icon.sh` : il fait oublier les autres copies à macOS, réenregistre celle d'Applications et relance le centre de notifications. Si le logo manque encore, fermer la session macOS et la rouvrir.
 
 Dans tous les cas, Done joue un son à la fin des sessions et des pauses, et son icône rebondit dans le Dock jusqu'à ce que tu reviennes dans l'app.
 

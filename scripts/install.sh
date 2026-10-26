@@ -36,5 +36,13 @@ fi
 
 rm -rf /Applications/Done.app
 cp -R "$APP" /Applications/
+
+# Une seule copie connue de macOS : avec plusieurs, les notifications peuvent prendre
+# l'icône d'une autre, ou aucune.
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+"$LSREGISTER" -u "$PWD/$APP" > /dev/null 2>&1 || true
+rm -rf "$APP"
+"$LSREGISTER" -f /Applications/Done.app > /dev/null 2>&1 || true
+
 open /Applications/Done.app
 echo "Done est à jour dans Applications."
