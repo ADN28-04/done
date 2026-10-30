@@ -1,6 +1,6 @@
 import Foundation
 
-/// Rappel « réunion proche », programmé quelques minutes avant une réunion lue dans Todoist.
+/// Rappel « réunion proche », programmé quelques minutes avant une réunion.
 struct MeetingReminder: Equatable {
     /// Préfixe des identifiants de notification, pour retrouver les rappels déjà programmés.
     static let prefix = "done.meeting."
@@ -10,11 +10,9 @@ struct MeetingReminder: Equatable {
     let title: String
     let body: String
 
-    /// Rappels des réunions à venir, hors blocs de travail. Une réunion trop proche
-    /// pour être annoncée à temps n'a pas de rappel.
+    /// Rappels des réunions à venir. Une réunion trop proche pour être annoncée à temps n'a pas de rappel.
     static func plan(_ meetings: [Meeting], now: Date, minutes: Int) -> [MeetingReminder] {
         meetings.compactMap { meeting in
-            guard !meeting.isFocusBlock else { return nil }
             let fireDate = meeting.start.addingTimeInterval(-TimeInterval(minutes * 60))
             guard fireDate > now else { return nil }
             let name = meeting.title.isEmpty ? "La réunion" : "« \(meeting.title) »"

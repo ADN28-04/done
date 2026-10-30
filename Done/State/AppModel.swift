@@ -2,18 +2,14 @@ import Foundation
 import Observation
 import SwiftData
 
-/// État partagé : tâches Todoist, projets et plan du jour.
+/// État partagé : tâches, projets, réunions, plan du jour et bilan du soir.
+/// Les tâches vivent dans un fichier local (`TaskStorage`), réécrit à chaque changement.
 @Observable
 @MainActor
 final class AppModel {
+    private(set) var store = TaskStore()
+    /// Tâches ouvertes, avec l'arborescence des sous-tâches.
     private(set) var index = TaskIndex()
-    private(set) var projects: [TodoistProject] = []
-    private(set) var completed: [TodoistTask] = []
-    private(set) var isLoading = false
-    private(set) var lastRefresh: Date?
-    private(set) var hasToken: Bool
-    /// Clé API Claude présente dans le trousseau.
-    private(set) var hasClaudeKey = Keychain.read(Keychain.anthropicAccount) != nil
     private(set) var plan: DayPlan?
     /// Jour du dernier bilan du soir (`Format.dayKey`).
     private(set) var lastReviewDay: String?
@@ -21,29 +17,38 @@ final class AppModel {
     private(set) var carryOver: CarryOver?
     /// Notes « où j'en suis » des tâches quittées en cours de route.
     private(set) var resumeNotes = ResumeNotes()
-    /// Fichiers joints aux tâches pour le découpage avec Claude.
-    private(set) var taskAttachments = TaskAttachments()
     var errorMessage: String?
 
     private static let lastReviewKey = "review.lastDay"
     private static let carryOverKey = "review.carryOver"
     private static let resumeNotesKey = "resume.notes"
-    private static let attachmentsKey = "attachments.byTask"
 
     let context: ModelContext
-    @ObservationIgnored private var token: String?
+    let storage: TaskStorage
+    /// Faux si le fichier illisible n'a pas pu être mis de côté : on ne l'écrase jamais.
+    @ObservationIgnored private var canSave = true
 
-    init(context: ModelContext) {
+    init(context: ModelContext, storage: TaskStorage = .standard) {
         self.context = context
-        let token = Keychain.readToken()
-        self.token = token
-        self.hasToken = token != nil
-        self.plan = nil
+        self.storage = storage
         let defaults = UserDefaults.standard
-        self.lastReviewDay = defaults.string(forKey: Self.lastReviewKey)
-        self.carryOver = defaults.data(forKey: Self.carryOverKey).flatMap { try? JSONDecoder().decode(CarryOver.self, from: $0) }
-        self.resumeNotes = defaults.data(forKey: Self.resumeNotesKey).flatMap { try? JSONDecoder().decode(ResumeNotes.self, from: $0) } ?? ResumeNotes()
-        self.taskAttachments = defaults.data(forKey: Self.attachmentsKey).flatMap { try? JSONDecoder().decode(TaskAttachments.self, from: $0) } ?? TaskAttachments()
+        lastReviewDay = defaults.string(forKey: Self.lastReviewKey)
+        carryOver = defaults.data(forKey: Self.carryOverKey).flatMap { try? JSONDecoder().decode(CarryOver.self, from: $0) }
+        resumeNotes = defaults.data(forKey: Self.resumeNotesKey).flatMap { try? JSONDecoder().decode(ResumeNotes.self, from: $0) } ?? ResumeNotes()
+        do {
+            store = try storage.load() ?? TaskStore()
+        } catch {
+            if let moved = storage.setAsideUnreadable() {
+                errorMessage = "Le fichier des tâches était illisible. Il a été mis de côté ici : \(moved.path)"
+            } else {
+                canSave = false
+                errorMessage = "Le fichier des tâches est illisible (\(error.localizedDescription)). Done n'y écrira rien tant qu'il n'est pas réparé ou déplacé : \(storage.fileURL.path)"
+            }
+        }
+        index = TaskIndex(store.openTasks)
+        // Les réunions de la veille et d'avant ne servent plus.
+        commit { $0.pruneMeetings(endedBefore: Calendar.current.startOfDay(for: .now)) }
+        updateResumeNotes { $0.keepOnly(Set(store.openTasks.map(\.id))) }
         loadPlan()
     }
 
@@ -58,30 +63,57 @@ final class AppModel {
 
     var planIDs: [String] { todayPlan?.taskIDs ?? [] }
 
-    var meetingsToday: [Meeting] {
-        Planner.meetings(in: index.all, on: .now, rules: rules)
-    }
+    var projects: [Project] { store.sortedProjects }
 
-    var candidates: [TodoistTask] {
+    var meetingsToday: [Meeting] { store.meetings(on: .now) }
+
+    /// Réunions pas encore finies, à partir d'aujourd'hui.
+    var upcomingMeetings: [Meeting] { store.upcomingMeetings(after: .now) }
+
+    var candidates: [TodoTask] {
         Planner.candidates(in: index, rules: rules)
     }
 
-    func projectName(_ id: String) -> String {
-        projects.first { $0.id == id }?.name ?? ""
+    func project(_ id: String?) -> Project? {
+        guard let id else { return nil }
+        return store.projects.first { $0.id == id }
     }
 
-    func projectName(for task: TodoistTask) -> String {
-        projectName(task.projectId)
+    /// Nom du projet, ou « Inbox » pour une tâche sans projet.
+    func projectName(_ id: String?) -> String {
+        project(id)?.name ?? "Inbox"
     }
 
-    /// Toutes les tâches ouvertes hors réunions, filtrées par texte.
-    func pickableTasks(matching query: String) -> [TodoistTask] {
+    func projectName(for task: TodoTask) -> String {
+        projectName(task.projectID)
+    }
+
+    /// Tâches ouvertes de premier niveau d'un projet (`nil` pour l'Inbox), dans l'ordre de la liste.
+    func topLevelTasks(in projectID: String?) -> [TodoTask] {
+        index.all
+            .filter { $0.parentID == nil && $0.projectID == projectID }
+            .sorted { $0.position < $1.position }
+    }
+
+    func openCount(in projectID: String?) -> Int {
+        index.all.filter { $0.parentID == nil && $0.projectID == projectID }.count
+    }
+
+    /// Tâches cochées d'un projet, les plus récentes d'abord.
+    func completedTasks(in projectID: String?, limit: Int = 50) -> [TodoTask] {
+        let done = store.tasks
+            .filter { !$0.isOpen && $0.projectID == projectID }
+            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+        return Array(done.prefix(limit))
+    }
+
+    /// Toutes les tâches ouvertes, filtrées par texte.
+    func pickableTasks(matching query: String) -> [TodoTask] {
         let currentRules = rules
         let text = query.trimmingCharacters(in: .whitespaces)
         let matches = index.all.filter { task in
-            guard !Planner.isMeeting(task, rules: currentRules) else { return false }
             guard !text.isEmpty else { return true }
-            return task.content.localizedCaseInsensitiveContains(text)
+            return task.title.localizedCaseInsensitiveContains(text)
                 || projectName(for: task).localizedCaseInsensitiveContains(text)
         }
         // Les tâches datées plus tard restent trouvables, mais en fin de liste.
@@ -95,145 +127,125 @@ final class AppModel {
         return Array(sorted.prefix(200))
     }
 
-    // MARK: Connexion
+    // MARK: Tâches
 
-    func connect(token rawToken: String) async -> Bool {
-        let candidate = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !candidate.isEmpty else { return false }
-        do {
-            _ = try await TodoistClient(token: candidate).projects()
-            Keychain.saveToken(candidate)
-            token = candidate
-            hasToken = true
-            errorMessage = nil
-            await refresh()
-            return true
-        } catch {
-            errorMessage = error.localizedDescription
-            return false
+    @discardableResult
+    func addTask(_ title: String, projectID: String?, parentID: String? = nil) -> TodoTask? {
+        var created: TodoTask?
+        commit { created = $0.addTask(title: title, projectID: projectID, parentID: parentID) }
+        return created
+    }
+
+    /// Ajoute les étapes d'un découpage, dans l'ordre.
+    @discardableResult
+    func addSubtasks(_ titles: [String], to parent: TodoTask) -> [TodoTask] {
+        var created: [TodoTask] = []
+        commit { store in
+            for title in titles {
+                if let task = store.addTask(title: title, projectID: parent.projectID, parentID: parent.id) {
+                    created.append(task)
+                }
+            }
         }
+        return created
     }
 
-    func disconnect() {
-        Keychain.deleteToken()
-        token = nil
-        hasToken = false
-        index = TaskIndex()
-        projects = []
-        completed = []
+    func update(_ task: TodoTask) {
+        commit { $0.update(task) }
     }
 
-    // MARK: Synchro Todoist
-
-    func refresh() async {
-        guard let token, !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
-        let client = TodoistClient(token: token)
-        do {
-            async let fetchedTasks = client.tasks()
-            async let fetchedProjects = client.projects()
-            let (tasks, projectList) = try await (fetchedTasks, fetchedProjects)
-            index = TaskIndex(tasks)
-            projects = projectList
-                .filter { !$0.isArchived }
-                .sorted { ($0.isInbox ? -1 : $0.childOrder) < ($1.isInbox ? -1 : $1.childOrder) }
-            lastRefresh = .now
-            errorMessage = nil
-            loadPlan()
-            recordSnapshot()
-            updateResumeNotes { $0.keepOnly(Set(tasks.map(\.id))) }
-            updateAttachments { $0.keepOnly(Set(tasks.map(\.id))) }
-            updateMeetingReminders()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func refreshIfStale(after seconds: TimeInterval = 60) async {
-        if let lastRefresh, Date.now.timeIntervalSince(lastRefresh) < seconds { return }
-        await refresh()
-    }
-
-    func loadCompleted(weeks: Int = 8) async {
-        guard let token else { return }
-        let until = Date.now
-        let since = Calendar.current.date(byAdding: .day, value: -7 * weeks, to: until) ?? until
-        do {
-            completed = try await TodoistClient(token: token).completedTasks(since: since, until: until)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    /// Coche la tâche dans Todoist et la retire tout de suite de l'index local.
-    func close(_ task: TodoistTask) async throws {
-        guard let token else { throw TodoistError.unauthorized }
-        try await TodoistClient(token: token).closeTask(id: task.id)
-        index = index.removing(task.id)
-        updateResumeNotes { $0.remove(task.id) }
-        updateAttachments { $0.removeAll(for: task.id) }
-        if let plan = todayPlan, plan.taskIDs.contains(task.id) {
-            plan.taskIDs.removeAll { $0 == task.id }
-            plan.doneIDs.append(task.id)
+    /// Coche la tâche et ses sous-tâches, et la sort du plan du jour.
+    func complete(_ task: TodoTask) {
+        let ids = [task.id] + store.descendants(of: task.id)
+        commit { $0.complete(task.id) }
+        updateResumeNotes { notes in ids.forEach { notes.remove($0) } }
+        if let plan = todayPlan, plan.taskIDs.contains(where: { ids.contains($0) }) {
+            plan.taskIDs.removeAll { ids.contains($0) }
+            if !plan.doneIDs.contains(task.id) { plan.doneIDs.append(task.id) }
             save()
         }
     }
 
-    // MARK: Découpage et chantiers actifs
-
-    var activeChantiers: [TodoistTask] {
-        Planner.activeChantiers(in: index, rules: rules)
+    /// Rouvre une tâche cochée par erreur.
+    func reopen(_ task: TodoTask) {
+        commit { $0.reopen(task.id) }
     }
 
-    /// Crée la prochaine action concrète comme sous-tâche dans Todoist.
+    /// Supprime la tâche et ses sous-tâches.
+    func delete(_ task: TodoTask) {
+        let ids = [task.id] + store.descendants(of: task.id)
+        commit { $0.delete(task.id) }
+        updateResumeNotes { notes in ids.forEach { notes.remove($0) } }
+        if let plan = todayPlan, plan.taskIDs.contains(where: { ids.contains($0) }) {
+            plan.taskIDs.removeAll { ids.contains($0) }
+            save()
+        }
+    }
+
+    /// Place `id` juste avant `target` parmi les tâches de même niveau, ou en fin de liste.
+    func move(_ id: String, before target: String?) {
+        commit { $0.move(id, before: target) }
+    }
+
+    /// Étape bloquée : laissée ouverte mais plus proposée, la raison gardée en note de reprise.
+    func markBlocked(_ task: TodoTask, reason: String) {
+        commit { $0.setBlocked(task.id, true) }
+        setResumeNote(Planner.blockedNote(reason), for: task.id)
+    }
+
+    func unblock(_ task: TodoTask) {
+        commit { $0.setBlocked(task.id, false) }
+    }
+
+    // MARK: Projets
+
     @discardableResult
-    func addSubtask(_ content: String, to parent: TodoistTask) async throws -> TodoistTask {
-        guard let token else { throw TodoistError.unauthorized }
-        let created = try await TodoistClient(token: token).createSubtask(content: content, parentID: parent.id)
-        index = TaskIndex(index.all + [created])
+    func addProject(named name: String) -> Project? {
+        var created: Project?
+        commit { created = $0.addProject(named: name) }
         return created
     }
 
-    /// Crée les étapes d'un découpage dans l'ordre, une par une. S'arrête à la première erreur
-    /// et renvoie celles déjà créées, pour qu'un nouvel essai ne les recrée pas.
-    func addSubtasks(_ contents: [String], to parent: TodoistTask) async -> (created: [TodoistTask], error: Error?) {
-        var created: [TodoistTask] = []
-        for content in contents {
-            do {
-                created.append(try await addSubtask(content, to: parent))
-            } catch {
-                return (created, error)
-            }
-        }
-        return (created, nil)
+    func renameProject(_ id: String, to name: String) {
+        commit { $0.renameProject(id, to: name) }
     }
 
-    /// Étape bloquée laissée ouverte : label @Waiting puis commentaire dans Todoist, note de reprise dans Done.
-    /// Le label passe d'abord, sans lui Done reproposerait l'étape ; réessayer après un échec ne le double pas.
-    func markBlocked(_ task: TodoistTask, reason: String) async throws {
-        guard let token else { throw TodoistError.unauthorized }
-        let client = TodoistClient(token: token)
-        let live = index[task.id] ?? task
-        if !Planner.isWaiting(live) {
-            let updated = try await client.updateLabels(taskID: task.id, labels: live.labels + [Rules.waitingLabel])
-            index = index.replacing(updated)
-        }
-        let note = Planner.blockedNote(reason)
-        try await client.addComment(taskID: task.id, content: note)
-        setResumeNote(note, for: task.id)
+    func shiftProject(_ id: String, by offset: Int) {
+        commit { $0.shiftProject(id, by: offset) }
     }
 
-    /// Met des chantiers en file d'attente : retire @Chantier-actif dans Todoist, puis recharge.
-    func park(_ tasks: [TodoistTask]) async throws {
-        guard let token else { throw TodoistError.unauthorized }
-        let client = TodoistClient(token: token)
-        for task in tasks {
-            for update in Planner.parkingUpdates(for: task, in: index) {
-                _ = try await client.updateLabels(taskID: update.taskID, labels: update.labels)
-            }
+    /// Supprime le projet ; ses tâches passent dans l'Inbox.
+    func deleteProject(_ id: String) {
+        commit { $0.deleteProject(id) }
+    }
+
+    // MARK: Réunions
+
+    @discardableResult
+    func addMeeting(title: String, start: Date, end: Date) -> Meeting? {
+        var created: Meeting?
+        commit { created = $0.addMeeting(title: title, start: start, end: end) }
+        return created
+    }
+
+    func deleteMeeting(_ id: String) {
+        commit { $0.deleteMeeting(id) }
+    }
+
+    /// Reprogramme les rappels des réunions des sept prochains jours, après chaque changement
+    /// de réunion ou de réglage.
+    func updateMeetingReminders() {
+        let rules = rules
+        guard rules.meetingReminder else {
+            Notifier.shared.updateMeetingReminders([])
+            return
         }
-        await refresh()
+        let now = Date.now
+        let limit = now.addingTimeInterval(7 * 86_400)
+        let meetings = store.upcomingMeetings(after: now).filter { $0.start < limit }
+        // macOS garde 64 notifications en attente par app : on reste loin de la limite.
+        let reminders = MeetingReminder.plan(meetings, now: now, minutes: rules.meetingReminderMinutes)
+        Notifier.shared.updateMeetingReminders(Array(reminders.prefix(40)))
     }
 
     // MARK: Bilan du soir
@@ -244,9 +256,9 @@ final class AppModel {
 
     var reviewDoneToday: Bool { lastReviewDay == Format.dayKey(.now) }
 
-    /// Tâches reportées par le dernier bilan, à proposer dans le plan d'aujourd'hui.
+    /// Tâches reportées par le dernier bilan, encore ouvertes, à proposer dans le plan d'aujourd'hui.
     var carriedOverIDs: [String] {
-        carryOver?.taskIDs(availableOn: Format.dayKey(.now)) ?? []
+        (carryOver?.taskIDs(availableOn: Format.dayKey(.now)) ?? []).filter { index[$0] != nil }
     }
 
     func completeReview(_ carry: CarryOver) {
@@ -255,89 +267,6 @@ final class AppModel {
         let defaults = UserDefaults.standard
         defaults.set(try? JSONEncoder().encode(carry), forKey: Self.carryOverKey)
         defaults.set(carry.fromDay, forKey: Self.lastReviewKey)
-    }
-
-    // MARK: Claude
-
-    /// Vérifie la clé auprès de l'API, puis la range dans le trousseau.
-    func saveClaudeKey(_ rawKey: String) async throws {
-        let key = rawKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { throw ClaudeError.missingKey }
-        try await ClaudeClient(apiKey: key).checkKey()
-        Keychain.save(key, account: Keychain.anthropicAccount)
-        hasClaudeKey = true
-    }
-
-    func deleteClaudeKey() {
-        Keychain.delete(Keychain.anthropicAccount)
-        hasClaudeKey = false
-    }
-
-    /// Découpage complet proposé par Claude, avec le contexte de Todoist, du dossier choisi et des pièces jointes.
-    func suggestBreakdown(for task: TodoistTask) async throws -> Breakdown.Plan {
-        guard let key = Keychain.read(Keychain.anthropicAccount) else { throw ClaudeError.missingKey }
-        let rules = rules
-        let folder = rules.claudeContextFolder.isEmpty ? nil : ContextFolder(root: URL(fileURLWithPath: rules.claudeContextFolder))
-        // Parcourir le dossier peut prendre un moment : hors du fil principal.
-        let (files, entries) = await Task.detached { () -> ([ContextFolder.File], [Breakdown.ContextEntry]) in
-            guard let folder else { return ([], []) }
-            let files = folder.files()
-            return (files, folder.entries(of: files))
-        }.value
-
-        let parent = task.parentId.flatMap { index[$0] }
-        let siblings = task.parentId.map { index.children(of: $0).filter { $0.id != task.id } } ?? []
-        let system = Breakdown.systemPrompt(
-            method: rules.claudeMethod,
-            examples: Breakdown.examples(in: index, preferring: task.projectId, excluding: task.id, rules: rules),
-            files: entries
-        )
-        let prompt = Breakdown.taskPrompt(
-            task: task,
-            projectName: projectName(for: task),
-            parent: parent,
-            siblings: siblings,
-            existing: index.children(of: task.id),
-            resumeNote: resumeNote(for: task.id)?.text
-        )
-        var attachments: [Breakdown.Attachment] = []
-        for path in taskAttachments[task.id] {
-            attachments.append(try await AttachmentLoader.load(URL(fileURLWithPath: path)))
-        }
-        return try await ClaudeClient(apiKey: key, model: rules.claudeModel).suggestPlan(
-            system: system,
-            userContent: Breakdown.userContent(prompt: prompt, attachments: attachments),
-            offersFiles: !files.isEmpty
-        ) { paths in
-            guard let folder else { return "" }
-            return await folder.read(paths, in: files)
-        }
-    }
-
-    // MARK: Pièces jointes
-
-    func attachments(for taskID: String) -> [String] {
-        taskAttachments[taskID]
-    }
-
-    /// Joint des fichiers à une tâche. Renvoie ceux refusés faute de place.
-    @discardableResult
-    func attach(_ paths: [String], to taskID: String) -> [String] {
-        var refused: [String] = []
-        updateAttachments { refused = $0.add(paths, to: taskID) }
-        return refused
-    }
-
-    func detach(_ path: String, from taskID: String) {
-        updateAttachments { $0.remove(path, from: taskID) }
-    }
-
-    private func updateAttachments(_ change: (inout TaskAttachments) -> Void) {
-        var attachments = taskAttachments
-        change(&attachments)
-        guard attachments != taskAttachments else { return }
-        taskAttachments = attachments
-        UserDefaults.standard.set(try? JSONEncoder().encode(attachments), forKey: Self.attachmentsKey)
     }
 
     // MARK: Note de reprise
@@ -358,23 +287,6 @@ final class AppModel {
         UserDefaults.standard.set(try? JSONEncoder().encode(notes), forKey: Self.resumeNotesKey)
     }
 
-    // MARK: Réunion proche
-
-    /// Reprogramme les rappels des réunions d'aujourd'hui et de demain, après chaque synchro
-    /// ou changement de réglage.
-    func updateMeetingReminders() {
-        let rules = rules
-        guard rules.meetingReminder else {
-            Notifier.shared.updateMeetingReminders([])
-            return
-        }
-        let now = Date.now
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now) ?? now
-        let meetings = Planner.meetings(in: index.all, on: now, rules: rules)
-            + Planner.meetings(in: index.all, on: tomorrow, rules: rules)
-        Notifier.shared.updateMeetingReminders(MeetingReminder.plan(meetings, now: now, minutes: rules.meetingReminderMinutes))
-    }
-
     // MARK: Plan du jour
 
     func savePlan(_ ids: [String]) {
@@ -387,7 +299,7 @@ final class AppModel {
             self.plan = plan
         }
         // Le report de la veille a servi : il ne doit pas revenir demain.
-        if !carriedOverIDs.isEmpty {
+        if carryOver?.taskIDs(availableOn: Format.dayKey(.now)).isEmpty == false {
             carryOver = nil
             UserDefaults.standard.removeObject(forKey: Self.carryOverKey)
         }
@@ -413,24 +325,49 @@ final class AppModel {
         save()
     }
 
+    /// Ajoute une tâche en fin de plan du jour.
+    func addToPlan(_ id: String) {
+        guard let plan = todayPlan else {
+            savePlan([id])
+            return
+        }
+        guard !plan.taskIDs.contains(id), plan.taskIDs.count < Rules.maxPlanSize else { return }
+        plan.taskIDs.append(id)
+        save()
+    }
+
     private func loadPlan() {
         let start = Calendar.current.startOfDay(for: .now)
         let descriptor = FetchDescriptor<DayPlan>(predicate: #Predicate { $0.day == start })
         plan = (try? context.fetch(descriptor))?.first
+        // Une tâche supprimée ou d'une ancienne version de Done ne reste pas dans le plan.
+        if let plan, plan.taskIDs.contains(where: { index[$0] == nil }) {
+            plan.taskIDs.removeAll { index[$0] == nil }
+            save()
+        }
     }
 
-    private func recordSnapshot() {
-        let numbers = Stats.backlog(index, rules: rules)
-        let day = Calendar.current.startOfDay(for: .now)
-        let descriptor = FetchDescriptor<BacklogSnapshot>(predicate: #Predicate { $0.day == day })
-        if let existing = (try? context.fetch(descriptor))?.first {
-            existing.update(numbers)
-        } else {
-            let snapshot = BacklogSnapshot(day: day)
-            snapshot.update(numbers)
-            context.insert(snapshot)
+    // MARK: Enregistrement
+
+    /// Applique un changement aux tâches, met l'index à jour et réécrit le fichier.
+    private func commit(_ change: (inout TaskStore) -> Void) {
+        var next = store
+        change(&next)
+        guard next != store else { return }
+        let meetingsChanged = next.meetings != store.meetings
+        store = next
+        index = TaskIndex(store.openTasks)
+        persist()
+        if meetingsChanged { updateMeetingReminders() }
+    }
+
+    private func persist() {
+        guard canSave else { return }
+        do {
+            try storage.save(store)
+        } catch {
+            errorMessage = "Les tâches n'ont pas pu être enregistrées : \(error.localizedDescription)"
         }
-        save()
     }
 
     private func save() {

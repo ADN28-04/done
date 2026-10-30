@@ -10,9 +10,6 @@ struct PlanView: View {
     @State private var showPicker = false
     @State private var hovered: String?
     @State private var dropTarget: String?
-    @State private var showGuardrail = false
-    /// Le garde-fou n'apparaît qu'une fois par jour.
-    @AppStorage("guardrail.lastShownDay") private var guardrailLastShownDay = ""
     @State private var showReview = false
 
     private var planSize: Int { model.rules.planSize }
@@ -53,16 +50,12 @@ struct PlanView: View {
                 loaded = true
             }
         }
-        .onChange(of: model.lastRefresh) {
-            // Retire les tâches fermées entre-temps dans Todoist.
+        .onChange(of: model.store.tasks) {
+            // Retire les tâches cochées ou supprimées entre-temps.
             draft.removeAll { model.index[$0] == nil }
         }
         .sheet(isPresented: $showPicker) {
             TaskPickerView(title: "Ajouter une tâche au plan") { add($0.id) }
-                .environment(model)
-        }
-        .sheet(isPresented: $showGuardrail) {
-            GuardrailSheet(plan: draft) { commitPlan() }
                 .environment(model)
         }
         .sheet(isPresented: $showReview) {
@@ -72,18 +65,7 @@ struct PlanView: View {
         }
     }
 
-    /// Le garde-fou s'intercale quand il y a plus de chantiers actifs que la cible.
     private func validate() {
-        let today = Format.dayKey(.now)
-        if model.activeChantiers.count > model.rules.maxActive, guardrailLastShownDay != today {
-            guardrailLastShownDay = today
-            showGuardrail = true
-        } else {
-            commitPlan()
-        }
-    }
-
-    private func commitPlan() {
         model.savePlan(draft)
         onValidate()
     }
@@ -97,9 +79,9 @@ struct PlanView: View {
                 .padding(.leading, 2)
             if candidates.isEmpty {
                 VStack(spacing: 6) {
-                    Text(model.isLoading ? "Chargement…" : "Plus aucune candidate")
+                    Text(model.index.all.isEmpty ? "Aucune tâche pour l'instant" : "Plus aucune candidate")
                         .font(.text(14, .semibold))
-                    Text(model.isLoading ? "Done récupère tes tâches Todoist." : "Toutes tes tâches prioritaires sont dans le plan.")
+                    Text(model.index.all.isEmpty ? "Ajoute-les dans l'onglet Tâches, ou avec ⌘N." : "Les tâches P1 et P2 et celles qui arrivent à échéance sont déjà dans le plan. Les autres sont dans « Chercher une autre tâche ».")
                         .font(.text(13))
                         .foregroundStyle(Theme.label2)
                         .multilineTextAlignment(.center)
@@ -129,7 +111,7 @@ struct PlanView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    private func candidateRow(_ task: TodoistTask) -> some View {
+    private func candidateRow(_ task: TodoTask) -> some View {
         let isFull = draft.count >= Rules.maxPlanSize
         return HStack(spacing: 12) {
             TaskRowContent(task: task, showDetails: false)
@@ -183,6 +165,8 @@ struct PlanView: View {
             }
             .scrollIndicators(.never)
             Spacer(minLength: 0)
+            MeetingsCard()
+                .padding(.bottom, 8)
             HStack {
                 Text(doneText)
                     .font(.text(12))
@@ -208,7 +192,7 @@ struct PlanView: View {
                 .frame(width: 22, alignment: .leading)
             VStack(alignment: .leading, spacing: 3) {
                 if let task = model.index[id] {
-                    Text(task.content)
+                    Text(task.title)
                         .font(.text(15, .medium))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)

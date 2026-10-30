@@ -17,8 +17,8 @@ final class FocusEngine {
 
     struct Current {
         /// Change quand on enchaîne sur l'étape suivante dans le même pomodoro.
-        var action: TodoistTask
-        let root: TodoistTask
+        var action: TodoTask
+        let root: TodoTask
         let projectName: String
         /// Durée du pomodoro, rallonge comprise.
         var planned: TimeInterval
@@ -31,12 +31,10 @@ final class FocusEngine {
     private(set) var interruptedAt: Date?
     private(set) var breakEnd: Date?
     private(set) var breakDuration: TimeInterval = 0
-    private(set) var isClosing = false
-    var errorMessage: String?
     /// Minutes ajoutées à ce pomodoro.
     private(set) var extendedSeconds: TimeInterval = 0
     /// Action cochée avant la fin du pomodoro : l'écran de fin propose la suite.
-    private(set) var checkedAction: TodoistTask?
+    private(set) var checkedAction: TodoTask?
     private(set) var followUp: Planner.FollowUp?
     /// Pause entre deux tâches principales : elle ne se passe pas.
     private(set) var breakIsMandatory = false
@@ -98,7 +96,7 @@ final class FocusEngine {
     }
 
     /// Changer de tâche principale juste après une session demande d'abord une pause.
-    func needsBreak(before root: TodoistTask, now: Date = .now) -> Bool {
+    func needsBreak(before root: TodoTask, now: Date = .now) -> Bool {
         breakDue?.blocks(rootID: root.id, now: now) ?? false
     }
 
@@ -113,7 +111,7 @@ final class FocusEngine {
 
     // MARK: Actions
 
-    func start(action: TodoistTask, root: TodoistTask, minutes: Int) {
+    func start(action: TodoTask, root: TodoTask, minutes: Int) {
         endBreak()
         let planned = TimeInterval(max(1, minutes) * 60)
         let projectName = model.projectName(for: root)
@@ -127,7 +125,6 @@ final class FocusEngine {
         segmentStart = .now
         now = .now
         interruptedAt = nil
-        errorMessage = nil
 
         let session = FocusSession(action: action, root: root, projectName: projectName, plannedSeconds: planned)
         context.insert(session)
@@ -179,25 +176,13 @@ final class FocusEngine {
         Notifier.shared.cancel(Notifier.focusEnd)
     }
 
-    /// L'action est finie : on la coche dans Todoist, puis on décide de la suite.
+    /// L'action est finie : on la coche, puis on décide de la suite.
     /// Étape suivante de la même tâche et du temps devant soi : l'écran de fin propose d'enchaîner.
     /// Tâche principale finie : pause obligatoire avant la suivante.
-    func markDone() async {
-        guard let current, !isClosing else { return }
-        isClosing = true
-        defer { isClosing = false }
-        do {
-            try await model.close(current.action)
-        } catch {
-            if let todoistError = error as? TodoistError, case .unauthorized = todoistError {
-                errorMessage = error.localizedDescription
-            } else {
-                errorMessage = "Todoist n'a pas répondu : la tâche n'est pas cochée. Vérifie ta connexion et réessaie."
-            }
-            return
-        }
+    func markDone() {
+        guard let current else { return }
+        model.complete(current.action)
         finishRecord(.done)
-        errorMessage = nil
         let next = Planner.followUp(after: current.action, root: current.root, in: model.index, rules: Rules.current)
         switch next {
         case .step:
@@ -221,25 +206,11 @@ final class FocusEngine {
         startStep(next)
     }
 
-    /// Bloqué sur l'action : elle reste ouverte dans Todoist, avec @Waiting et un commentaire,
-    /// et on passe à l'étape suivante de la même tâche. Faute d'étape, pause obligatoire avant une autre tâche.
-    /// `false` si Todoist n'a pas répondu : la session continue telle quelle.
-    @discardableResult
-    func markBlocked(reason: String) async -> Bool {
-        guard let current, !isClosing else { return false }
-        isClosing = true
-        defer { isClosing = false }
-        do {
-            try await model.markBlocked(current.action, reason: reason)
-        } catch {
-            if let todoistError = error as? TodoistError, case .unauthorized = todoistError {
-                errorMessage = error.localizedDescription
-            } else {
-                errorMessage = "Todoist n'a pas répondu : l'étape n'est pas marquée bloquée. Vérifie ta connexion et réessaie."
-            }
-            return false
-        }
-        errorMessage = nil
+    /// Bloqué sur l'action : elle reste ouverte mais n'est plus proposée, et on passe à l'étape
+    /// suivante de la même tâche. Faute d'étape, pause obligatoire avant une autre tâche.
+    func markBlocked(reason: String) {
+        guard let current else { return }
+        model.markBlocked(current.action, reason: reason)
         closeSegment()
         closeInterruption()
         finishRecord(.partial)
@@ -251,21 +222,13 @@ final class FocusEngine {
         case .closeRoot, .switchTask:
             startBreakAfterSession(mandatory: true)
         }
-        return true
     }
 
     /// Toutes les étapes sont faites : coche la tâche principale, puis pause obligatoire.
-    func closeRoot() async {
-        guard case .closeRoot(let root)? = followUp, !isClosing else { return }
-        isClosing = true
-        defer { isClosing = false }
-        do {
-            try await model.close(root)
-            errorMessage = nil
-            startBreakAfterSession(mandatory: true)
-        } catch {
-            errorMessage = "Todoist n'a pas répondu : « \(root.content) » n'est pas cochée. Vérifie ta connexion et réessaie."
-        }
+    func closeRoot() {
+        guard case .closeRoot(let root)? = followUp else { return }
+        model.complete(root)
+        startBreakAfterSession(mandatory: true)
     }
 
     /// Ajoute quelques minutes au pomodoro, 10 au plus en tout. Relance le minuteur s'il était fini.
@@ -283,7 +246,6 @@ final class FocusEngine {
         case .awaitingOutcome:
             segmentStart = .now
             now = .now
-            errorMessage = nil
             transition(to: .focusing)
             scheduleFocusEnd()
             startTicker()
@@ -340,7 +302,7 @@ final class FocusEngine {
     }
 
     /// Lance `next` dans le temps qui reste au pomodoro, avec sa propre session.
-    private func startStep(_ next: TodoistTask) {
+    private func startStep(_ next: TodoTask) {
         guard var current = self.current else { return }
         current.action = next
         self.current = current
@@ -442,7 +404,7 @@ final class FocusEngine {
         Notifier.shared.schedule(
             Notifier.focusEnd,
             title: "Session terminée",
-            body: current.action.content,
+            body: current.action.title,
             after: remaining,
             sound: !Rules.current.endSound
         )
@@ -477,7 +439,7 @@ final class FocusEngine {
                 let rules = Rules.current
                 if rules.endSound { SystemBridge.playSound("Glass") }
                 SystemBridge.requestAttention()
-                if rules.dndEnabled, let title = current?.action.content {
+                if rules.dndEnabled, let title = current?.action.title {
                     Task {
                         await DoNotDisturb.shared.settle()
                         Notifier.shared.notifyNow(Notifier.focusEnd, title: "Session terminée", body: title, sound: !rules.endSound)

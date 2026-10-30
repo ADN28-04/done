@@ -2,7 +2,7 @@ import Foundation
 
 enum SessionOutcome: String, Codable {
     case inProgress
-    /// La tâche a été cochée dans Todoist.
+    /// La tâche a été cochée.
     case done
     /// Temps écoulé ou session arrêtée, tâche pas encore finie.
     case partial

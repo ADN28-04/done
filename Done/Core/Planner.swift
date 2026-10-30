@@ -2,39 +2,39 @@ import Foundation
 
 /// Index en mémoire des tâches ouvertes, avec l'arborescence parent / sous-tâches.
 struct TaskIndex {
-    private(set) var all: [TodoistTask] = []
-    private var byID: [String: TodoistTask] = [:]
-    private var childrenByParent: [String: [TodoistTask]] = [:]
+    private(set) var all: [TodoTask] = []
+    private var byID: [String: TodoTask] = [:]
+    private var childrenByParent: [String: [TodoTask]] = [:]
 
-    init(_ tasks: [TodoistTask] = []) {
+    init(_ tasks: [TodoTask] = []) {
         all = tasks
-        var byID: [String: TodoistTask] = [:]
-        var children: [String: [TodoistTask]] = [:]
+        var byID: [String: TodoTask] = [:]
+        var children: [String: [TodoTask]] = [:]
         for task in tasks {
             byID[task.id] = task
-            if let parent = task.parentId {
+            if let parent = task.parentID {
                 children[parent, default: []].append(task)
             }
         }
         self.byID = byID
-        self.childrenByParent = children.mapValues { $0.sorted { $0.childOrder < $1.childOrder } }
+        self.childrenByParent = children.mapValues { $0.sorted { $0.position < $1.position } }
     }
 
-    subscript(id: String) -> TodoistTask? { byID[id] }
+    subscript(id: String) -> TodoTask? { byID[id] }
 
-    func children(of id: String) -> [TodoistTask] { childrenByParent[id] ?? [] }
+    func children(of id: String) -> [TodoTask] { childrenByParent[id] ?? [] }
 
-    func ancestors(of task: TodoistTask) -> [TodoistTask] {
-        var result: [TodoistTask] = []
-        var next = task.parentId
+    func ancestors(of task: TodoTask) -> [TodoTask] {
+        var result: [TodoTask] = []
+        var next = task.parentID
         while let id = next, let parent = byID[id], result.count < 20 {
             result.append(parent)
-            next = parent.parentId
+            next = parent.parentID
         }
         return result
     }
 
-    func root(of task: TodoistTask) -> TodoistTask { ancestors(of: task).last ?? task }
+    func root(of task: TodoTask) -> TodoTask { ancestors(of: task).last ?? task }
 
     /// Index sans la tâche ni ses sous-tâches, après l'avoir cochée.
     func removing(_ id: String) -> TaskIndex {
@@ -49,22 +49,6 @@ struct TaskIndex {
         }
         return TaskIndex(all.filter { !dropped.contains($0.id) })
     }
-
-    /// Index où `task` remplace sa version précédente, après une écriture dans Todoist.
-    func replacing(_ task: TodoistTask) -> TaskIndex {
-        TaskIndex(all.map { $0.id == task.id ? task : $0 })
-    }
-}
-
-/// Créneau lu dans Todoist : une réunion, ou un bloc de travail posé dans l'agenda.
-struct Meeting: Identifiable, Hashable {
-    let id: String
-    let title: String
-    let start: Date
-    let end: Date
-    let isFocusBlock: Bool
-
-    func contains(_ date: Date) -> Bool { start <= date && date < end }
 }
 
 /// Ce que l'écran Focus propose de faire maintenant.
@@ -78,9 +62,9 @@ struct Suggestion {
 
     var status: Status
     /// Tâche du plan (ou tâche racine) à laquelle appartient l'action.
-    var planTask: TodoistTask?
+    var planTask: TodoTask?
     /// Prochaine action concrète : la première sous-tâche faisable, ou la tâche elle-même.
-    var action: TodoistTask?
+    var action: TodoTask?
     var minutes = 0
     /// Position dans le plan, à partir de 1. 0 pour une tâche hors plan.
     var position = 0
@@ -89,7 +73,7 @@ struct Suggestion {
     var nextMeeting: Meeting?
     var ongoing: Meeting?
     var minutesBeforeMeeting: Int?
-    var preparation: TodoistTask?
+    var preparation: TodoTask?
 
     init(status: Status) {
         self.status = status
@@ -97,8 +81,8 @@ struct Suggestion {
 }
 
 enum Planner {
-    static func isWaiting(_ task: TodoistTask) -> Bool {
-        task.hasLabel(Rules.waitingLabel)
+    static func isBlocked(_ task: TodoTask) -> Bool {
+        task.isBlocked
     }
 
     /// Dernier jour couvert par l'horizon « Échéance proche ».
@@ -108,59 +92,20 @@ enum Planner {
     }
 
     /// Tâche datée exprès au-delà de l'horizon : elle attend sa date, Done ne la propose pas avant.
-    /// Une échéance Todoist (deadline) dans l'horizon l'emporte sur la date.
-    static func isScheduledLater(_ task: TodoistTask, rules: Rules, now: Date = .now, calendar: Calendar = .current) -> Bool {
-        let limit = horizonLimit(rules: rules, now: now, calendar: calendar)
-        guard let day = task.due?.day, day > limit else { return false }
-        if let deadline = task.deadline?.day, deadline <= limit { return false }
-        return true
+    static func isScheduledLater(_ task: TodoTask, rules: Rules, now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard let day = task.due else { return false }
+        return day > horizonLimit(rules: rules, now: now, calendar: calendar)
     }
 
-    static func isMeeting(_ task: TodoistTask, rules: Rules) -> Bool {
-        guard let due = task.due, due.hasTime, !rules.meetingPrefix.isEmpty else { return false }
-        return task.content.hasPrefix(rules.meetingPrefix)
-    }
-
-    static func meetingTitle(_ task: TodoistTask, rules: Rules) -> String {
-        var title = task.content
-        if !rules.meetingPrefix.isEmpty, title.hasPrefix(rules.meetingPrefix) {
-            title = String(title.dropFirst(rules.meetingPrefix.count))
-        }
-        return title.trimmingCharacters(in: CharacterSet(charactersIn: " ·:-–"))
-    }
-
-    /// Réunions et blocs du jour, triés par heure de début.
-    static func meetings(in tasks: [TodoistTask], on day: Date, rules: Rules, calendar: Calendar = .current) -> [Meeting] {
-        let keywords = rules.focusKeywords
-        return tasks.compactMap { task -> Meeting? in
-            guard isMeeting(task, rules: rules),
-                  let start = task.due?.value,
-                  calendar.isDate(start, inSameDayAs: day) else { return nil }
-            let minutes = task.duration?.minutes ?? 30
-            let title = meetingTitle(task, rules: rules)
-            let lower = title.lowercased()
-            return Meeting(
-                id: task.id,
-                title: title,
-                start: start,
-                end: start.addingTimeInterval(TimeInterval(minutes * 60)),
-                isFocusBlock: keywords.contains { lower.contains($0) }
-            )
-        }
-        .sorted { $0.start < $1.start }
-    }
-
-    /// Candidates du rituel du matin : P1/P2, hors Waiting, réunions et tâches datées plus tard,
-    /// avec Chantier-actif ou une échéance proche. Une sous-tâche n'apparaît pas
-    /// si son parent est déjà candidat.
-    static func candidates(in index: TaskIndex, rules: Rules, now: Date = .now, calendar: Calendar = .current) -> [TodoistTask] {
+    /// Candidates du rituel du matin : les tâches P1 et P2, et toutes celles dont l'échéance est proche
+    /// ou dépassée. Ni bloquées, ni datées plus tard. Une sous-tâche n'apparaît pas si son parent
+    /// est déjà candidat.
+    static func candidates(in index: TaskIndex, rules: Rules, now: Date = .now, calendar: Calendar = .current) -> [TodoTask] {
         let limit = horizonLimit(rules: rules, now: now, calendar: calendar)
         let eligible = index.all.filter { task in
-            guard !isMeeting(task, rules: rules), !isWaiting(task), task.priority >= 3,
-                  !isScheduledLater(task, rules: rules, now: now, calendar: calendar) else { return false }
-            if task.hasLabel(Rules.activeLabel) { return true }
-            if let day = task.due?.day, day <= limit { return true }
-            if let day = task.deadline?.day, day <= limit { return true }
+            guard !isBlocked(task), !isScheduledLater(task, rules: rules, now: now, calendar: calendar) else { return false }
+            if task.priority <= 2 { return true }
+            if let day = task.due, day <= limit { return true }
             return false
         }
         let ids = Set(eligible.map(\.id))
@@ -170,19 +115,19 @@ enum Planner {
     }
 
     /// Priorité d'abord, puis échéance la plus proche, puis ordre alphabétique.
-    static func priorityOrder(_ a: TodoistTask, _ b: TodoistTask) -> Bool {
-        if a.priority != b.priority { return a.priority > b.priority }
-        let dueA = a.due?.day ?? .distantFuture
-        let dueB = b.due?.day ?? .distantFuture
+    static func priorityOrder(_ a: TodoTask, _ b: TodoTask) -> Bool {
+        if a.priority != b.priority { return a.priority < b.priority }
+        let dueA = a.due ?? .distantFuture
+        let dueB = b.due ?? .distantFuture
         if dueA != dueB { return dueA < dueB }
-        return a.content.localizedCompare(b.content) == .orderedAscending
+        return a.title.localizedCompare(b.title) == .orderedAscending
     }
 
-    /// Première action faisable en descendant dans les sous-tâches, dans l'ordre Todoist.
+    /// Première action faisable en descendant dans les sous-tâches, dans l'ordre de la liste.
     /// Les sous-tâches datées plus tard sont sautées ; la tâche de départ, choisie à la main, ne l'est pas.
-    /// `nil` quand tout ce qui reste est en Waiting ou daté plus tard.
-    static func nextAction(for task: TodoistTask, in index: TaskIndex, rules: Rules, now: Date = .now, depth: Int = 0) -> TodoistTask? {
-        guard !isWaiting(task), depth < 10 else { return nil }
+    /// `nil` quand tout ce qui reste est bloqué ou daté plus tard.
+    static func nextAction(for task: TodoTask, in index: TaskIndex, rules: Rules, now: Date = .now, depth: Int = 0) -> TodoTask? {
+        guard !isBlocked(task), depth < 10 else { return nil }
         if depth > 0, isScheduledLater(task, rules: rules, now: now) { return nil }
         let children = index.children(of: task.id)
         if children.isEmpty { return task }
@@ -194,14 +139,14 @@ enum Planner {
         return nil
     }
 
-    /// Jour où une tâche bloquée redevient faisable, quand ce sont des sous-tâches datées plus tard
-    /// qui la bloquent. `nil` si elle attend quelqu'un (Waiting).
-    static func resumeDay(of task: TodoistTask, in index: TaskIndex, rules: Rules, now: Date = .now) -> Date? {
+    /// Jour où une tâche redevient faisable, quand ce sont des sous-tâches datées plus tard
+    /// qui la bloquent. `nil` si ce sont des étapes bloquées.
+    static func resumeDay(of task: TodoTask, in index: TaskIndex, rules: Rules, now: Date = .now) -> Date? {
         var queue = index.children(of: task.id)
         var days: [Date] = []
         while let next = queue.popLast() {
-            guard !isWaiting(next) else { continue }
-            if isScheduledLater(next, rules: rules, now: now), let day = next.due?.day {
+            guard !isBlocked(next) else { continue }
+            if isScheduledLater(next, rules: rules, now: now), let day = next.due {
                 days.append(day)
             } else {
                 queue.append(contentsOf: index.children(of: next.id))
@@ -210,19 +155,22 @@ enum Planner {
         return days.min()
     }
 
-    /// Durée selon le label de l'action, puis celui de la tâche du plan.
-    static func minutes(for action: TodoistTask, root: TodoistTask, rules: Rules) -> Int {
+    /// Durée selon le type de l'action, puis celui de la tâche du plan.
+    static func minutes(for action: TodoTask, root: TodoTask, rules: Rules) -> Int {
         for task in [action, root] {
-            if task.hasLabel(Rules.quickLabel) { return rules.quickMinutes }
-            if task.hasLabel(Rules.deepworkLabel) { return rules.deepworkMinutes }
+            switch task.kind {
+            case .quick: return rules.quickMinutes
+            case .deepwork: return rules.deepworkMinutes
+            case .normal: continue
+            }
         }
         return rules.defaultMinutes
     }
 
     private struct Option {
         let position: Int
-        let root: TodoistTask
-        let action: TodoistTask
+        let root: TodoTask
+        let action: TodoTask
         let minutes: Int
     }
 
@@ -241,7 +189,7 @@ enum Planner {
         var base = Suggestion(status: .ready)
         base.planCount = live.count
         base.ongoing = meetings.first { $0.contains(now) }
-        if !ignoreMeetings, let next = meetings.first(where: { !$0.isFocusBlock && $0.start > now }) {
+        if !ignoreMeetings, let next = meetings.first(where: { $0.start > now }) {
             base.nextMeeting = next
             base.minutesBeforeMeeting = Int(next.start.timeIntervalSince(now) / 60)
         }
@@ -277,13 +225,12 @@ enum Planner {
             return ready(fitting, note: "\(when) : cette tâche tient dans les \(available) min restantes.")
         }
 
-        // Aucune tâche du plan ne tient : une tâche Quick hors plan, si elle existe.
+        // Aucune tâche du plan ne tient : une tâche rapide hors plan, si elle existe.
         if rules.quickMinutes <= available {
             let quick = index.all
                 .filter { task in
-                    task.hasLabel(Rules.quickLabel)
-                        && !isWaiting(task)
-                        && !isMeeting(task, rules: rules)
+                    task.kind == .quick
+                        && !isBlocked(task)
                         && !isScheduledLater(task, rules: rules, now: now)
                         && index.children(of: task.id).isEmpty
                 }
@@ -297,7 +244,7 @@ enum Planner {
         base.status = .noTimeBeforeMeeting
         if !next.title.isEmpty {
             base.preparation = index.all.first { task in
-                !isMeeting(task, rules: rules) && task.content.localizedCaseInsensitiveContains(next.title)
+                !isBlocked(task) && task.title.localizedCaseInsensitiveContains(next.title)
             }
         }
         return base

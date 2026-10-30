@@ -1,5 +1,7 @@
 # Brief design : Done, app Pomodoro pour macOS
 
+> Brief d'origine, écrit quand Done lisait ses tâches dans Todoist. Il reste la référence des maquettes v9 ; l'app gère maintenant ses tâches elle-même (voir `spec.md`).
+
 ## Contexte
 
 Je construis Done, une app macOS pour mon usage personnel. Elle ne sera pas publiée. Elle se connecte à Todoist et transforme mes tâches en sessions de concentration. Le code SwiftUI existe déjà, avec une interface par défaut. Je veux une vraie identité visuelle : l'interface de chaque écran et un logo.

@@ -55,8 +55,9 @@ Les symboles SF gardent `.font(.system(size:))`.
 - **Surface** (`surface(radius:)`) : carte opaque pour les listes, graphiques et réglages. Coins de 16 à 18 pt, liseré de 0,5 pt, ombre douce.
 - **Verre** : `glassBackground(_:)` pour les boutons secondaires, la pastille de réunion et les sélecteurs ; `liquidGlass(_:)` pour la barre d'onglets, en Liquid Glass (`glassEffect`) sur macOS 26 compilé avec Xcode 26, en verre dessiné sinon (flou, voile clair, liseré lumineux, ombre).
 - **Boutons** (`PillButtonStyle`) : pilules de 40 pt pour les actions des écrans, 32 pt dans les barres et panneaux, 28 pt dans les lignes de réglages. Principal en accent, texte blanc semibold ; secondaire en verre ; discret en texte seul.
-- **Bouton rond en verre** (`RoundGlassButtonStyle`) : 32 pt, pour rafraîchir et changer de semaine.
-- **Sélecteur en verre** (`GlassSegmented`) : capsule de verre, segment choisi en accent. Onglets Focus et Backlog des stats, choix Actif ou En attente du garde-fou, Demain ou Plus tard du bilan.
+- **Bouton rond en verre** (`RoundGlassButtonStyle`) : 32 pt, pour la capture rapide et pour changer de semaine.
+- **Sélecteur en verre** (`GlassSegmented`) : capsule de verre, segment choisi en accent. Priorité et type dans la fiche d'une tâche, Demain ou Plus tard du bilan.
+- **Case à cocher** (`CheckCircle`) : cercle de 18 pt au contour de la couleur de priorité, coche au survol, pleine une fois la tâche terminée.
 - **Stepper en verre** (`GlassStepper`), **pastilles** (`Chip`) et **trait** (`Hairline`) pour les réglages.
 - **Badge de priorité** : 16 pt de haut, coins 4, contour de la couleur de priorité, fond à 15 %.
 - **Pastille de réunion** : en haut au centre, en verre. Point plein pour une réunion en cours, point accent pour un bloc de travail, point évidé pour la prochaine réunion.
@@ -67,9 +68,9 @@ Les symboles SF gardent `.font(.system(size:))`.
 
 ## Navigation
 
-- **Barre du haut** de 60 pt, dans la zone de titre : les feux de la fenêtre à gauche, au centre la pastille de réunion (Focus et Plan du jour) ou le sélecteur Focus/Backlog (Stats), à droite le bouton rafraîchir (⌘R).
-- **Barre d'onglets** flottante centrée en bas (`FloatingTabBar` dans `RootView.swift`), à 16 pt du bas : pilule en verre de 5 pt de marge intérieure, onglets de 40 pt de haut avec icône et libellé de 13 pt. L'onglet actif est en texte accent semibold sur une capsule `selection` qui glisse d'un onglet à l'autre. Raccourcis ⌘1 à ⌘4.
-- **En session** (minuteur, pause, interruption, fin de session, pause café) : la barre d'onglets et le bouton rafraîchir disparaissent. La barre d'onglets revient quand la souris approche du bas de la fenêtre. Seule la réunion en cours reste affichée pendant une interruption.
+- **Barre du haut** de 60 pt, dans la zone de titre : les feux de la fenêtre à gauche, au centre la pastille de réunion (Focus et Plan du jour), à droite le bouton rond « + » de la capture rapide (⌘N), invisible en session mais toujours actif au clavier.
+- **Barre d'onglets** flottante centrée en bas (`FloatingTabBar` dans `RootView.swift`), à 16 pt du bas : pilule en verre de 5 pt de marge intérieure, onglets de 40 pt de haut avec icône et libellé de 13 pt. L'onglet actif est en texte accent semibold sur une capsule `selection` qui glisse d'un onglet à l'autre. Cinq onglets (Focus, Tâches, Plan du jour, Stats, Réglages), raccourcis ⌘1 à ⌘5.
+- **En session** (minuteur, pause, interruption, fin de session, pause café) : la barre d'onglets et le bouton « + » disparaissent (⌘N reste actif). La barre d'onglets revient quand la souris approche du bas de la fenêtre. Seule la réunion en cours reste affichée pendant une interruption.
 
 ## Logo
 
@@ -80,8 +81,9 @@ Carré arrondi en dégradé (#16988C vers #0A7D72), anneau blanc à 28 % et arc 
 - L'écran Focus garde ce que la maquette ne montre pas : le titre de la tâche parente, le choix de la durée, « Passer », « Découper en une première action » et l'invitation au bilan du soir.
 - L'interruption garde « Insérer une tâche urgente », la barre de menus garde « Quitter Done ».
 - Les réglages gardent toutes les options réelles de l'app (durées par label, nombre de tâches par jour, mots-clés des blocs, bilan du soir, Ne pas déranger). La maquette montrait une version simplifiée.
-- Les stats affichent le nombre d'interruptions dans la légende du chiffre clé, sans carte dédiée. L'onglet Backlog, absent de la maquette, reprend les mêmes cartes.
-- Les feuilles (découpage, garde-fou, bilan du soir, étape bloquée), absentes de la maquette, reprennent le fond `wash`, les surfaces et les boutons des écrans.
+- Les stats affichent le nombre d'interruptions dans la légende du chiffre clé, sans carte dédiée.
+- L'onglet Tâches, absent de la maquette (conçue quand Done lisait Todoist), suit la mise en page du Plan du jour : colonne des listes à gauche sur une surface, liste de la tâche à droite, champ d'ajout de 40 pt aux coins de 12, lignes sélectionnées en `selection`, survolées en `fill`.
+- Les feuilles (fiche d'une tâche, capture rapide, réunion, découpage, bilan du soir, étape bloquée), absentes de la maquette, reprennent le fond `wash`, les surfaces et les boutons des écrans.
 - L'écran Étape terminée (carte « Ensuite », bouton Enchaîner), le repère d'étapes, la rallonge et la pause obligatoire ne figurent pas dans la maquette : ils reprennent la fin de session, les surfaces et les boutons existants.
-- La note de reprise (écrans Fin de session, Interruption, Focus et Session), les réglages « Réunion proche » et « Claude », et les propositions et pièces jointes de Claude dans la feuille de découpage ne figurent pas dans la maquette : ils reprennent les champs, surfaces et lignes de réglages existants.
+- La note de reprise (écrans Fin de session, Interruption, Focus et Session), la carte des réunions du Plan du jour et les réglages « Réunion proche » et « Données » ne figurent pas dans la maquette : ils reprennent les champs, surfaces et lignes de réglages existants.
 - Le menu « Interrompre » est un popover stylé plutôt qu'un menu système, pour garder le style pilule.

@@ -10,10 +10,6 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.longBreakMinutes) private var longBreakMinutes = Rules().longBreakMinutes
     @AppStorage(SettingsKey.planSize) private var planSize = Rules().planSize
     @AppStorage(SettingsKey.horizonDays) private var horizonDays = Rules().horizonDays
-    @AppStorage(SettingsKey.maxActive) private var maxActive = Rules().maxActive
-    @AppStorage(SettingsKey.meetingPrefix) private var meetingPrefix = Rules().meetingPrefix
-    @AppStorage(SettingsKey.focusBlockKeywords) private var focusBlockKeywords = Rules().focusBlockKeywords
-    @AppStorage(SettingsKey.backlogProjectIDs) private var backlogProjectIDs = Rules().backlogProjectIDs
     @AppStorage(SettingsKey.dndEnabled) private var dndEnabled = Rules().dndEnabled
     @AppStorage(SettingsKey.dndOnShortcut) private var dndOnShortcut = Rules().dndOnShortcut
     @AppStorage(SettingsKey.dndOffShortcut) private var dndOffShortcut = Rules().dndOffShortcut
@@ -22,20 +18,12 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.meetingReminder) private var meetingReminder = Rules().meetingReminder
     @AppStorage(SettingsKey.meetingReminderMinutes) private var meetingReminderMinutes = Rules().meetingReminderMinutes
     @AppStorage(SettingsKey.endSound) private var endSound = Rules().endSound
-    @AppStorage(SettingsKey.claudeModel) private var claudeModel = Rules().claudeModel.rawValue
-    @AppStorage(SettingsKey.claudeContextFolder) private var claudeContextFolder = Rules().claudeContextFolder
-    @AppStorage(SettingsKey.claudeMethod) private var claudeMethod = Rules().claudeMethod
 
-    @State private var newToken = ""
-    @State private var isEditingToken = false
     @State private var dndStatus: CheckStatus = .unknown
     @State private var notificationStatus: Notifier.Permission?
-    @State private var claudeKey = ""
-    @State private var claudeKeyStatus: CheckStatus = .unknown
-    @State private var contextFileCount: Int?
     @State private var notificationTestError: String?
 
-    /// Résultat d'une vérification : raccourcis « Ne pas déranger » ou clé Claude.
+    /// Résultat de la vérification des raccourcis « Ne pas déranger ».
     private enum CheckStatus: Equatable {
         case unknown, checking, ready, problem(String)
     }
@@ -47,52 +35,12 @@ struct SettingsView: View {
                     .font(.display(30, bold: true))
                     .tracking(-0.45)
 
-                SettingsSection("Todoist") {
-                    SettingsRow {
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(model.hasToken ? Theme.ring : Theme.label3)
-                                .frame(width: 8, height: 8)
-                            Text(model.hasToken ? "Connecté" : "Non connecté")
-                            if let last = model.lastRefresh {
-                                Text("· synchro à \(Format.time(last))")
-                                    .foregroundStyle(Theme.label2)
-                            }
-                        }
-                    } trailing: {
-                        Button("Changer de token…") { isEditingToken.toggle() }
-                            .buttonStyle(PillButtonStyle(size: .mini))
-                    }
-                    if isEditingToken {
-                        RowDivider()
-                        SettingsRow {
-                            SecureField("Nouveau token API", text: $newToken)
-                                .textFieldStyle(.plain)
-                        } trailing: {
-                            HStack(spacing: 6) {
-                                Button("Se déconnecter") { model.disconnect() }
-                                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
-                                Button("Remplacer") {
-                                    Task {
-                                        if await model.connect(token: newToken) {
-                                            newToken = ""
-                                            isEditingToken = false
-                                        }
-                                    }
-                                }
-                                .buttonStyle(PillButtonStyle(kind: .primary, size: .mini))
-                                .disabled(newToken.isEmpty)
-                            }
-                        }
-                    }
-                }
-
                 SettingsSection("Rythme") {
                     stepperRow("Session", value: $defaultMinutes, range: 10...90, step: 5, unit: "min")
                     RowDivider()
-                    stepperRow("Session @\(Rules.quickLabel)", value: $quickMinutes, range: 5...60, step: 5, unit: "min")
+                    stepperRow("Session rapide", value: $quickMinutes, range: 5...60, step: 5, unit: "min")
                     RowDivider()
-                    stepperRow("Session @\(Rules.deepworkLabel)", value: $deepworkMinutes, range: 15...120, step: 5, unit: "min")
+                    stepperRow("Session Deepwork", value: $deepworkMinutes, range: 15...120, step: 5, unit: "min")
                     RowDivider()
                     stepperRow("Pause", value: $shortBreakMinutes, range: 1...30, step: 1, unit: "min")
                     RowDivider()
@@ -101,32 +49,8 @@ struct SettingsView: View {
                     stepperRow("Tâches par jour", value: $planSize, range: 1...Rules.maxPlanSize, step: 1, unit: nil)
                 }
 
-                SettingsSection("Plan du jour", footer: "Une tâche P1 ou P2 datée dans l'échéance proche devient candidate. Datée plus loin, Done ne la propose pas avant : ni au plan, ni comme prochaine action. Une tâche datée avec une heure et qui commence par le préfixe est une réunion. Si son titre contient un des mots-clés (séparés par des virgules), c'est un bloc de travail : il ne raccourcit pas les sessions.") {
+                SettingsSection("Plan du jour", footer: "Les tâches P1 et P2 sont candidates, comme toutes celles dont l'échéance tombe dans ce délai ou est dépassée. Une tâche datée plus loin n'est pas proposée avant : ni au plan, ni comme prochaine action.") {
                     stepperRow("Échéance proche", value: $horizonDays, range: 0...14, step: 1, unit: horizonDays > 1 ? "jours" : "jour")
-                    RowDivider()
-                    textRow("Préfixe des réunions", text: $meetingPrefix)
-                    RowDivider()
-                    textRow("Blocs de travail", text: $focusBlockKeywords)
-                }
-
-                SettingsSection("Backlog") {
-                    stepperRow("Chantiers actifs visés", value: $maxActive, range: 1...10, step: 1, unit: nil)
-                    RowDivider()
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Projets suivis")
-                        FlowLayout(spacing: 8) {
-                            ForEach(model.projects) { project in
-                                Chip(title: project.name, isOn: scope.contains(project.id)) { toggleProject(project.id) }
-                            }
-                        }
-                        Text("Aucun projet choisi : tous sont suivis.")
-                            .font(.text(12))
-                            .foregroundStyle(Theme.label2)
-                    }
-                    .font(.text(14))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 14)
                 }
 
                 SettingsSection("Bilan du soir") {
@@ -136,96 +60,6 @@ struct SettingsView: View {
                 }
                 .onChange(of: reviewHour) { updateReviewReminder() }
                 .onChange(of: reviewReminder) { updateReviewReminder() }
-
-                SettingsSection("Claude", footer: "Sur l'écran Focus, « Découper avec Claude… » sous l'action proposée : Claude propose toutes les étapes de la tâche, dans l'ordre, que tu peux modifier avant de les ajouter à Todoist. Done lui envoie la tâche, ta méthode, quelques-unes de tes sous-tâches comme exemples et la liste des fichiers du dossier ; Claude lit ensuite ceux qui l'aident. Tout cela part chez Anthropic. Fichiers lus : Markdown, texte, CSV, JSON, PDF, Word et RTF.") {
-                    SettingsRow {
-                        Text("Clé API")
-                    } trailing: {
-                        if model.hasClaudeKey {
-                            HStack(spacing: 8) {
-                                Text("Enregistrée")
-                                    .foregroundStyle(Theme.label2)
-                                Button("Supprimer") { model.deleteClaudeKey() }
-                                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
-                            }
-                        } else {
-                            HStack(spacing: 6) {
-                                SecureField("sk-ant-…", text: $claudeKey)
-                                    .textFieldStyle(.plain)
-                                    .frame(width: 200)
-                                Button("Enregistrer") { Task { await saveClaudeKey() } }
-                                    .buttonStyle(PillButtonStyle(kind: .primary, size: .mini))
-                                    .disabled(claudeKey.trimmingCharacters(in: .whitespaces).isEmpty || claudeKeyStatus == .checking)
-                            }
-                        }
-                    }
-                    if case .problem(let message) = claudeKeyStatus {
-                        Text(message)
-                            .font(.text(12))
-                            .foregroundStyle(Theme.orangeText)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 10)
-                    }
-                    if !model.hasClaudeKey {
-                        Link("Créer une clé sur console.anthropic.com", destination: URL(string: "https://console.anthropic.com/settings/keys")!)
-                            .font(.text(12))
-                            .foregroundStyle(Theme.accentText)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 10)
-                    }
-                    RowDivider()
-                    SettingsRow {
-                        Text("Modèle")
-                    } trailing: {
-                        GlassSegmented(
-                            selection: Binding(
-                                get: { ClaudeModel(rawValue: claudeModel) ?? .opus },
-                                set: { claudeModel = $0.rawValue }
-                            ),
-                            options: ClaudeModel.allCases.map { (value: $0, title: $0.label) }
-                        )
-                    }
-                    RowDivider()
-                    SettingsRow {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Dossier de contexte")
-                            Text(contextFolderCaption)
-                                .font(.text(12))
-                                .foregroundStyle(Theme.label2)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                    } trailing: {
-                        HStack(spacing: 6) {
-                            if !claudeContextFolder.isEmpty {
-                                Button("Retirer") { claudeContextFolder = "" }
-                                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
-                            }
-                            Button("Choisir…") {
-                                if let url = SystemBridge.chooseFolder(prompt: "Utiliser ce dossier") {
-                                    claudeContextFolder = url.path
-                                }
-                            }
-                            .buttonStyle(PillButtonStyle(size: .mini))
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    RowDivider()
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Ta méthode pour découper")
-                        TextEditor(text: $claudeMethod)
-                            .font(.text(13))
-                            .scrollContentBackground(.hidden)
-                            .frame(height: 84)
-                            .padding(8)
-                            .background(Theme.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    }
-                    .font(.text(14))
-                    .padding(16)
-                }
-                .task(id: claudeContextFolder) { await countContextFiles() }
 
                 SettingsSection("Ne pas déranger", footer: "macOS ne laisse pas une app activer ce mode directement. Crée deux raccourcis dans l'app Raccourcis avec l'action « Définir la concentration » (Set Focus) : le premier active « Ne pas déranger » jusqu'à désactivation, le second le désactive. Donne-leur exactement les noms ci-dessus.") {
                     toggleRow("Pendant les sessions", isOn: $dndEnabled)
@@ -277,6 +111,23 @@ struct SettingsView: View {
                 .task { notificationStatus = await Notifier.shared.permission() }
                 .onChange(of: meetingReminder) { model.updateMeetingReminders() }
                 .onChange(of: meetingReminderMinutes) { model.updateMeetingReminders() }
+
+                SettingsSection("Données", footer: "Tes tâches, projets et réunions restent sur ce Mac, dans un seul fichier. Done en garde une copie par jour, sur 30 jours, dans le dossier Sauvegardes à côté.") {
+                    SettingsRow {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Fichier des tâches")
+                            Text((model.storage.fileURL.path as NSString).abbreviatingWithTildeInPath)
+                                .font(.text(12))
+                                .foregroundStyle(Theme.label2)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    } trailing: {
+                        Button("Afficher dans le Finder") { SystemBridge.revealInFinder(model.storage.fileURL) }
+                            .buttonStyle(PillButtonStyle(size: .mini))
+                    }
+                    .padding(.vertical, 4)
+                }
             }
             .frame(width: 600)
             .padding(.top, 4)
@@ -373,44 +224,9 @@ struct SettingsView: View {
 
     // MARK: Actions
 
-    private var contextFolderCaption: String {
-        guard !claudeContextFolder.isEmpty else { return "Aucun : Claude ne voit que la tâche et ta méthode" }
-        let path = (claudeContextFolder as NSString).abbreviatingWithTildeInPath
-        guard let contextFileCount else { return path }
-        return "\(path) · \(contextFileCount) fichier\(contextFileCount > 1 ? "s" : "") lisible\(contextFileCount > 1 ? "s" : "")"
-    }
-
-    private func countContextFiles() async {
-        contextFileCount = nil
-        guard !claudeContextFolder.isEmpty else { return }
-        let folder = ContextFolder(root: URL(fileURLWithPath: claudeContextFolder))
-        contextFileCount = await Task.detached { folder.files().count }.value
-    }
-
-    private func saveClaudeKey() async {
-        claudeKeyStatus = .checking
-        do {
-            try await model.saveClaudeKey(claudeKey)
-            claudeKey = ""
-            claudeKeyStatus = .unknown
-        } catch {
-            claudeKeyStatus = (error as? ClaudeError) == .unauthorized
-                ? .problem("Claude refuse cette clé. Copie-la à nouveau depuis console.anthropic.com.")
-                : .problem("Clé non enregistrée : \(error.localizedDescription)")
-        }
-    }
-
     private func testNotification() async {
         notificationTestError = await Notifier.shared.sendTest()
         notificationStatus = await Notifier.shared.permission()
-    }
-
-    private var scope: Set<String> { Rules.parseIDs(backlogProjectIDs) }
-
-    private func toggleProject(_ id: String) {
-        var ids = scope
-        if ids.contains(id) { ids.remove(id) } else { ids.insert(id) }
-        backlogProjectIDs = ids.sorted().joined(separator: ",")
     }
 
     private func updateReviewReminder() {
@@ -499,133 +315,5 @@ private struct SettingsRow<Leading: View, Trailing: View>: View {
 private struct RowDivider: View {
     var body: some View {
         Hairline().padding(.horizontal, 16)
-    }
-}
-
-/// Disposition en lignes qui passent à la ligne, pour les pastilles de projets.
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let rows = arrange(width: proposal.width ?? .infinity, subviews: subviews)
-        let height = rows.reduce(0) { $0 + $1.height } + spacing * CGFloat(max(rows.count - 1, 0))
-        let width = rows.map(\.width).max() ?? 0
-        return CGSize(width: proposal.width ?? width, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var y = bounds.minY
-        for row in arrange(width: bounds.width, subviews: subviews) {
-            var x = bounds.minX
-            for index in row.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
-                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-                x += size.width + spacing
-            }
-            y += row.height + spacing
-        }
-    }
-
-    private struct Row {
-        var indices: [Int] = []
-        var width: CGFloat = 0
-        var height: CGFloat = 0
-    }
-
-    private func arrange(width: CGFloat, subviews: Subviews) -> [Row] {
-        var rows: [Row] = [Row()]
-        for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
-            let extra = rows[rows.count - 1].indices.isEmpty ? size.width : size.width + spacing
-            if rows[rows.count - 1].width + extra > width, !rows[rows.count - 1].indices.isEmpty {
-                rows.append(Row())
-            }
-            let isFirst = rows[rows.count - 1].indices.isEmpty
-            rows[rows.count - 1].indices.append(index)
-            rows[rows.count - 1].width += isFirst ? size.width : size.width + spacing
-            rows[rows.count - 1].height = max(rows[rows.count - 1].height, size.height)
-        }
-        return rows.filter { !$0.indices.isEmpty }
-    }
-}
-
-// MARK: Connexion
-
-struct OnboardingView: View {
-    @Environment(AppModel.self) private var model
-    @State private var token = ""
-    @State private var isConnecting = false
-    @FocusState private var fieldFocused: Bool
-
-    private static let developerPage = URL(string: "https://app.todoist.com/app/settings/integrations/developer")!
-
-    var body: some View {
-        ZStack {
-            Backdrop(style: .wash)
-            VStack(spacing: 0) {
-                DoneAppIcon(size: 72)
-                Text("Done")
-                    .font(.display(36, bold: true))
-                    .tracking(-0.54)
-                    .padding(.top, 18)
-                Text("Une tâche à la fois, avec un minuteur.")
-                    .font(.text(15))
-                    .foregroundStyle(Theme.label2)
-                    .padding(.top, 6)
-                SecureField("Token API Todoist", text: $token)
-                    .textFieldStyle(.plain)
-                    .font(.text(14))
-                    .focused($fieldFocused)
-                    .onSubmit(connect)
-                    .padding(.horizontal, 14)
-                    .frame(height: 40)
-                    .surface(radius: 12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(model.errorMessage != nil ? Theme.redText.opacity(0.5) : Theme.ring.opacity(fieldFocused ? 0.45 : 0), lineWidth: 2)
-                    )
-                    .padding(.top, 36)
-                if let message = model.errorMessage {
-                    Text(message)
-                        .font(.text(12))
-                        .foregroundStyle(Theme.redText)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 8)
-                }
-                Button(action: connect) {
-                    if isConnecting {
-                        HStack(spacing: 8) {
-                            ProgressView().controlSize(.small)
-                            Text("Connexion…")
-                        }
-                    } else {
-                        Text("Se connecter")
-                    }
-                }
-                .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
-                .keyboardShortcut(.defaultAction)
-                .disabled(token.isEmpty || isConnecting)
-                .padding(.top, 12)
-                Link(destination: Self.developerPage) {
-                    Text("Où trouver mon token ?")
-                        .font(.text(13))
-                        .foregroundStyle(Theme.accentText)
-                }
-                .help("Todoist › Réglages › Intégrations › Développeur. Le token reste dans le trousseau de ton Mac.")
-                .padding(.top, 16)
-            }
-            .frame(width: 340)
-        }
-        .onAppear { fieldFocused = true }
-    }
-
-    private func connect() {
-        guard !token.isEmpty, !isConnecting else { return }
-        Task {
-            isConnecting = true
-            _ = await model.connect(token: token)
-            isConnecting = false
-        }
     }
 }

@@ -8,10 +8,6 @@ enum SettingsKey {
     static let shortBreakMinutes = "rules.shortBreakMinutes"
     static let longBreakMinutes = "rules.longBreakMinutes"
     static let horizonDays = "rules.horizonDays"
-    static let maxActive = "rules.maxActive"
-    static let meetingPrefix = "rules.meetingPrefix"
-    static let focusBlockKeywords = "rules.focusBlockKeywords"
-    static let backlogProjectIDs = "rules.backlogProjectIDs"
     static let dndEnabled = "rules.dndEnabled"
     static let dndOnShortcut = "rules.dndOnShortcut"
     static let dndOffShortcut = "rules.dndOffShortcut"
@@ -21,9 +17,6 @@ enum SettingsKey {
     static let meetingReminder = "rules.meetingReminder"
     static let meetingReminderMinutes = "rules.meetingReminderMinutes"
     static let endSound = "rules.endSound"
-    static let claudeModel = "claude.model"
-    static let claudeContextFolder = "claude.contextFolder"
-    static let claudeMethod = "claude.method"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
@@ -34,15 +27,8 @@ struct Rules {
     var shortBreakMinutes = 5
     var longBreakMinutes = 10
     /// Une tâche dont l'échéance tombe dans ce nombre de jours devient candidate.
+    /// Datée plus loin, elle n'est pas proposée avant.
     var horizonDays = 3
-    /// Nombre de chantiers actifs en parallèle visé (questions.md, point 9).
-    var maxActive = 2
-    /// Les tâches datées avec heure qui commencent par ce préfixe sont des réunions.
-    var meetingPrefix = "Réunion"
-    /// Une « réunion » dont le titre contient un de ces mots est un bloc de travail.
-    var focusBlockKeywords = "deepwork, deepword, focus"
-    /// IDs de projets séparés par des virgules. Vide = tous les projets.
-    var backlogProjectIDs = ""
     /// Active « Ne pas déranger » pendant les sessions de focus.
     var dndEnabled = false
     /// Raccourcis de l'app Raccourcis qui activent et coupent « Ne pas déranger ».
@@ -54,23 +40,16 @@ struct Rules {
     var reviewReminder = true
     /// Nombre de tâches mises en avant dans le plan du jour.
     var planSize = 3
-    /// Notification quelques minutes avant chaque réunion lue dans Todoist.
+    /// Notification quelques minutes avant chaque réunion.
     var meetingReminder = true
     var meetingReminderMinutes = 5
     /// Son joué par Done à la fin des sessions et des pauses, même si les notifications
     /// sont bloquées ou masquées par « Ne pas déranger ».
     var endSound = true
-    /// Découpage assisté par Claude : modèle, dossier de contexte (chemin) et méthode de découpage.
-    var claudeModel = ClaudeModel.opus
-    var claudeContextFolder = ""
-    var claudeMethod = Breakdown.defaultMethod
-
-    static let activeLabel = "Chantier-actif"
-    static let waitingLabel = "Waiting"
-    static let quickLabel = "Quick"
-    static let deepworkLabel = "Deepwork"
 
     static let maxPlanSize = 5
+    /// Étapes ajoutées d'un coup par la feuille « Découper ».
+    static let maxSteps = 10
     /// Rallonge d'un pomodoro : par pas de 5 minutes, 10 au plus.
     static let extensionStepMinutes = 5
     static let maxExtensionMinutes = 10
@@ -90,10 +69,6 @@ struct Rules {
         rules.shortBreakMinutes = int(SettingsKey.shortBreakMinutes, base.shortBreakMinutes)
         rules.longBreakMinutes = int(SettingsKey.longBreakMinutes, base.longBreakMinutes)
         rules.horizonDays = int(SettingsKey.horizonDays, base.horizonDays)
-        rules.maxActive = int(SettingsKey.maxActive, base.maxActive)
-        rules.meetingPrefix = defaults.string(forKey: SettingsKey.meetingPrefix) ?? base.meetingPrefix
-        rules.focusBlockKeywords = defaults.string(forKey: SettingsKey.focusBlockKeywords) ?? base.focusBlockKeywords
-        rules.backlogProjectIDs = defaults.string(forKey: SettingsKey.backlogProjectIDs) ?? base.backlogProjectIDs
         rules.dndEnabled = (defaults.object(forKey: SettingsKey.dndEnabled) as? Bool) ?? base.dndEnabled
         rules.dndOnShortcut = defaults.string(forKey: SettingsKey.dndOnShortcut) ?? base.dndOnShortcut
         rules.dndOffShortcut = defaults.string(forKey: SettingsKey.dndOffShortcut) ?? base.dndOffShortcut
@@ -103,24 +78,6 @@ struct Rules {
         rules.meetingReminder = (defaults.object(forKey: SettingsKey.meetingReminder) as? Bool) ?? base.meetingReminder
         rules.meetingReminderMinutes = min(max(int(SettingsKey.meetingReminderMinutes, base.meetingReminderMinutes), 1), 30)
         rules.endSound = (defaults.object(forKey: SettingsKey.endSound) as? Bool) ?? base.endSound
-        rules.claudeModel = defaults.string(forKey: SettingsKey.claudeModel).flatMap(ClaudeModel.init(rawValue:)) ?? base.claudeModel
-        rules.claudeContextFolder = defaults.string(forKey: SettingsKey.claudeContextFolder) ?? base.claudeContextFolder
-        rules.claudeMethod = defaults.string(forKey: SettingsKey.claudeMethod) ?? base.claudeMethod
         return rules
-    }
-
-    var backlogScope: Set<String> { Rules.parseIDs(backlogProjectIDs) }
-
-    var focusKeywords: [String] {
-        focusBlockKeywords
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
-            .filter { !$0.isEmpty }
-    }
-
-    static func parseIDs(_ raw: String) -> Set<String> {
-        Set(raw.split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty })
     }
 }

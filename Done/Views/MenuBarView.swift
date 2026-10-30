@@ -76,7 +76,7 @@ struct MenuBarView: View {
         case .focusing, .paused, .interrupted:
             if let current = engine.current {
                 caption(engine.phase == .focusing ? current.projectName : statusCaption)
-                Text(current.action.content)
+                Text(current.action.title)
                     .font(.text(15, .semibold))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)

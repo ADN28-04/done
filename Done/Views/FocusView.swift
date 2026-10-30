@@ -5,13 +5,14 @@ struct FocusView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     var openPlan: () -> Void
+    var openTasks: () -> Void
     @State private var showBlocked = false
 
     var body: some View {
         Group {
             switch engine.phase {
             case .idle:
-                SuggestionView(openPlan: openPlan)
+                SuggestionView(openPlan: openPlan, openTasks: openTasks)
             case .focusing, .paused:
                 SessionView { showBlocked = true }
             case .interrupted(let reason):
@@ -38,11 +39,12 @@ struct SuggestionView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     var openPlan: () -> Void
+    var openTasks: () -> Void
 
     @State private var ignoreMeetings = false
     @State private var customMinutes: MinutesOverride?
     @State private var showPicker = false
-    @State private var breakdownTask: TodoistTask?
+    @State private var breakdownTask: TodoTask?
     @State private var showReview = false
 
     private struct MinutesOverride {
@@ -87,7 +89,7 @@ struct SuggestionView: View {
                 .environment(model)
         }
         .sheet(item: $breakdownTask) { task in
-            BreakdownSheet(task: task, askClaudeOnOpen: model.hasClaudeKey)
+            BreakdownSheet(task: task)
                 .environment(model)
         }
         .sheet(isPresented: $showReview) {
@@ -113,12 +115,12 @@ struct SuggestionView: View {
                         .foregroundStyle(Theme.label2)
                 }
                 if action.id != root.id {
-                    Text(root.content)
+                    Text(root.title)
                         .font(.text(15))
                         .foregroundStyle(Theme.label2)
                         .padding(.top, 16)
                 }
-                Text(action.content)
+                Text(action.title)
                     .font(.display(42))
                     .tracking(-0.63)
                     .lineSpacing(4)
@@ -193,13 +195,41 @@ struct SuggestionView: View {
     }
 
     private func breakdownTitle(invites: Bool) -> String {
-        if model.hasClaudeKey { return "Découper avec Claude…" }
-        return invites ? "Découper en une première action…" : "Découper…"
+        invites ? "Découper en étapes…" : "Découper…"
     }
 
     // MARK: Autres états
 
+    @ViewBuilder
     private var planEmpty: some View {
+        if model.index.all.isEmpty {
+            noTasks
+        } else {
+            noPlan
+        }
+    }
+
+    /// Premier lancement, ou tout est fait : il n'y a rien à planifier.
+    private var noTasks: some View {
+        VStack(spacing: 0) {
+            Eyebrow(text: "Aucune tâche")
+            Text("Ta liste est vide")
+                .font(.display(36))
+                .tracking(-0.54)
+                .padding(.top, 16)
+            Text("Note ce que tu as à faire, puis choisis par quoi commencer. ⌘N ajoute une tâche depuis n'importe quel écran.")
+                .font(.text(15))
+                .foregroundStyle(Theme.label2)
+                .frame(maxWidth: 520)
+                .padding(.top, 10)
+            Button("Ajouter des tâches", action: openTasks)
+                .buttonStyle(PillButtonStyle(kind: .primary))
+                .keyboardShortcut(.defaultAction)
+                .padding(.top, 36)
+        }
+    }
+
+    private var noPlan: some View {
         VStack(spacing: 0) {
             Eyebrow(text: "Aucun plan")
             Text("Pas encore de plan pour aujourd'hui")
@@ -239,7 +269,7 @@ struct SuggestionView: View {
                             .foregroundStyle(Theme.label3)
                             .frame(width: 16, alignment: .trailing)
                         PriorityBadge(task: task)
-                        Text(task.content)
+                        Text(task.title)
                             .font(.text(14))
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -266,12 +296,12 @@ struct SuggestionView: View {
         }
     }
 
-    /// En attente de quelqu'un, ou suite datée plus tard dans Todoist.
-    private func blockedReason(_ task: TodoistTask) -> String {
+    /// Étapes bloquées, ou suite datée plus tard.
+    private func blockedReason(_ task: TodoTask) -> String {
         if let day = Planner.resumeDay(of: task, in: model.index, rules: model.rules) {
             return "Prévue le \(Format.day(day))"
         }
-        return "En attente"
+        return "Bloquée"
     }
 
     @ViewBuilder
@@ -296,7 +326,7 @@ struct SuggestionView: View {
                 .padding(.top, 6)
             HStack(spacing: 10) {
                 if let preparation = suggestion.preparation {
-                    Button(preparation.content) {
+                    Button(preparation.title) {
                         engine.start(action: preparation, root: model.index.root(of: preparation), minutes: max(5, available))
                     }
                     .buttonStyle(PillButtonStyle(kind: .primary))
@@ -314,7 +344,7 @@ struct SuggestionView: View {
 
     // MARK: Aides
 
-    private func caption(_ suggestion: Suggestion, root: TodoistTask) -> String {
+    private func caption(_ suggestion: Suggestion, root: TodoTask) -> String {
         let project = model.projectName(for: root)
         guard suggestion.position > 0 else { return "Hors plan · \(project)" }
         return "\(suggestion.position) sur \(suggestion.planCount) · \(project)"

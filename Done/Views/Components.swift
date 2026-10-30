@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Badge de priorité : contour et fond teinté de la couleur Todoist, chiffres en DM Mono.
+/// Badge de priorité : contour et fond teinté de la couleur de la priorité, chiffres en DM Mono.
 struct PriorityBadge: View {
-    let task: TodoistTask
+    let task: TodoTask
 
     var body: some View {
-        let color = Theme.priority(task.displayPriority)
-        Text("P\(task.displayPriority)")
+        let color = Theme.priority(task.priority)
+        Text("P\(task.priority)")
             .font(.mono(10))
             .foregroundStyle(Theme.label)
             .padding(.horizontal, 5)
@@ -19,14 +19,14 @@ struct PriorityBadge: View {
 /// Contenu d'une ligne de tâche : badge, titre et, au besoin, une ligne de détails.
 struct TaskRowContent: View {
     @Environment(AppModel.self) private var model
-    let task: TodoistTask
+    let task: TodoTask
     var showDetails = true
 
     var body: some View {
         HStack(spacing: 12) {
             PriorityBadge(task: task)
             VStack(alignment: .leading, spacing: 3) {
-                Text(task.content)
+                Text(task.title)
                     .font(.text(14))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -46,8 +46,9 @@ struct TaskRowContent: View {
         var parts = [model.projectName(for: task)]
         if let due = Format.due(task) { parts.append(due) }
         let subtasks = model.index.children(of: task.id).count
-        if subtasks > 0 { parts.append("\(subtasks) sous-tâche\(subtasks > 1 ? "s" : "")") }
-        parts += task.labels.map { "@\($0)" }
+        if subtasks > 0 { parts.append("\(subtasks) étape\(subtasks > 1 ? "s" : "")") }
+        if task.kind != .normal { parts.append(task.kind.label) }
+        if task.isBlocked { parts.append("Bloquée") }
         return parts.filter { !$0.isEmpty }.joined(separator: " · ")
     }
 }
@@ -57,7 +58,7 @@ struct TaskPickerView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let title: String
-    let onPick: (TodoistTask) -> Void
+    let onPick: (TodoTask) -> Void
     @State private var query = ""
     @State private var hovered: String?
 

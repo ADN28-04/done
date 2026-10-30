@@ -7,7 +7,7 @@ struct ResumeNote: Codable, Equatable {
 }
 
 /// Notes de reprise par identifiant de tâche. Gardées dans UserDefaults (`resume.notes`),
-/// effacées quand la tâche est cochée ou n'existe plus dans Todoist.
+/// effacées quand la tâche est cochée ou supprimée.
 struct ResumeNotes: Codable, Equatable {
     /// Une ligne : au-delà, la note est coupée.
     static let maxLength = 280

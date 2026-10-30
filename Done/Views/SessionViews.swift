@@ -14,7 +14,7 @@ struct SessionView: View {
                 Text(context(current))
                     .font(.text(13))
                     .foregroundStyle(Theme.label2)
-                Text(current.action.content)
+                Text(current.action.title)
                     .font(.display(26))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 620)
@@ -67,11 +67,11 @@ struct SessionView: View {
                     // Fini avant la sonnerie : on coche tout de suite, l'écran suivant propose la suite.
                     Button("C'est fait") {
                         engine.finishEarly()
-                        Task { await engine.markDone() }
+                        engine.markDone()
                     }
                     .buttonStyle(PillButtonStyle(kind: paused ? .glass : .primary))
                     .keyboardShortcut(.return, modifiers: .command)
-                    .help("Cocher dans Todoist (⌘↩)")
+                    .help("Cocher la tâche (⌘↩)")
                 }
                 .padding(.top, 40)
                 HStack(spacing: 2) {
@@ -82,7 +82,7 @@ struct SessionView: View {
                     }
                     Button("Bloqué…", action: onBlocked)
                         .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-                        .help("Laisser cette étape ouverte avec un commentaire et passer à la suite")
+                        .help("Laisser cette étape ouverte, marquée bloquée, et passer à la suite")
                 }
                 .padding(.top, 10)
             }
@@ -92,7 +92,7 @@ struct SessionView: View {
 
     private func context(_ current: FocusEngine.Current) -> String {
         guard current.action.id != current.root.id else { return current.projectName }
-        return "\(current.projectName) · \(current.root.content)"
+        return "\(current.projectName) · \(current.root.title)"
     }
 }
 
@@ -137,7 +137,7 @@ struct InterruptionView: View {
             TimerText(text: Format.clock(interruptionDuration), size: 88)
                 .padding(.top, 16)
             if let current = engine.current {
-                Text("\(Text(current.action.content).foregroundStyle(Theme.label)) attend, \(Format.clock(engine.remaining)) restantes")
+                Text("\(Text(current.action.title).foregroundStyle(Theme.label)) attend, \(Format.clock(engine.remaining)) restantes")
                     .font(.text(15))
                     .foregroundStyle(Theme.label2)
                     .lineSpacing(3)
@@ -205,12 +205,12 @@ struct OutcomeView: View {
     // MARK: Étape cochée avant la fin
 
     @ViewBuilder
-    private func checkedContent(_ checked: TodoistTask, followUp: Planner.FollowUp) -> some View {
+    private func checkedContent(_ checked: TodoTask, followUp: Planner.FollowUp) -> some View {
         Text(title(for: followUp))
             .font(.display(36, bold: true))
             .tracking(-0.54)
             .padding(.top, 24)
-        Text("« \(checked.content) » est cochée dans Todoist.")
+        Text("« \(checked.title) » est cochée.")
             .font(.text(16))
             .foregroundStyle(Theme.label2)
             .lineSpacing(3)
@@ -234,11 +234,6 @@ struct OutcomeView: View {
             .surface(radius: 16)
             .padding(.top, 24)
         }
-        if let error = engine.errorMessage {
-            NoticeBox(text: error, tone: .error)
-                .frame(width: 360)
-                .padding(.top, 16)
-        }
         VStack(spacing: 10) {
             switch followUp {
             case .step:
@@ -246,17 +241,9 @@ struct OutcomeView: View {
                     .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
                     .keyboardShortcut(.defaultAction)
             case .closeRoot(let root):
-                Button {
-                    Task { await engine.closeRoot() }
-                } label: {
-                    if engine.isClosing {
-                        sending
-                    } else {
-                        Text("Cocher « \(root.content) » dans Todoist")
-                    }
-                }
-                .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
-                .keyboardShortcut(.defaultAction)
+                Button("Cocher « \(root.title) »") { engine.closeRoot() }
+                    .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
+                    .keyboardShortcut(.defaultAction)
             case .switchTask:
                 EmptyView()
             }
@@ -268,7 +255,6 @@ struct OutcomeView: View {
             }
         }
         .frame(width: 360)
-        .disabled(engine.isClosing)
         .padding(.top, 20)
         if case .closeRoot = followUp {
             Text("Ensuite, \(engine.breakMinutesAfterSession) min de pause avant la tâche suivante.")
@@ -285,7 +271,7 @@ struct OutcomeView: View {
 
     private func nextLine(for followUp: Planner.FollowUp) -> (title: String, stepsAfter: Int?)? {
         guard case .step(let next) = followUp else { return nil }
-        return (next.content, Planner.stepsAfter(next, in: model.index))
+        return (next.title, Planner.stepsAfter(next, in: model.index))
     }
 
     // MARK: Minuteur fini
@@ -296,32 +282,19 @@ struct OutcomeView: View {
             .font(.display(36, bold: true))
             .tracking(-0.54)
             .padding(.top, 24)
-        Text("\(Format.minutes(engine.stepElapsed / 60)) sur « \(current.action.content) »")
+        Text("\(Format.minutes(engine.stepElapsed / 60)) sur « \(current.action.title) »")
             .font(.text(16))
             .foregroundStyle(Theme.label2)
             .lineSpacing(3)
             .multilineTextAlignment(.center)
             .frame(maxWidth: 520)
             .padding(.top, 10)
-        if let error = engine.errorMessage {
-            NoticeBox(text: error, tone: .error)
-                .frame(width: 360)
-                .padding(.top, 20)
-        }
         ResumeNoteField(taskID: current.action.id, placeholder: "Pas fini ? Note où tu en es pour reprendre plus vite", focused: $noteFocused)
             .frame(width: 360)
             .padding(.top, 28)
         VStack(spacing: 10) {
-            Button {
-                Task { await engine.markDone() }
-            } label: {
-                if engine.isClosing {
-                    sending
-                } else {
-                    Text(engine.errorMessage == nil ? "Cocher dans Todoist" : "Réessayer de cocher dans Todoist")
-                }
-            }
-            .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
+            Button("Cocher la tâche") { engine.markDone() }
+                .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
             // Entrée dans le champ de note ne coche pas la tâche.
             .keyboardShortcut(noteFocused ? nil : .defaultAction)
             HStack(spacing: 10) {
@@ -335,26 +308,18 @@ struct OutcomeView: View {
             HStack(spacing: 2) {
                 Button("Bloqué…", action: onBlocked)
                     .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-                    .help("Laisser cette étape ouverte avec un commentaire et passer à la suite")
+                    .help("Laisser cette étape ouverte, marquée bloquée, et passer à la suite")
                 Button("Arrêter là") { engine.stop(as: .partial) }
                     .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
             }
         }
         .frame(width: 360)
-        .disabled(engine.isClosing)
         .padding(.top, 14)
         if !engine.canExtend {
             Text("Déjà \(Rules.maxExtensionMinutes) min de plus : une pause avant de continuer.")
                 .font(.text(12))
                 .foregroundStyle(Theme.label3)
                 .padding(.top, 4)
-        }
-    }
-
-    private var sending: some View {
-        HStack(spacing: 8) {
-            ProgressView().controlSize(.small)
-            Text("Envoi à Todoist…")
         }
     }
 }
@@ -381,7 +346,7 @@ struct StepsBadge: View {
     }
 }
 
-/// Bloqué sur une étape : elle reste ouverte dans Todoist avec un commentaire et @Waiting,
+/// Bloqué sur une étape : elle reste ouverte, marquée bloquée, avec la raison en note de reprise,
 /// et Done passe à l'étape suivante de la même tâche.
 struct BlockedSheet: View {
     @Environment(AppModel.self) private var model
@@ -394,11 +359,11 @@ struct BlockedSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Bloqué")
             if let current = engine.current {
-                Text(current.action.content)
+                Text(current.action.title)
                     .font(.display(26, bold: true))
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 10)
-                Text("Elle reste ouverte dans Todoist, avec ton commentaire et le label @\(Rules.waitingLabel). Done ne la propose plus tant que le label est là : retire-le quand c'est débloqué.")
+                Text("Elle reste dans ta liste, marquée bloquée, et Done ne la propose plus. Quand c'est réglé, débloque-la depuis l'onglet Tâches : ta raison s'affichera pour reprendre.")
                     .font(.text(14))
                     .foregroundStyle(Theme.label2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -422,29 +387,15 @@ struct BlockedSheet: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.top, 16)
-                if let error = engine.errorMessage {
-                    NoticeBox(text: error, tone: .error)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 16)
-                }
                 HStack(spacing: 10) {
                     Button("Annuler") { dismiss() }
                         .buttonStyle(PillButtonStyle(kind: .plain))
                         .keyboardShortcut(.cancelAction)
                     Spacer()
-                    Button(action: submit) {
-                        if engine.isClosing {
-                            HStack(spacing: 8) {
-                                ProgressView().controlSize(.small)
-                                Text("Envoi à Todoist…")
-                            }
-                        } else {
-                            Text("Laisser ouverte et passer à la suite")
-                        }
-                    }
-                    .buttonStyle(PillButtonStyle(kind: .primary))
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || engine.isClosing)
+                    Button("Laisser ouverte et passer à la suite", action: submit)
+                        .buttonStyle(PillButtonStyle(kind: .primary))
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding(.top, 26)
             }
@@ -452,29 +403,25 @@ struct BlockedSheet: View {
         .padding(28)
         .frame(width: 520)
         .background(Backdrop(style: .wash))
-        .onAppear {
-            engine.errorMessage = nil
-            focused = true
-        }
+        .onAppear { focused = true }
     }
 
     private func nextText(_ current: FocusEngine.Current) -> String {
         let pause = "\(engine.breakMinutesAfterSession) min de pause"
         switch Planner.followUp(blocking: current.action, root: current.root, in: model.index, rules: model.rules) {
         case .step(let next) where engine.remaining >= Rules.minChainSeconds:
-            return "« \(next.content) », dans le temps qui reste (\(Format.clock(engine.remaining)))."
+            return "« \(next.title) », dans le temps qui reste (\(Format.clock(engine.remaining)))."
         case .step(let next):
-            return "\(pause), puis « \(next.content) »."
+            return "\(pause), puis « \(next.title) »."
         case .closeRoot, .switchTask:
             guard current.action.id != current.root.id else { return "\(pause), puis la tâche suivante du plan." }
-            return "Plus d'étape ouverte dans « \(current.root.content) » : \(pause), puis la tâche suivante du plan."
+            return "Plus d'étape ouverte dans « \(current.root.title) » : \(pause), puis la tâche suivante du plan."
         }
     }
 
     private func submit() {
-        Task {
-            if await engine.markBlocked(reason: reason) { dismiss() }
-        }
+        engine.markBlocked(reason: reason)
+        dismiss()
     }
 }
 
@@ -527,7 +474,7 @@ struct BreakView: View {
     private var nextUp: String? {
         let suggestion = Planner.suggest(plan: model.planIDs, index: model.index, meetings: model.meetingsToday, rules: model.rules, now: engine.now)
         guard suggestion.status == .ready, let action = suggestion.action else { return nil }
-        guard let root = suggestion.planTask, root.id != action.id else { return "« \(action.content) »" }
-        return "« \(action.content) » · \(root.content)"
+        guard let root = suggestion.planTask, root.id != action.id else { return "« \(action.title) »" }
+        return "« \(action.title) » · \(root.title)"
     }
 }

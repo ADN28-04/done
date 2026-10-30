@@ -68,6 +68,11 @@ enum Format {
         dayKeyFormatter.string(from: date)
     }
 
+    /// Début du jour local d'une clé de jour. `nil` si la clé est mal formée.
+    static func date(fromDayKey key: String) -> Date? {
+        dayKeyFormatter.date(from: key).map { Calendar.current.startOfDay(for: $0) }
+    }
+
     /// « Semaine du 19 au 25 octobre », ou « du 29 septembre au 5 octobre » à cheval sur deux mois.
     static func weekTitle(_ week: DateInterval) -> String {
         "Semaine \(span(week))"
@@ -113,13 +118,22 @@ enum Format {
         minutes == 0 ? "0" : "\(Int((minutes / 60).rounded())) h"
     }
 
-    static func due(_ task: TodoistTask, now: Date = .now) -> String? {
-        guard let due = task.due, let value = due.value, let day = due.day else { return nil }
+    /// Créneau d'une réunion : « 10:00–11:00 », précédé du jour quand ce n'est pas aujourd'hui.
+    static func slot(_ meeting: Meeting, now: Date = .now) -> String {
+        let range = "\(time(meeting.start))–\(time(meeting.end))"
+        let calendar = Calendar.current
+        if calendar.isDate(meeting.start, inSameDayAs: now) { return range }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(meeting.start, inSameDayAs: tomorrow) {
+            return "Demain \(range)"
+        }
+        return "\(day(meeting.start)) \(range)"
+    }
+
+    static func due(_ task: TodoTask, now: Date = .now) -> String? {
+        guard let day = task.due else { return nil }
         let calendar = Calendar.current
         if day < calendar.startOfDay(for: now) { return "En retard" }
-        if calendar.isDate(day, inSameDayAs: now) {
-            return due.hasTime ? "Aujourd'hui \(time(value))" : "Aujourd'hui"
-        }
+        if calendar.isDate(day, inSameDayAs: now) { return "Aujourd'hui" }
         if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(day, inSameDayAs: tomorrow) {
             return "Demain"
         }

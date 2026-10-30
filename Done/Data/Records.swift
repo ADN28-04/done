@@ -18,7 +18,7 @@ final class DayPlan {
 }
 
 /// Une session de focus. Le titre et le projet sont copiés pour que les stats
-/// restent lisibles une fois la tâche fermée dans Todoist.
+/// restent lisibles une fois la tâche cochée ou supprimée.
 @Model
 final class FocusSession {
     var taskID: String
@@ -36,14 +36,15 @@ final class FocusSession {
     @Relationship(deleteRule: .cascade, inverse: \Interruption.session)
     var interruptions: [Interruption] = []
 
-    init(action: TodoistTask, root: TodoistTask, projectName: String, plannedSeconds: Double) {
+    init(action: TodoTask, root: TodoTask, projectName: String, plannedSeconds: Double) {
         taskID = action.id
-        title = action.content
+        title = action.title
         rootTaskID = root.id
-        rootTitle = root.content
-        projectID = root.projectId
+        rootTitle = root.title
+        projectID = root.projectID ?? ""
         self.projectName = projectName
-        labels = Array(Set(root.labels + action.labels)).sorted()
+        // Le type de travail tient lieu des anciens labels Todoist.
+        labels = Array(Set([action.kind, root.kind].filter { $0 != .normal }.map(\.label))).sorted()
         startedAt = .now
         endedAt = nil
         self.plannedSeconds = plannedSeconds
@@ -84,7 +85,8 @@ final class Interruption {
     var reason: InterruptionReason { InterruptionReason(rawValue: reasonRaw) ?? .other }
 }
 
-/// Photo quotidienne du backlog, pour tracer son évolution.
+/// Ancienne photo quotidienne du backlog Todoist. Plus écrite ni lue : le modèle reste déclaré
+/// pour que les bases locales existantes s'ouvrent sans migration.
 @Model
 final class BacklogSnapshot {
     @Attribute(.unique) var day: Date
@@ -101,13 +103,5 @@ final class BacklogSnapshot {
         averageAgeDays = 0
         oldestAgeDays = 0
         activeCount = 0
-    }
-
-    func update(_ numbers: BacklogNumbers) {
-        openTasks = numbers.openTasks
-        openTopLevel = numbers.openTopLevel
-        averageAgeDays = numbers.averageAgeDays
-        oldestAgeDays = numbers.oldestAgeDays
-        activeCount = numbers.activeCount
     }
 }

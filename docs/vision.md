@@ -1,19 +1,19 @@
 # Vision : Done
 
-App Pomodoro personnelle pour macOS, branchée sur Todoist. Usage strictement personnel, pas de publication sur l'App Store.
+App personnelle pour macOS qui réunit ma liste de tâches et un minuteur Pomodoro. Usage strictement personnel, pas de publication sur l'App Store.
 
 ## Le problème
 
-J'ai une méthode d'organisation qui tient la route dans Todoist : des projets clairs, des sections « un à la fois » et « file d'attente », des labels `Chantier-actif`, `Deepwork`, `Quick` et `Waiting`, des priorités posées. Je termine 30 à 40 tâches par semaine.
+Je termine 30 à 40 tâches par semaine, et pourtant mes projets de fond ne se ferment pas. Le blocage se situe au moment de passer à l'action :
 
-Pourtant, mes projets de fond ne se ferment pas. Le blocage se situe au moment de passer à l'action :
-
-- **Choisir.** Plusieurs tâches sont en P1 et `Chantier-actif` en même temps (six actives, quatre P1 le 20/10). Quand tout est prioritaire, je ne sais plus par quoi commencer.
+- **Choisir.** Plusieurs tâches sont prioritaires en même temps. Quand tout est prioritaire, je ne sais plus par quoi commencer.
 - **Attaquer.** Une tâche comme « Mettre en ligne la LP Luminothérapie » est trop large pour démarrer. Je ne vois pas la prochaine action concrète.
 - **Rester concentré.** Sans cadre de temps, je me disperse entre mails, demandes et réunions.
-- **Finir.** Les tâches restent ouvertes, les projets s'accumulent dans le backlog Shop.
+- **Finir.** Les tâches restent ouvertes et les projets s'accumulent.
 
-Mon critère de choix réel est l'impact sur l'e-commerce et la performance. Cette information n'existe pas dans Todoist et aucune règle automatique ne la reproduira bien.
+J'ai d'abord branché Done sur Todoist, où vivaient mes tâches. À l'usage, deux outils pour une même liste, c'était un de trop : des labels à poser à la main, une synchro, des règles écrites dans des descriptions de projet que rien n'appliquait. Done gère maintenant les tâches lui-même, simplement.
+
+Mon critère de choix réel est l'impact sur l'e-commerce et la performance. Aucune règle automatique ne le reproduira bien : le choix reste le mien, Done le rend rapide.
 
 ## Pour qui
 
@@ -21,22 +21,22 @@ Pour moi seul, responsable e-commerce, qui travaille au bureau sur Mac. Mes jour
 
 ## La réponse
 
-Un rituel du matin de deux minutes, puis une seule chose à l'écran.
+Une liste de tâches sans fioritures, un rituel du matin de deux minutes, puis une seule chose à l'écran.
 
-1. Après mes mails, l'app me montre une courte liste de candidates tirées de Todoist. Je choisis et ordonne mes trois tâches les plus importantes. Le choix difficile se fait une fois, à froid.
-2. Ensuite, l'app ne me montre que la prochaine action concrète (la première sous-tâche faisable) avec une durée adaptée, et je lance le minuteur.
-3. Quand une réunion ou une urgence arrive, je le signale. L'app comprend, garde ma place et me repropose quelque chose qui tient dans le temps restant.
-4. Quand je finis, l'app coche la tâche dans Todoist et passe à la suivante.
+1. Je note mes tâches dans Done, rangées dans l'Inbox ou un projet, avec une priorité, une échéance si elle compte et des étapes quand la tâche est grosse.
+2. Le matin, Done me montre une courte liste de candidates. Je choisis et ordonne mes trois tâches les plus importantes. Le choix difficile se fait une fois, à froid.
+3. Ensuite, Done ne me montre que la prochaine action concrète (la première étape faisable) avec une durée adaptée, et je lance le minuteur.
+4. Quand une réunion ou une urgence arrive, je le signale. Done garde ma place et me repropose quelque chose qui tient dans le temps restant.
+5. Quand je finis, Done coche la tâche et passe à la suite.
 
-Todoist reste la seule source de vérité pour les tâches. L'app ne remplace pas Todoist, elle sert à exécuter.
+Tout reste sur mon Mac. Pas de compte, pas de serveur, pas d'IA : un outil simple et prévisible.
 
 ## À quoi ressemble le succès
 
 Dans un mois :
 
-- **Mon backlog Todoist avance.** Le nombre de tâches ouvertes du backlog Shop baisse, et des projets entiers se ferment.
-- **Les tâches ne vieillissent plus.** L'âge moyen des tâches ouvertes diminue, et plus aucune tâche active ne traîne depuis des semaines.
-- **Un seul chantier à la fois.** Le nombre de tâches `Chantier-actif` en parallèle redescend vers ce que ma méthode prévoit.
-- **J'utilise l'app chaque matin de travail**, et mes blocs de deep work sont remplis de sessions réelles.
+- **Je n'ouvre plus Todoist.** Toutes mes tâches pro vivent dans Done.
+- **Mes projets de fond avancent.** Des tâches entières se ferment, pas seulement des petites.
+- **J'utilise Done chaque matin de travail**, et mes blocs de deep work sont remplis de sessions réelles.
 
-L'app affiche ces indicateurs elle-même, pour que je voie la progression sans les calculer.
+L'onglet Stats montre le temps de focus, les sessions et les tâches cochées, pour que je voie la progression sans la calculer.

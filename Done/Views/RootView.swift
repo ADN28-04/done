@@ -1,15 +1,15 @@
-import AppKit
 import SwiftUI
 
 struct RootView: View {
     enum Screen: CaseIterable, Identifiable, Hashable {
-        case focus, plan, stats, settings
+        case focus, tasks, plan, stats, settings
 
         var id: Self { self }
 
         var title: String {
             switch self {
             case .focus: "Focus"
+            case .tasks: "Tâches"
             case .plan: "Plan du jour"
             case .stats: "Stats"
             case .settings: "Réglages"
@@ -19,9 +19,10 @@ struct RootView: View {
         var shortcut: KeyEquivalent {
             switch self {
             case .focus: "1"
-            case .plan: "2"
-            case .stats: "3"
-            case .settings: "4"
+            case .tasks: "2"
+            case .plan: "3"
+            case .stats: "4"
+            case .settings: "5"
             }
         }
     }
@@ -29,18 +30,12 @@ struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     @State private var screen: Screen = .focus
-    @State private var statsTab: StatsView.Tab = .focus
     @State private var choseInitialScreen = false
     @State private var revealTabBar = false
+    @State private var showCapture = false
 
     var body: some View {
-        Group {
-            if model.hasToken {
-                main
-            } else {
-                OnboardingView()
-            }
-        }
+        main
     }
 
     /// Sur l'écran Focus, toute phase autre que le repos est une session :
@@ -67,7 +62,7 @@ struct RootView: View {
             Backdrop(style: backdropStyle)
                 .animation(.easeInOut(duration: 0.6), value: backdropStyle)
             VStack(spacing: 0) {
-                TopBar(screen: screen, inSession: inSession, statsTab: $statsTab)
+                TopBar(screen: screen, inSession: inSession) { showCapture = true }
                 if let message = model.errorMessage {
                     ErrorBanner(message: message) { model.errorMessage = nil }
                         .padding(.horizontal, 32)
@@ -94,13 +89,17 @@ struct RootView: View {
         }
         .onAppear {
             if !choseInitialScreen {
-                screen = model.todayPlan == nil ? .plan : .focus
+                if model.index.all.isEmpty {
+                    screen = .tasks
+                } else {
+                    screen = model.todayPlan == nil ? .plan : .focus
+                }
                 choseInitialScreen = true
             }
         }
-        .task { await model.refresh() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            Task { await model.refreshIfStale() }
+        .sheet(isPresented: $showCapture) {
+            CaptureSheet()
+                .environment(model)
         }
     }
 
@@ -108,25 +107,27 @@ struct RootView: View {
     private var detail: some View {
         switch screen {
         case .focus:
-            FocusView(openPlan: { screen = .plan })
+            FocusView(openPlan: { screen = .plan }, openTasks: { screen = .tasks })
+        case .tasks:
+            TasksView()
         case .plan:
             PlanView(onValidate: { screen = .focus })
         case .stats:
-            StatsView(tab: statsTab)
+            StatsView()
         case .settings:
             SettingsView()
         }
     }
 }
 
-/// Barre du haut, dans la zone de titre : pastille centrale (réunion, ou choix Focus/Backlog
-/// dans les stats) et bouton rafraîchir. Les feux de la fenêtre restent à gauche.
+/// Barre du haut, dans la zone de titre : pastille de réunion au centre, nouvelle tâche à droite.
+/// Les feux de la fenêtre restent à gauche.
 private struct TopBar: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     let screen: RootView.Screen
     let inSession: Bool
-    @Binding var statsTab: StatsView.Tab
+    let onCapture: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -136,17 +137,15 @@ private struct TopBar: View {
                 center(now: context.date)
                 Spacer(minLength: 0)
                 HStack {
-                    if !inSession && screen != .settings {
-                        Button {
-                            Task { await model.refresh() }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .buttonStyle(RoundGlassButtonStyle())
-                        .help("Recharger les tâches Todoist (⌘R)")
-                        .keyboardShortcut("r")
-                        .disabled(model.isLoading)
+                    // Toujours présent, même invisible en session : ⌘N note une tâche sans perdre le fil.
+                    Button(action: onCapture) {
+                        Image(systemName: "plus")
                     }
+                    .buttonStyle(RoundGlassButtonStyle())
+                    .help("Nouvelle tâche (⌘N)")
+                    .keyboardShortcut("n")
+                    .opacity(inSession ? 0 : 1)
+                    .allowsHitTesting(!inSession)
                 }
                 .frame(width: 80, alignment: .trailing)
             }
@@ -157,9 +156,7 @@ private struct TopBar: View {
 
     @ViewBuilder
     private func center(now: Date) -> some View {
-        if screen == .stats {
-            StatsTabPicker(selection: $statsTab)
-        } else if screen == .focus || screen == .plan {
+        if screen == .focus || screen == .plan {
             let showPill = !inSession || isInterrupted
             if showPill, let pill = MeetingPill.make(meetings: model.meetingsToday, now: now, includeNext: !inSession) {
                 MeetingPill(content: pill)
@@ -173,10 +170,10 @@ private struct TopBar: View {
     }
 }
 
-/// Pastille en verre : réunion en cours, bloc de travail ou prochaine réunion.
+/// Pastille en verre : réunion en cours ou prochaine réunion.
 struct MeetingPill: View {
     struct Content {
-        enum Dot { case filled, accent, hollow }
+        enum Dot { case filled, hollow }
         let text: String
         let dot: Dot
         let help: String
@@ -203,8 +200,6 @@ struct MeetingPill: View {
         switch content.dot {
         case .filled:
             Circle().fill(Theme.label2).frame(width: 7, height: 7)
-        case .accent:
-            Circle().fill(Theme.ring).frame(width: 7, height: 7)
         case .hollow:
             Circle().strokeBorder(Theme.label2, lineWidth: 1.5).frame(width: 7, height: 7)
         }
@@ -212,12 +207,9 @@ struct MeetingPill: View {
 
     static func make(meetings: [Meeting], now: Date, includeNext: Bool) -> Content? {
         if let ongoing = meetings.first(where: { $0.contains(now) }) {
-            if ongoing.isFocusBlock {
-                return Content(text: "Bloc \(ongoing.title) jusqu'à \(Format.time(ongoing.end))", dot: .accent, help: ongoing.title)
-            }
             return Content(text: "Réunion en cours jusqu'à \(Format.time(ongoing.end))", dot: .filled, help: ongoing.title)
         }
-        guard includeNext, let next = meetings.first(where: { !$0.isFocusBlock && $0.start > now }) else { return nil }
+        guard includeNext, let next = meetings.first(where: { $0.start > now }) else { return nil }
         let minutes = Format.minutes(next.start.timeIntervalSince(now) / 60)
         return Content(text: "Prochaine réunion à \(Format.time(next.start)) · dans \(minutes)", dot: .hollow, help: next.title)
     }
@@ -286,6 +278,9 @@ private struct TabBarItem: View {
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
+        case .tasks:
+            Image(systemName: "checklist")
+                .font(.system(size: 13, weight: .medium))
         case .plan:
             Image(systemName: "text.alignleft")
                 .font(.system(size: 13, weight: .medium))

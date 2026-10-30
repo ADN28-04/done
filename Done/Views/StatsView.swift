@@ -1,45 +1,21 @@
-import Charts
 import SwiftData
 import SwiftUI
 
 struct StatsView: View {
-    enum Tab: String, CaseIterable, Identifiable {
-        case focus = "Focus"
-        case backlog = "Backlog"
-        var id: String { rawValue }
-    }
-
-    /// Choisi dans la barre du haut (`StatsTabPicker`).
-    let tab: Tab
-
     var body: some View {
         ScrollView {
-            Group {
-                switch tab {
-                case .focus: FocusStatsView()
-                case .backlog: BacklogStatsView()
-                }
-            }
-            .padding(.leading, 32)
-            .padding(.trailing, 40)
-            .padding(.top, 4)
-            .padding(.bottom, 24)
+            FocusStatsView()
+                .padding(.leading, 32)
+                .padding(.trailing, 40)
+                .padding(.top, 4)
+                .padding(.bottom, 24)
         }
         .scrollIndicators(.never)
         .environment(\.locale, Locale(identifier: "fr_FR"))
     }
 }
 
-/// Choix Focus / Backlog, en verre, au centre de la barre du haut.
-struct StatsTabPicker: View {
-    @Binding var selection: StatsView.Tab
-
-    var body: some View {
-        GlassSegmented(selection: $selection, options: StatsView.Tab.allCases.map { (value: $0, title: $0.rawValue) })
-    }
-}
-
-// MARK: Onglet Focus
+// MARK: Focus
 
 struct FocusStatsView: View {
     @Query(sort: \FocusSession.startedAt) private var sessions: [FocusSession]
@@ -130,151 +106,6 @@ private struct DailyBars: View {
             }
         }
         .frame(height: 270, alignment: .bottom)
-    }
-}
-
-// MARK: Onglet Backlog
-
-struct BacklogStatsView: View {
-    @Environment(AppModel.self) private var model
-    @Query(sort: \BacklogSnapshot.day) private var snapshots: [BacklogSnapshot]
-    @State private var windowOffset = 0
-
-    var body: some View {
-        let rules = model.rules
-        let numbers = Stats.backlog(model.index, rules: rules)
-        let closed = Stats.closedPerWeek(model.completed, rules: rules, weeks: 8)
-        let window = Stats.dayWindow(offset: windowOffset)
-        let points = snapshots.filter { window.contains($0.day) }
-        let overTarget = numbers.activeCount > rules.maxActive
-
-        VStack(alignment: .leading, spacing: 0) {
-            PeriodHeader(title: "Backlog", subtitle: windowTitle(window), canGoForward: windowOffset < 0) { windowOffset += $0 }
-
-            HeroNumber(
-                value: "\(numbers.openTopLevel)",
-                caption: "chantiers ouverts · âge moyen \(Int(numbers.averageAgeDays.rounded())) j · \(closed.last?.count ?? 0) fermés cette semaine"
-            )
-            .padding(.top, 24)
-            Text("\(numbers.activeCount) chantiers actifs pour \(rules.maxActive) visés")
-                .font(.text(13, .medium))
-                .foregroundStyle(overTarget ? Theme.orangeText : Theme.accentText)
-                .padding(.top, 8)
-
-            Grid(horizontalSpacing: 20, verticalSpacing: 20) {
-                GridRow {
-                    TrendCard(title: "Chantiers ouverts", value: "\(numbers.openTopLevel)", window: window, points: points.map { TrendPoint(day: $0.day, value: Double($0.openTopLevel)) })
-                    TrendCard(title: "Âge moyen", value: "\(Int(numbers.averageAgeDays.rounded())) j", window: window, points: points.map { TrendPoint(day: $0.day, value: $0.averageAgeDays) })
-                }
-                GridRow {
-                    TrendCard(
-                        title: "Chantiers actifs",
-                        value: "\(numbers.activeCount)",
-                        valueColor: overTarget ? Theme.orangeText : Theme.label,
-                        window: window,
-                        points: points.map { TrendPoint(day: $0.day, value: Double($0.activeCount)) },
-                        target: Double(rules.maxActive)
-                    )
-                    StatsCard(title: "Fermés par semaine", value: "\(closed.last?.count ?? 0)") {
-                        WeeklyBars(weeks: closed)
-                    }
-                }
-            }
-            .padding(.top, 24)
-        }
-        .task { await model.loadCompleted() }
-    }
-
-    private func windowTitle(_ window: DateInterval) -> String {
-        guard windowOffset < 0 else { return "14 derniers jours" }
-        let last = window.end.addingTimeInterval(-1)
-        return "Du \(Format.shortDate(window.start)) au \(Format.shortDate(last))"
-    }
-}
-
-private struct TrendPoint: Identifiable {
-    let day: Date
-    let value: Double
-    var id: Date { day }
-}
-
-/// Courbe jour après jour, avec la date de début et de fin en dessous.
-private struct TrendCard: View {
-    let title: String
-    let value: String
-    var valueColor: Color = Theme.label
-    let window: DateInterval
-    let points: [TrendPoint]
-    var target: Double?
-
-    var body: some View {
-        StatsCard(title: title, value: value, valueColor: valueColor) {
-            VStack(spacing: 8) {
-                if points.count < 2 {
-                    Text("La courbe se remplit au fil des jours : une photo du backlog est prise à chaque synchro.")
-                        .font(.text(12))
-                        .foregroundStyle(Theme.label2)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity, minHeight: 110)
-                } else {
-                    Chart {
-                        ForEach(points) { point in
-                            LineMark(x: .value("Jour", point.day, unit: .day), y: .value("Valeur", point.value))
-                                .foregroundStyle(Theme.ring)
-                                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                        }
-                        if let target {
-                            RuleMark(y: .value("Cible", target))
-                                .foregroundStyle(Theme.label2)
-                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                        }
-                    }
-                    .chartXScale(domain: window.start...window.end)
-                    .chartXAxis(.hidden)
-                    .chartYAxis {
-                        AxisMarks(values: .automatic(desiredCount: 3)) { _ in
-                            AxisGridLine().foregroundStyle(Theme.separator)
-                        }
-                    }
-                    .frame(height: 110)
-                }
-                HStack {
-                    Text(Format.shortDate(window.start))
-                    Spacer()
-                    if let target {
-                        Text("- - cible \(Int(target))")
-                        Spacer()
-                    }
-                    Text(Format.shortDate(window.end.addingTimeInterval(-1)))
-                }
-                .font(.mono(10, medium: false))
-                .foregroundStyle(Theme.label2)
-            }
-        }
-    }
-}
-
-/// Chantiers fermés par semaine, la semaine en cours en accent plein.
-private struct WeeklyBars: View {
-    let weeks: [Stats.WeekCount]
-
-    var body: some View {
-        let most = max(weeks.map(\.count).max() ?? 0, 1)
-        HStack(alignment: .bottom, spacing: 6) {
-            ForEach(weeks) { week in
-                let isCurrent = week.weekStart == weeks.last?.weekStart
-                VStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(isCurrent ? Theme.ring : Theme.ring.opacity(0.45))
-                        .frame(height: week.count > 0 ? max(8, 100 * Double(week.count) / Double(most)) : 4)
-                    Text(Format.weekNumber(week.weekStart))
-                        .font(.mono(10, medium: isCurrent))
-                        .foregroundStyle(isCurrent ? Theme.label : Theme.label2)
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .frame(height: 128, alignment: .bottom)
     }
 }
 
