@@ -14,7 +14,7 @@ Il faut un Mac sous macOS 14 ou plus récent, et Xcode 16 ou plus récent.
 2. Dans la cible **Done**, onglet **Signing & Capabilities**, choisir son équipe (un Apple ID gratuit, « Personal Team », suffit). Sans équipe, Xcode signe en local, ce qui marche aussi, mais macOS peut bloquer les notifications.
 3. Lancer avec ⌘R.
 4. Accepter les notifications quand macOS les demande.
-5. Ajouter ses tâches dans l'Inbox (barre latérale), ou avec ⌘N depuis n'importe quel écran.
+5. Ajouter ses tâches dans l'Inbox (barre latérale), avec ⌘N depuis n'importe quel écran, ou en cliquant sur l'icône de Done dans la barre de menus, depuis n'importe quelle app.
 
 ### Installer ou mettre à jour l'app dans Applications
 

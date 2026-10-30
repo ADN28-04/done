@@ -56,12 +56,22 @@ private struct MiniRing: View {
 }
 
 /// Panneau ouvert au clic sur l'icône : 300 pt de large, sur le fond de fenêtre.
+/// En haut, la capture rapide ; en dessous, la session en cours.
 struct MenuBarView: View {
+    @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     @Environment(\.openWindow) private var openWindow
+    @State private var title = ""
+    @State private var projectID: String?
+    /// Liste de la dernière tâche ajoutée, pour la confirmation. Effacée dès qu'on retape.
+    @State private var addedTo: String?
+    @FocusState private var captureFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            capture
+            Hairline()
+                .padding(.vertical, DoneSpace.s16)
             content
             HStack(spacing: DoneSpace.s8) {
                 primaryControl
@@ -85,6 +95,50 @@ struct MenuBarView: View {
         .frame(width: 300)
         .foregroundStyle(DoneColor.textPrimary)
         .background(DoneColor.bgCanvas)
+        .onAppear { captureFocused = true }
+        .onDisappear { addedTo = nil }
+    }
+
+    /// Une ligne, Entrée : la tâche part dans la liste choisie, et le champ reste prêt pour la suivante.
+    private var capture: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Eyebrow(text: "Nouvelle tâche")
+            TextField("Ce que tu as à faire", text: $title)
+                .focused($captureFocused)
+                .doneField(focused: captureFocused)
+                .onSubmit(add)
+                .padding(.top, DoneSpace.s8)
+            HStack(spacing: DoneSpace.s8) {
+                Menu {
+                    Button("Inbox") { projectID = nil }
+                    ForEach(model.projects) { project in
+                        Button(project.name) { projectID = project.id }
+                    }
+                } label: {
+                    Text("Dans : \(model.projectName(projectID))")
+                        .font(.done(.callout))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                Spacer()
+                if let addedTo {
+                    Text("Ajoutée dans \(addedTo)")
+                        .doneText(.caption)
+                        .foregroundStyle(DoneColor.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.top, DoneSpace.s8)
+        }
+        .onChange(of: title) {
+            if !title.isEmpty { addedTo = nil }
+        }
+    }
+
+    private func add() {
+        guard let task = model.addTask(title, projectID: projectID) else { return }
+        title = ""
+        addedTo = model.projectName(for: task)
     }
 
     @ViewBuilder

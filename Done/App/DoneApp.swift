@@ -40,7 +40,7 @@ struct DoneApp: App {
         // Le contenu monte sous la barre de titre : barre latérale et barre du haut maison.
         .windowStyle(.hiddenTitleBar)
 
-        // Le minuteur reste visible dans la barre de menus, même fenêtre fermée.
+        // Le minuteur reste visible dans la barre de menus, même fenêtre fermée, et la capture rapide y est à un clic.
         MenuBarExtra {
             MenuBarView()
                 .environment(model)

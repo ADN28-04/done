@@ -125,6 +125,7 @@ En session (minuteur, pause, interruption, fin), la barre latérale s'efface et 
   - Concentration : mini-anneau de 16 rendu à la volée, et temps restant en chiffres tabulaires.
   - Arrêt et pause : icônes pause et tasse.
   - Fin : anneau plein et « Fini ».
+- **Panneau de la barre de menus** : 300 de large, sur `bgCanvas`. En haut, la capture : `Eyebrow` « Nouvelle tâche », champ `doneField`, menu « Dans : Inbox » en `callout` et, après un ajout, « Ajoutée dans … » en `caption` secondaire. Un `Hairline`, puis la session en cours et les boutons.
 
 ## Logo
 
