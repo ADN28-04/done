@@ -1,54 +1,66 @@
 import SwiftUI
 
-/// Badge de priorité : contour et fond teinté de la couleur de la priorité, chiffres en DM Mono.
-struct PriorityBadge: View {
+/// Puces d'une tâche, à droite de sa ligne : priorité, blocage, échéance, puis durée.
+struct TaskChips: View {
+    @Environment(AppModel.self) private var model
     let task: TodoTask
 
     var body: some View {
-        let color = Theme.priority(task.priority)
-        Text("P\(task.priority)")
-            .font(.mono(10))
-            .foregroundStyle(Theme.label)
-            .padding(.horizontal, 5)
-            .frame(height: 16)
-            .background(color.opacity(0.15), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(color, lineWidth: 1))
+        HStack(spacing: DoneSpace.s6) {
+            PriorityChip(priority: task.priority)
+            if task.isBlocked {
+                StateChip(kind: .blocked, title: "Bloquée")
+            }
+            if let due = task.due {
+                InfoChip(symbol: "calendar", text: Format.chipDate(due), isAlert: Format.isOverdue(due))
+            }
+            if let minutes = sessionMinutes {
+                InfoChip(symbol: "clock", text: Format.minutes(Double(minutes)))
+            }
+        }
+    }
+
+    /// Durée de session d'une tâche rapide ou Deepwork. Une tâche normale n'affiche rien.
+    private var sessionMinutes: Int? {
+        switch task.kind {
+        case .quick: model.rules.quickMinutes
+        case .deepwork: model.rules.deepworkMinutes
+        case .normal: nil
+        }
     }
 }
 
-/// Contenu d'une ligne de tâche : badge, titre et, au besoin, une ligne de détails.
+/// Contenu d'une ligne de tâche : titre (body.strong), métadonnées (caption) et puces à droite.
 struct TaskRowContent: View {
     @Environment(AppModel.self) private var model
     let task: TodoTask
     var showDetails = true
 
     var body: some View {
-        HStack(spacing: 12) {
-            PriorityBadge(task: task)
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: DoneSpace.s12) {
+            VStack(alignment: .leading, spacing: DoneSpace.s2) {
                 Text(task.title)
-                    .font(.text(14))
+                    .doneText(.bodyStrong)
+                    .foregroundStyle(DoneColor.textPrimary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 if showDetails, !details.isEmpty {
                     Text(details)
-                        .font(.text(12))
-                        .foregroundStyle(Theme.label2)
+                        .doneText(.caption)
+                        .foregroundStyle(DoneColor.textSecondary)
                         .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            TaskChips(task: task)
         }
         .help(details)
     }
 
     var details: String {
         var parts = [model.projectName(for: task)]
-        if let due = Format.due(task) { parts.append(due) }
-        let subtasks = model.index.children(of: task.id).count
-        if subtasks > 0 { parts.append("\(subtasks) étape\(subtasks > 1 ? "s" : "")") }
-        if task.kind != .normal { parts.append(task.kind.label) }
-        if task.isBlocked { parts.append("Bloquée") }
+        let steps = model.index.children(of: task.id).count
+        if steps > 0 { parts.append("\(steps) étape\(steps > 1 ? "s" : "")") }
         return parts.filter { !$0.isEmpty }.joined(separator: " · ")
     }
 }
@@ -61,28 +73,27 @@ struct TaskPickerView: View {
     let onPick: (TodoTask) -> Void
     @State private var query = ""
     @State private var hovered: String?
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: DoneSpace.s16) {
             Text(title)
-                .font(.display(22))
+                .doneText(.displayM)
+                .foregroundStyle(DoneColor.textPrimary)
             TextField("Rechercher une tâche ou un projet", text: $query)
-                .textFieldStyle(.plain)
-                .font(.text(14))
-                .padding(.horizontal, 14)
-                .frame(height: 40)
-                .surface(radius: 12)
+                .focused($searchFocused)
+                .doneField(focused: searchFocused)
             ScrollView {
-                LazyVStack(spacing: 0) {
+                LazyVStack(spacing: DoneSpace.s2) {
                     ForEach(model.pickableTasks(matching: query)) { task in
                         Button {
                             dismiss()
                             onPick(task)
                         } label: {
                             TaskRowContent(task: task)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
-                                .background(hovered == task.id ? Theme.fill : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .padding(.horizontal, DoneSpace.s12)
+                                .frame(minHeight: 52)
+                                .background(hovered == task.id ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -91,17 +102,18 @@ struct TaskPickerView: View {
                 }
                 .padding(6)
             }
-            .surface(radius: 18)
+            .doneCard()
             HStack {
                 Spacer()
                 Button("Annuler") { dismiss() }
-                    .buttonStyle(PillButtonStyle())
+                    .buttonStyle(DoneButtonStyle())
                     .keyboardShortcut(.cancelAction)
             }
         }
-        .padding(24)
+        .padding(DoneSpace.s24)
         .frame(width: 600, height: 540)
-        .background(Backdrop(style: .wash))
+        .background(DoneColor.bgCanvas)
+        .onAppear { searchFocused = true }
     }
 }
 
@@ -119,18 +131,10 @@ struct ResumeNoteField: View {
 
     var body: some View {
         TextField(placeholder, text: $text)
-            .textFieldStyle(.plain)
-            .font(.text(14))
             .multilineTextAlignment(.leading)
             .focused(focused)
             .onSubmit { focused.wrappedValue = false }
-            .padding(.horizontal, 14)
-            .frame(height: 40)
-            .surface(radius: 12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Theme.ring.opacity(focused.wrappedValue ? 0.45 : 0), lineWidth: 2)
-            )
+            .doneField(focused: focused.wrappedValue)
             .onAppear {
                 guard !loaded else { return }
                 text = model.resumeNote(for: taskID)?.text ?? ""
@@ -147,16 +151,16 @@ struct ResumeNoteCard: View {
     let note: ResumeNote
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: DoneSpace.s4) {
             Eyebrow(text: "Où tu en étais · \(Format.moment(note.writtenAt))")
             Text(note.text)
-                .font(.text(15))
-                .multilineTextAlignment(.center)
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-        .frame(maxWidth: 520)
-        .surface(radius: 14)
+        .padding(.horizontal, DoneSpace.s16)
+        .padding(.vertical, DoneSpace.s12)
+        .frame(maxWidth: 520, alignment: .leading)
+        .doneCard()
     }
 }

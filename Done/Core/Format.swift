@@ -129,6 +129,24 @@ enum Format {
         return "\(day(meeting.start)) \(range)"
     }
 
+    /// Date d'une puce : « Auj. », « Demain », « Hier », sinon « mar. 3 nov. ».
+    static func chipDate(_ day: Date, now: Date = .now) -> String {
+        let calendar = Calendar.current
+        if calendar.isDate(day, inSameDayAs: now) { return "Auj." }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(day, inSameDayAs: tomorrow) {
+            return "Demain"
+        }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(day, inSameDayAs: yesterday) {
+            return "Hier"
+        }
+        return self.day(day)
+    }
+
+    /// Échéance dépassée : le jour est avant aujourd'hui.
+    static func isOverdue(_ day: Date, now: Date = .now) -> Bool {
+        day < Calendar.current.startOfDay(for: now)
+    }
+
     static func due(_ task: TodoTask, now: Date = .now) -> String? {
         guard let day = task.due else { return nil }
         let calendar = Calendar.current

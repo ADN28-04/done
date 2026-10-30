@@ -5,10 +5,9 @@ struct StatsView: View {
     var body: some View {
         ScrollView {
             FocusStatsView()
-                .padding(.leading, 32)
-                .padding(.trailing, 40)
-                .padding(.top, 4)
-                .padding(.bottom, 24)
+                .padding(.horizontal, DoneSpace.s40)
+                .padding(.top, DoneSpace.s4)
+                .padding(.bottom, DoneSpace.s24)
         }
         .scrollIndicators(.never)
         .environment(\.locale, Locale(identifier: "fr_FR"))
@@ -37,9 +36,9 @@ struct FocusStatsView: View {
                 value: Format.minutes(Stats.totalMinutes(facts)),
                 caption: "de focus · \(plural(facts.count, "session")) · \(plural(checked, "tâche cochée", "tâches cochées")) · \(plural(interruptions, "interruption"))"
             )
-            .padding(.top, 24)
+            .padding(.top, DoneSpace.s24)
 
-            HStack(alignment: .top, spacing: 20) {
+            HStack(alignment: .top, spacing: DoneSpace.s20) {
                 StatsCard(title: "Par jour") {
                     DailyBars(days: days)
                 }
@@ -48,11 +47,11 @@ struct FocusStatsView: View {
                 StatsCard(title: "Par projet") {
                     if projects.isEmpty {
                         Text("Pas encore de session cette semaine.")
-                            .font(.text(13))
-                            .foregroundStyle(Theme.label2)
+                            .doneText(.callout)
+                            .foregroundStyle(DoneColor.textSecondary)
                     } else {
                         let longest = projects.map(\.minutes).max() ?? 1
-                        VStack(spacing: 18) {
+                        VStack(spacing: DoneSpace.s16) {
                             ForEach(projects) { project in
                                 MeterRow(label: project.name, value: Format.minutes(project.minutes), fraction: project.minutes / max(longest, 1))
                             }
@@ -61,7 +60,7 @@ struct FocusStatsView: View {
                 }
                 .frame(width: 340)
             }
-            .padding(.top, 24)
+            .padding(.top, DoneSpace.s24)
         }
     }
 
@@ -83,24 +82,24 @@ private struct DailyBars: View {
         HStack(alignment: .bottom, spacing: 0) {
             ForEach(days) { day in
                 let isToday = Calendar.current.isDateInToday(day.day)
-                VStack(spacing: 8) {
+                VStack(spacing: DoneSpace.s8) {
                     if day.minutes > 0 {
                         Text(Format.minutes(day.minutes))
-                            .font(.text(12))
-                            .foregroundStyle(Theme.label2)
+                            .doneText(.caption)
+                            .foregroundStyle(DoneColor.textSecondary)
                             .lineLimit(1)
                             .fixedSize()
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Theme.ring)
-                            .frame(width: 44, height: max(12, 210 * day.minutes / longest))
+                        RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
+                            .fill(DoneColor.stateActive)
+                            .frame(width: 40, height: max(8, 210 * day.minutes / longest))
                     } else {
-                        Capsule()
-                            .fill(Theme.track)
-                            .frame(width: 44, height: 6)
+                        RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
+                            .fill(DoneColor.pomodoroTrack)
+                            .frame(width: 40, height: 6)
                     }
                     Text(Format.weekdayShort(day.day))
-                        .font(.text(12, isToday ? .bold : .regular))
-                        .foregroundStyle(isToday ? Theme.label : Theme.label2)
+                        .font(isToday ? .plex(12, .semibold) : .done(.caption))
+                        .foregroundStyle(isToday ? DoneColor.textPrimary : DoneColor.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -111,7 +110,7 @@ private struct DailyBars: View {
 
 // MARK: Composants des stats
 
-/// Titre de période, sous-titre et flèches en verre.
+/// Titre de période, sous-titre et flèches.
 private struct PeriodHeader: View {
     let title: String
     let subtitle: String
@@ -119,21 +118,21 @@ private struct PeriodHeader: View {
     let move: (Int) -> Void
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .bottom, spacing: DoneSpace.s8) {
+            VStack(alignment: .leading, spacing: DoneSpace.s4) {
                 Text(title)
-                    .font(.display(30, bold: true))
-                    .tracking(-0.45)
+                    .doneText(.displayL)
+                    .foregroundStyle(DoneColor.textPrimary)
                 Text(subtitle)
-                    .font(.text(15))
-                    .foregroundStyle(Theme.label2)
+                    .doneText(.body)
+                    .foregroundStyle(DoneColor.textSecondary)
             }
             Spacer()
             Button { move(-1) } label: { Image(systemName: "chevron.left") }
-                .buttonStyle(RoundGlassButtonStyle())
+                .buttonStyle(DoneIconButtonStyle())
                 .help("Période précédente")
             Button { move(1) } label: { Image(systemName: "chevron.right") }
-                .buttonStyle(RoundGlassButtonStyle())
+                .buttonStyle(DoneIconButtonStyle())
                 .disabled(!canGoForward)
                 .opacity(canGoForward ? 1 : 0.4)
                 .help("Période suivante")
@@ -141,46 +140,45 @@ private struct PeriodHeader: View {
     }
 }
 
-/// Grand chiffre en DM Mono, suivi de sa légende.
+/// Grand chiffre (numeric.xl), suivi de sa légende.
 private struct HeroNumber: View {
     let value: String
     let caption: String
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
-            TimerText(text: value, size: 64, color: Theme.accentText)
+        HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s12) {
+            TimerText(text: value, color: DoneColor.stateActiveText)
             Text(caption)
-                .font(.text(15))
-                .foregroundStyle(Theme.label2)
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
-/// Carte des stats : étiquette en DM Mono, valeur optionnelle à droite.
+/// Carte des stats : étiquette en capitales, valeur optionnelle à droite.
 private struct StatsCard<Content: View>: View {
     let title: String
     var value: String?
-    var valueColor: Color = Theme.label
+    var valueColor: Color = DoneColor.textPrimary
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DoneSpace.s16) {
             HStack(alignment: .firstTextBaseline) {
                 Eyebrow(text: title)
                 Spacer()
                 if let value {
                     Text(value)
-                        .font(.mono(17))
+                        .doneText(.numericM)
                         .foregroundStyle(valueColor)
                 }
             }
             content
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 20)
+        .padding(DoneSpace.s20)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .surface(radius: 20)
+        .doneCard(radius: DoneRadius.lg)
     }
 }
 
@@ -191,16 +189,17 @@ private struct MeterRow: View {
     let fraction: Double
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DoneSpace.s8) {
             HStack {
                 Text(label)
+                    .foregroundStyle(DoneColor.textPrimary)
                     .lineLimit(1)
                 Spacer()
                 Text(value)
-                    .foregroundStyle(Theme.label2)
+                    .foregroundStyle(DoneColor.textSecondary)
             }
-            .font(.text(14))
-            ProgressBar(fraction: fraction, height: 10)
+            .doneText(.body)
+            ProgressBar(fraction: fraction, height: 8)
         }
     }
 }
@@ -211,15 +210,15 @@ struct StatTile: View {
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DoneSpace.s6) {
             Eyebrow(text: title)
             Text(value)
-                .font(.mono(26))
-                .tracking(-0.8)
+                .doneText(.numericL)
+                .foregroundStyle(DoneColor.textPrimary)
         }
-        .padding(16)
+        .padding(DoneSpace.s16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .surface(radius: 16)
+        .doneCard(radius: DoneRadius.lg)
     }
 }
 

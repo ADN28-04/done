@@ -67,7 +67,7 @@ struct SuggestionView: View {
                 Spacer(minLength: 16)
                 if model.isReviewDue {
                     ReviewPrompt { showReview = true }
-                        .padding(.bottom, 32)
+                        .padding(.bottom, DoneSpace.s32)
                 }
                 switch suggestion.status {
                 case .planEmpty:
@@ -108,61 +108,62 @@ struct SuggestionView: View {
             let canBreakDown = Planner.canBreakDown(action: action, root: root)
             let invitesBreakdown = Planner.needsBreakdown(action: action, root: root, in: model.index)
             VStack(spacing: 0) {
-                HStack(spacing: 12) {
+                HStack(spacing: DoneSpace.s12) {
                     PlanDots(position: suggestion.position, count: suggestion.planCount)
                     Text(caption(suggestion, root: root))
-                        .font(.text(13))
-                        .foregroundStyle(Theme.label2)
+                        .doneText(.callout)
+                        .foregroundStyle(DoneColor.textSecondary)
                 }
                 if action.id != root.id {
                     Text(root.title)
-                        .font(.text(15))
-                        .foregroundStyle(Theme.label2)
-                        .padding(.top, 16)
+                        .doneText(.title)
+                        .foregroundStyle(DoneColor.textSecondary)
+                        .padding(.top, DoneSpace.s16)
                 }
                 Text(action.title)
-                    .font(.display(42))
-                    .tracking(-0.63)
-                    .lineSpacing(4)
+                    .doneText(.displayXL)
+                    .foregroundStyle(DoneColor.textPrimary)
                     .frame(maxWidth: 680)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, action.id != root.id ? 6 : 20)
+                    .padding(.top, action.id != root.id ? DoneSpace.s6 : DoneSpace.s20)
+                TaskChips(task: action)
+                    .padding(.top, DoneSpace.s12)
                 if let resume = model.resumeNote(for: action.id) {
                     ResumeNoteCard(note: resume)
-                        .padding(.top, 20)
+                        .padding(.top, DoneSpace.s20)
                 }
                 if let note = suggestion.note {
                     NoticeBox(text: note)
                         .frame(maxWidth: 520)
-                        .padding(.top, 20)
+                        .padding(.top, DoneSpace.s20)
                 }
                 // Nouvelle tâche principale juste après une session : la pause passe d'abord.
                 let pause = engine.needsBreak(before: root, now: now) ? engine.breakDue?.remainingMinutes(now: now) : nil
                 if let pause {
                     Text("Tu changes de tâche : \(pause) min de pause d'abord.")
-                        .font(.text(14, .medium))
-                        .foregroundStyle(Theme.accentText)
-                        .padding(.top, 28)
+                        .doneText(.bodyStrong)
+                        .foregroundStyle(DoneColor.stateActiveText)
+                        .padding(.top, DoneSpace.s24)
                 }
-                HStack(spacing: 10) {
+                HStack(spacing: DoneSpace.s8) {
                     if let pause {
                         Button("Démarrer la pause · \(pause) min") {
                             engine.takeBreak(minutes: pause, mandatory: true)
                         }
-                        .buttonStyle(PillButtonStyle(kind: .primary))
+                        .buttonStyle(DoneButtonStyle(kind: .primary))
                         .keyboardShortcut(.defaultAction)
                     } else {
                         Button("Démarrer · \(minutes) min") {
                             engine.start(action: action, root: root, minutes: minutes)
                         }
-                        .buttonStyle(PillButtonStyle(kind: .primary))
+                        .buttonStyle(DoneButtonStyle(kind: .primary))
                         .keyboardShortcut(.defaultAction)
                     }
                     Button("Changer de tâche") { showPicker = true }
-                        .buttonStyle(PillButtonStyle())
+                        .buttonStyle(DoneButtonStyle())
                 }
-                .padding(.top, pause == nil ? 40 : 14)
-                HStack(spacing: 2) {
+                .padding(.top, pause == nil ? DoneSpace.s32 : DoneSpace.s12)
+                HStack(spacing: DoneSpace.s2) {
                     Menu {
                         ForEach(durationOptions(including: minutes), id: \.self) { value in
                             Button("\(value) min") {
@@ -171,25 +172,26 @@ struct SuggestionView: View {
                         }
                     } label: {
                         Text("Durée : \(minutes) min")
+                            .font(.plex(14, .medium))
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DoneSpace.s8)
                     if suggestion.position > 0 {
                         Button("Passer") { model.skip(root.id) }
-                            .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                            .buttonStyle(DoneButtonStyle(kind: .plain))
                             .help("Mettre cette tâche en fin de plan")
                     }
                     if canBreakDown {
                         // Découpe l'action proposée : la nouvelle étape devient la prochaine action.
                         Button(breakdownTitle(invites: invitesBreakdown)) { breakdownTask = action }
-                            .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                            .buttonStyle(DoneButtonStyle(kind: .plain))
                             .help(invitesBreakdown ? "Cette tâche n'a pas encore de sous-tâche" : "Ajouter une étape plus petite sous cette action")
                     }
                 }
-                .font(.text(13))
-                .foregroundStyle(Theme.label2)
-                .padding(.top, 12)
+                .doneText(.callout)
+                .foregroundStyle(DoneColor.textSecondary)
+                .padding(.top, DoneSpace.s12)
             }
         }
     }
@@ -214,18 +216,17 @@ struct SuggestionView: View {
         VStack(spacing: 0) {
             Eyebrow(text: "Aucune tâche")
             Text("Ta liste est vide")
-                .font(.display(36))
-                .tracking(-0.54)
-                .padding(.top, 16)
+                .doneText(.displayL)
+                .padding(.top, DoneSpace.s16)
             Text("Note ce que tu as à faire, puis choisis par quoi commencer. ⌘N ajoute une tâche depuis n'importe quel écran.")
-                .font(.text(15))
-                .foregroundStyle(Theme.label2)
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textSecondary)
                 .frame(maxWidth: 520)
-                .padding(.top, 10)
+                .padding(.top, DoneSpace.s8)
             Button("Ajouter des tâches", action: openTasks)
-                .buttonStyle(PillButtonStyle(kind: .primary))
+                .buttonStyle(DoneButtonStyle(kind: .primary))
                 .keyboardShortcut(.defaultAction)
-                .padding(.top, 36)
+                .padding(.top, DoneSpace.s32)
         }
     }
 
@@ -233,18 +234,17 @@ struct SuggestionView: View {
         VStack(spacing: 0) {
             Eyebrow(text: "Aucun plan")
             Text("Pas encore de plan pour aujourd'hui")
-                .font(.display(36))
-                .tracking(-0.54)
-                .padding(.top, 16)
+                .doneText(.displayL)
+                .padding(.top, DoneSpace.s16)
             Text("Choisis tes \(model.rules.planSize) tâches les plus importantes. Ça prend moins de deux minutes.")
-                .font(.text(15))
-                .foregroundStyle(Theme.label2)
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textSecondary)
                 .frame(maxWidth: 520)
-                .padding(.top, 10)
+                .padding(.top, DoneSpace.s8)
             Button("Préparer le plan", action: openPlan)
-                .buttonStyle(PillButtonStyle(kind: .primary))
+                .buttonStyle(DoneButtonStyle(kind: .primary))
                 .keyboardShortcut(.defaultAction)
-                .padding(.top, 36)
+                .padding(.top, DoneSpace.s32)
         }
     }
 
@@ -253,46 +253,40 @@ struct SuggestionView: View {
         return VStack(spacing: 0) {
             Eyebrow(text: "Plan en attente")
             Text("Ton plan est bloqué pour l'instant")
-                .font(.display(36))
-                .tracking(-0.54)
+                .doneText(.displayL)
                 .frame(maxWidth: 640)
-                .padding(.top, 16)
+                .padding(.top, DoneSpace.s16)
             Text(tasks.count > 1 ? "Aucune des \(tasks.count) tâches ne peut avancer pour l'instant." : "Cette tâche ne peut pas avancer pour l'instant.")
-                .font(.text(15))
-                .foregroundStyle(Theme.label2)
-                .padding(.top, 10)
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textSecondary)
+                .padding(.top, DoneSpace.s8)
             VStack(spacing: 0) {
                 ForEach(Array(tasks.enumerated()), id: \.element.id) { offset, task in
-                    HStack(spacing: 12) {
-                        Text("\(offset + 1)")
-                            .font(.mono(15))
-                            .foregroundStyle(Theme.label3)
-                            .frame(width: 16, alignment: .trailing)
-                        PriorityBadge(task: task)
+                    HStack(spacing: DoneSpace.s12) {
+                        NumberTile(position: offset + 1, isFilled: false)
                         Text(task.title)
-                            .font(.text(14))
+                            .doneText(.bodyStrong)
+                            .foregroundStyle(DoneColor.textPrimary)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        Text(blockedReason(task))
-                            .font(.text(12))
-                            .foregroundStyle(Theme.label2)
+                        StateChip(kind: .blocked, title: blockedReason(task))
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
+                    .padding(.horizontal, DoneSpace.s12)
+                    .frame(minHeight: 52)
                 }
             }
-            .padding(4)
-            .surface(radius: 18)
+            .padding(DoneSpace.s6)
+            .doneCard(radius: DoneRadius.lg)
             .frame(maxWidth: 520)
-            .padding(.top, 28)
-            HStack(spacing: 10) {
+            .padding(.top, DoneSpace.s24)
+            HStack(spacing: DoneSpace.s8) {
                 Button("Faire une pause") { engine.takeBreak(minutes: model.rules.shortBreakMinutes) }
-                    .buttonStyle(PillButtonStyle())
+                    .buttonStyle(DoneButtonStyle())
                 Button("Revoir le plan", action: openPlan)
-                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
             }
-            .padding(.top, 32)
+            .padding(.top, DoneSpace.s32)
         }
     }
 
@@ -311,34 +305,33 @@ struct SuggestionView: View {
             Eyebrow(text: "Réunion à venir")
             if let meeting = suggestion.nextMeeting {
                 Text("\(meeting.title) commence à \(Format.time(meeting.start))")
-                    .font(.display(36))
-                    .tracking(-0.54)
+                    .doneText(.displayL)
                     .frame(maxWidth: 640)
-                    .padding(.top, 16)
+                    .padding(.top, DoneSpace.s16)
             }
             Text("Il reste \(Format.minutes(Double(available)))")
-                .font(.text(17, .semibold))
-                .foregroundStyle(Theme.orangeText)
-                .padding(.top, 14)
+                .doneText(.title)
+                .foregroundStyle(DoneColor.stateActiveText)
+                .padding(.top, DoneSpace.s12)
             Text("Aucune tâche du plan ne tient dans ce temps.")
-                .font(.text(15))
-                .foregroundStyle(Theme.label2)
-                .padding(.top, 6)
-            HStack(spacing: 10) {
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textSecondary)
+                .padding(.top, DoneSpace.s6)
+            HStack(spacing: DoneSpace.s8) {
                 if let preparation = suggestion.preparation {
                     Button(preparation.title) {
                         engine.start(action: preparation, root: model.index.root(of: preparation), minutes: max(5, available))
                     }
-                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
                 }
                 Button("Faire une pause") { engine.takeBreak(minutes: max(1, available)) }
-                    .buttonStyle(PillButtonStyle())
+                    .buttonStyle(DoneButtonStyle())
             }
-            .padding(.top, 36)
+            .padding(.top, DoneSpace.s32)
             Button("Ignorer la réunion") { ignoreMeetings = true }
-                .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-                .padding(.top, 10)
+                .buttonStyle(DoneButtonStyle(kind: .plain))
+                .padding(.top, DoneSpace.s8)
         }
     }
 
@@ -355,17 +348,18 @@ struct SuggestionView: View {
     }
 }
 
-/// Position dans le plan : un point par tâche, la tâche en cours en pastille allongée.
+/// Position dans le plan, à la manière du cycle pomodoro : un segment par tâche,
+/// pleins jusqu'à la tâche en cours.
 struct PlanDots: View {
     let position: Int
     let count: Int
 
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: DoneSpace.s4) {
             ForEach(1...max(count, 1), id: \.self) { index in
                 Capsule()
-                    .fill(index <= position ? Theme.ring : Theme.track)
-                    .frame(width: index == position ? 22 : 8, height: 8)
+                    .fill(index <= position ? DoneColor.stateActive : DoneColor.pomodoroTrack)
+                    .frame(width: 22, height: 6)
             }
         }
     }
@@ -376,17 +370,18 @@ struct ReviewPrompt: View {
     let action: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DoneSpace.s12) {
             Image(systemName: "moon.stars")
-                .foregroundStyle(Theme.accentText)
+                .foregroundStyle(DoneColor.stateActiveText)
             Text("C'est l'heure du bilan du soir")
-                .font(.text(13))
+                .doneText(.callout)
+                .foregroundStyle(DoneColor.textPrimary)
             Button("Faire le bilan", action: action)
-                .buttonStyle(PillButtonStyle(kind: .primary, size: .mini))
+                .buttonStyle(DoneButtonStyle(compact: true))
         }
-        .padding(.leading, 16)
-        .padding(.trailing, 4)
+        .padding(.leading, DoneSpace.s12)
+        .padding(.trailing, DoneSpace.s4)
         .frame(height: 36)
-        .glassBackground(Capsule())
+        .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous))
     }
 }

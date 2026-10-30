@@ -30,10 +30,10 @@ struct SettingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: DoneSpace.s24) {
                 Text("Réglages")
-                    .font(.display(30, bold: true))
-                    .tracking(-0.45)
+                    .doneText(.displayL)
+                    .foregroundStyle(DoneColor.textPrimary)
 
                 SettingsSection("Rythme") {
                     stepperRow("Session", value: $defaultMinutes, range: 10...90, step: 5, unit: "min")
@@ -71,13 +71,13 @@ struct SettingsView: View {
                     SettingsRow {
                         dndStatusLabel
                     } trailing: {
-                        HStack(spacing: 6) {
+                        HStack(spacing: DoneSpace.s6) {
                             Button("Raccourcis") { SystemBridge.openShortcutsApp() }
-                                .buttonStyle(PillButtonStyle(size: .mini))
+                                .buttonStyle(DoneButtonStyle(compact: true))
                             Button("Vérifier") { Task { await checkShortcuts() } }
-                                .buttonStyle(PillButtonStyle(size: .mini))
+                                .buttonStyle(DoneButtonStyle(compact: true))
                             Button("Tester") { Task { await testShortcuts() } }
-                                .buttonStyle(PillButtonStyle(size: .mini))
+                                .buttonStyle(DoneButtonStyle(compact: true))
                         }
                         .disabled(dndStatus == .checking)
                     }
@@ -87,17 +87,17 @@ struct SettingsView: View {
                     SettingsRow {
                         notificationStatusLabel
                     } trailing: {
-                        HStack(spacing: 6) {
+                        HStack(spacing: DoneSpace.s6) {
                             if notificationStatus == .notDetermined {
                                 Button("Autoriser") {
                                     Task { notificationStatus = await Notifier.shared.requestPermission() }
                                 }
-                                .buttonStyle(PillButtonStyle(kind: .primary, size: .mini))
+                                .buttonStyle(DoneButtonStyle(kind: .primary, compact: true))
                             }
                             Button("Réglages") { SystemBridge.openNotificationSettings() }
-                                .buttonStyle(PillButtonStyle(size: .mini))
+                                .buttonStyle(DoneButtonStyle(compact: true))
                             Button("Tester") { Task { await testNotification() } }
-                                .buttonStyle(PillButtonStyle(size: .mini))
+                                .buttonStyle(DoneButtonStyle(compact: true))
                         }
                     }
                     RowDivider()
@@ -114,24 +114,24 @@ struct SettingsView: View {
 
                 SettingsSection("Données", footer: "Tes tâches, projets et réunions restent sur ce Mac, dans un seul fichier. Done en garde une copie par jour, sur 30 jours, dans le dossier Sauvegardes à côté.") {
                     SettingsRow {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DoneSpace.s2) {
                             Text("Fichier des tâches")
                             Text((model.storage.fileURL.path as NSString).abbreviatingWithTildeInPath)
-                                .font(.text(12))
-                                .foregroundStyle(Theme.label2)
+                                .doneText(.caption)
+                                .foregroundStyle(DoneColor.textSecondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                         }
                     } trailing: {
                         Button("Afficher dans le Finder") { SystemBridge.revealInFinder(model.storage.fileURL) }
-                            .buttonStyle(PillButtonStyle(size: .mini))
+                            .buttonStyle(DoneButtonStyle(compact: true))
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, DoneSpace.s4)
                 }
             }
             .frame(width: 600)
-            .padding(.top, 4)
-            .padding(.bottom, 24)
+            .padding(.top, DoneSpace.s4)
+            .padding(.bottom, DoneSpace.s24)
             .frame(maxWidth: .infinity)
         }
         .scrollIndicators(.never)
@@ -143,10 +143,10 @@ struct SettingsView: View {
         SettingsRow {
             Text(title)
         } trailing: {
-            HStack(spacing: 12) {
+            HStack(spacing: DoneSpace.s12) {
                 Text(unit.map { "\(value.wrappedValue) \($0)" } ?? "\(value.wrappedValue)")
-                    .monospacedDigit()
-                GlassStepper(value: value, range: range, step: step)
+                    .doneText(.numericM)
+                DoneStepper(value: value, range: range, step: step)
             }
         }
     }
@@ -156,10 +156,8 @@ struct SettingsView: View {
             Text(title)
         } trailing: {
             TextField(title, text: text)
-                .textFieldStyle(.plain)
-                .multilineTextAlignment(.trailing)
-                .foregroundStyle(Theme.label2)
-                .frame(maxWidth: 260)
+                .doneField(focused: false, height: 28)
+                .frame(maxWidth: 220)
         }
     }
 
@@ -170,7 +168,7 @@ struct SettingsView: View {
             Toggle(title, isOn: isOn)
                 .toggleStyle(.switch)
                 .labelsHidden()
-                .tint(Theme.accent)
+                .tint(DoneColor.stateActive)
         }
     }
 
@@ -179,15 +177,15 @@ struct SettingsView: View {
         switch dndStatus {
         case .unknown:
             Text("État des raccourcis")
-                .foregroundStyle(Theme.label2)
+                .foregroundStyle(DoneColor.textSecondary)
         case .checking:
             ProgressView().controlSize(.small)
         case .ready:
             Label("Raccourcis opérationnels", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(Theme.accentText)
+                .foregroundStyle(DoneColor.stateActiveText)
         case .problem(let message):
-            Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(Theme.orangeText)
+            Label(message, systemImage: "triangle")
+                .foregroundStyle(DoneColor.stateRiskText)
                 .lineLimit(2)
         }
     }
@@ -195,8 +193,8 @@ struct SettingsView: View {
     @ViewBuilder
     private var notificationStatusLabel: some View {
         if let notificationTestError {
-            Label("macOS a refusé la notification : \(notificationTestError)", systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(Theme.orangeText)
+            Label("macOS a refusé la notification : \(notificationTestError)", systemImage: "triangle")
+                .foregroundStyle(DoneColor.stateRiskText)
                 .lineLimit(2)
         } else {
             switch notificationStatus {
@@ -204,19 +202,19 @@ struct SettingsView: View {
                 ProgressView().controlSize(.small)
             case .allowed:
                 Label("Notifications autorisées", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(Theme.accentText)
+                    .foregroundStyle(DoneColor.stateActiveText)
             case .notDetermined:
                 Text("Autorisation pas encore donnée")
-                    .foregroundStyle(Theme.label2)
+                    .foregroundStyle(DoneColor.textSecondary)
             case .denied:
-                Label("Refusées dans Réglages Système", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Theme.orangeText)
+                Label("Refusées dans Réglages Système", systemImage: "triangle")
+                    .foregroundStyle(DoneColor.stateRiskText)
             case .silent:
-                Label("Autorisées, mais sans bannière", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Theme.orangeText)
+                Label("Autorisées, mais sans bannière", systemImage: "triangle")
+                    .foregroundStyle(DoneColor.stateRiskText)
             case .failed(let message):
-                Label("macOS bloque les notifications de Done : \(message)", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Theme.orangeText)
+                Label("macOS bloque les notifications de Done : \(message)", systemImage: "triangle")
+                    .foregroundStyle(DoneColor.stateRiskText)
                     .lineLimit(2)
             }
         }
@@ -257,7 +255,7 @@ struct SettingsView: View {
 
 // MARK: Composants des réglages
 
-/// Section : étiquette en DM Mono, carte, note facultative.
+/// Section : étiquette en capitales, carte, note facultative.
 private struct SettingsSection<Content: View>: View {
     let title: String
     let footer: String?
@@ -270,21 +268,21 @@ private struct SettingsSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DoneSpace.s8) {
             Eyebrow(text: title)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, DoneSpace.s6)
             if Content.self != EmptyView.self {
                 VStack(spacing: 0) {
                     content
                 }
-                .surface(radius: 16)
+                .doneCard(radius: DoneRadius.lg)
             }
             if let footer {
                 Text(footer)
-                    .font(.text(12))
-                    .foregroundStyle(Theme.label2)
+                    .doneText(.caption)
+                    .foregroundStyle(DoneColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, DoneSpace.s6)
             }
         }
     }
@@ -301,19 +299,20 @@ private struct SettingsRow<Leading: View, Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DoneSpace.s12) {
             leading
                 .frame(maxWidth: .infinity, alignment: .leading)
             trailing
         }
-        .font(.text(14))
-        .padding(.horizontal, 16)
-        .frame(minHeight: 42)
+        .doneText(.body)
+        .foregroundStyle(DoneColor.textPrimary)
+        .padding(.horizontal, DoneSpace.s16)
+        .frame(minHeight: 44)
     }
 }
 
 private struct RowDivider: View {
     var body: some View {
-        Hairline().padding(.horizontal, 16)
+        Hairline().padding(.horizontal, DoneSpace.s16)
     }
 }

@@ -1,96 +1,59 @@
 import SwiftUI
 
 struct RootView: View {
-    enum Screen: CaseIterable, Identifiable, Hashable {
-        case focus, tasks, plan, stats, settings
-
-        var id: Self { self }
-
-        var title: String {
-            switch self {
-            case .focus: "Focus"
-            case .tasks: "Tâches"
-            case .plan: "Plan du jour"
-            case .stats: "Stats"
-            case .settings: "Réglages"
-            }
-        }
-
-        var shortcut: KeyEquivalent {
-            switch self {
-            case .focus: "1"
-            case .tasks: "2"
-            case .plan: "3"
-            case .stats: "4"
-            case .settings: "5"
-            }
-        }
+    enum Screen: Hashable {
+        case focus
+        case plan
+        /// Une liste de tâches : `nil` pour l'Inbox, sinon l'identifiant du projet.
+        case list(String?)
+        case stats
+        case settings
     }
 
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     @State private var screen: Screen = .focus
     @State private var choseInitialScreen = false
-    @State private var revealTabBar = false
+    @State private var revealSidebar = false
     @State private var showCapture = false
 
     var body: some View {
-        main
-    }
-
-    /// Sur l'écran Focus, toute phase autre que le repos est une session :
-    /// la navigation s'efface, il ne reste que la tâche et le minuteur.
-    private var inSession: Bool {
-        screen == .focus && engine.phase != .idle
-    }
-
-    private var showTabBar: Bool { !inSession || revealTabBar }
-
-    private var backdropStyle: BackdropStyle {
-        guard screen == .focus else { return .wash }
-        switch engine.phase {
-        case .idle: return .wash
-        case .focusing, .paused: return .session
-        case .interrupted: return .interruption
-        case .awaitingOutcome: return .finished
-        case .onBreak: return .rest
-        }
-    }
-
-    private var main: some View {
-        ZStack {
-            Backdrop(style: backdropStyle)
-                .animation(.easeInOut(duration: 0.6), value: backdropStyle)
-            VStack(spacing: 0) {
-                TopBar(screen: screen, inSession: inSession) { showCapture = true }
-                if let message = model.errorMessage {
-                    ErrorBanner(message: message) { model.errorMessage = nil }
-                        .padding(.horizontal, 32)
-                        .padding(.bottom, 8)
+        ZStack(alignment: .leading) {
+            HStack(spacing: 0) {
+                if !inSession {
+                    Sidebar(screen: $screen)
+                        .transition(.move(edge: .leading))
                 }
-                detail
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                content
             }
-            .ignoresSafeArea(.container, edges: .top)
+            if inSession {
+                // Bord gauche : la barre latérale revient au survol, par-dessus la session.
+                Color.clear
+                    .frame(width: 12)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onHover { inside in
+                        if inside { revealSidebar = true }
+                    }
+                if revealSidebar {
+                    Sidebar(screen: $screen)
+                        .shadow(color: DoneColor.shadowRaised, radius: 14, x: 4)
+                        .onHover { inside in
+                            if !inside { revealSidebar = false }
+                        }
+                        .transition(.move(edge: .leading))
+                }
+            }
         }
-        // La barre flotte au-dessus du contenu, qui garde de la place pour elle.
-        // Masquée pendant une session, elle revient quand la souris approche du bas.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            FloatingTabBar(selection: $screen)
-                .opacity(showTabBar ? 1 : 0)
-                .offset(y: showTabBar ? 0 : 20)
-                .allowsHitTesting(showTabBar)
-                .animation(.easeInOut(duration: 0.3), value: showTabBar)
-                .padding(.bottom, 16)
-                .padding(.top, 8)
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
-                .onHover { inside in revealTabBar = inside }
-        }
+        .ignoresSafeArea(.container, edges: .top)
+        .animation(.easeInOut(duration: 0.25), value: inSession)
+        .animation(.easeInOut(duration: 0.2), value: revealSidebar)
+        .background { ShortcutKeys(screen: $screen) { showCapture = true } }
+        .onChange(of: inSession) { revealSidebar = false }
         .onAppear {
             if !choseInitialScreen {
                 if model.index.all.isEmpty {
-                    screen = .tasks
+                    screen = .list(nil)
                 } else {
                     screen = model.todayPlan == nil ? .plan : .focus
                 }
@@ -103,15 +66,42 @@ struct RootView: View {
         }
     }
 
+    /// Sur l'écran Focus, toute phase autre que le repos est une session :
+    /// la navigation s'efface, il ne reste que la tâche et le minuteur.
+    private var inSession: Bool {
+        screen == .focus && engine.phase != .idle
+    }
+
+    private var content: some View {
+        VStack(spacing: 0) {
+            TopBar(screen: screen, inSession: inSession) { showCapture = true }
+            if let message = model.errorMessage {
+                ErrorBanner(message: message) { model.errorMessage = nil }
+                    .padding(.horizontal, DoneSpace.s32)
+                    .padding(.bottom, DoneSpace.s8)
+            }
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(contentBackground)
+    }
+
+    /// Fond lavande pendant la pause : on sait dans quelle phase on est sans lire.
+    private var contentBackground: Color {
+        screen == .focus && engine.phase == .onBreak ? DoneColor.pomodoroBreakBg : DoneColor.bgCanvas
+    }
+
     @ViewBuilder
     private var detail: some View {
         switch screen {
         case .focus:
-            FocusView(openPlan: { screen = .plan }, openTasks: { screen = .tasks })
-        case .tasks:
-            TasksView()
+            FocusView(openPlan: { screen = .plan }, openTasks: { screen = .list(nil) })
         case .plan:
             PlanView(onValidate: { screen = .focus })
+        case .list(let projectID):
+            TaskListView(projectID: projectID)
+                .id(projectID ?? "inbox")
         case .stats:
             StatsView()
         case .settings:
@@ -120,8 +110,205 @@ struct RootView: View {
     }
 }
 
-/// Barre du haut, dans la zone de titre : pastille de réunion au centre, nouvelle tâche à droite.
-/// Les feux de la fenêtre restent à gauche.
+/// Raccourcis clavier, toujours actifs, même en session quand la barre latérale est masquée.
+private struct ShortcutKeys: View {
+    @Binding var screen: RootView.Screen
+    let onCapture: () -> Void
+
+    var body: some View {
+        ZStack {
+            Button("Focus") { screen = .focus }
+                .keyboardShortcut("1")
+            Button("Plan du jour") { screen = .plan }
+                .keyboardShortcut("2")
+            Button("Inbox") { screen = .list(nil) }
+                .keyboardShortcut("3")
+            Button("Stats") { screen = .stats }
+                .keyboardShortcut("4")
+            Button("Réglages") { screen = .settings }
+                .keyboardShortcut(",")
+            Button("Nouvelle tâche", action: onCapture)
+                .keyboardShortcut("n")
+        }
+        .buttonStyle(.plain)
+        .opacity(0)
+        .frame(width: 1, height: 1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: Barre latérale
+
+/// Navigation à gauche : Focus et Plan du jour, puis l'Inbox et les projets, puis Stats et Réglages.
+private struct Sidebar: View {
+    @Environment(AppModel.self) private var model
+    @Binding var screen: RootView.Screen
+
+    @State private var dropTarget: String?
+    @State private var naming: Naming?
+    @State private var nameDraft = ""
+    @State private var deletingProject: Project?
+
+    private enum Naming: Identifiable {
+        case new
+        case rename(Project)
+
+        var id: String {
+            switch self {
+            case .new: "new"
+            case .rename(let project): project.id
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .new: "Nouveau projet"
+            case .rename: "Renommer le projet"
+            }
+        }
+
+        var action: String {
+            switch self {
+            case .new: "Créer"
+            case .rename: "Renommer"
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DoneSpace.s2) {
+            NavItem(title: "Focus", icon: Image("DoneGlyph"), isSelected: screen == .focus) { screen = .focus }
+                .help("Focus (⌘1)")
+            NavItem(title: "Plan du jour", icon: Image(systemName: "calendar"), counter: planCounter, isSelected: screen == .plan) { screen = .plan }
+                .help("Plan du jour (⌘2)")
+
+            Eyebrow(text: "Listes")
+                .padding(.leading, DoneSpace.s8)
+                .padding(.top, DoneSpace.s20)
+                .padding(.bottom, DoneSpace.s6)
+            ScrollView {
+                VStack(alignment: .leading, spacing: DoneSpace.s2) {
+                    listItem(id: nil, name: "Inbox", symbol: "tray")
+                        .help("Inbox (⌘3)")
+                    ForEach(model.projects) { project in
+                        listItem(id: project.id, name: project.name, symbol: "folder")
+                            .contextMenu { projectMenu(project) }
+                    }
+                    Button {
+                        nameDraft = ""
+                        naming = .new
+                    } label: {
+                        Label("Nouveau projet", systemImage: "plus")
+                    }
+                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
+                    .padding(.top, DoneSpace.s4)
+                }
+            }
+            .scrollIndicators(.never)
+
+            Spacer(minLength: DoneSpace.s16)
+            NavItem(title: "Stats", icon: Image(systemName: "chart.bar"), isSelected: screen == .stats) { screen = .stats }
+                .help("Stats (⌘4)")
+            NavItem(title: "Réglages", icon: Image(systemName: "gearshape"), isSelected: screen == .settings) { screen = .settings }
+                .help("Réglages (⌘,)")
+        }
+        .padding(.horizontal, DoneSpace.s12)
+        // Les feux de la fenêtre occupent le haut de la barre.
+        .padding(.top, 52)
+        .padding(.bottom, DoneSpace.s12)
+        .frame(width: 228)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(DoneColor.bgSunken)
+        .overlay(alignment: .trailing) {
+            Rectangle().fill(DoneColor.borderSubtle).frame(width: 1)
+        }
+        .alert(naming?.title ?? "", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
+            TextField("Nom du projet", text: $nameDraft)
+            Button("Annuler", role: .cancel) { naming = nil }
+            Button(naming?.action ?? "OK") { commitNaming() }
+        }
+        .confirmationDialog(
+            "Supprimer le projet « \(deletingProject?.name ?? "") » ?",
+            isPresented: Binding(get: { deletingProject != nil }, set: { if !$0 { deletingProject = nil } }),
+            presenting: deletingProject
+        ) { project in
+            Button("Supprimer le projet", role: .destructive) {
+                if screen == .list(project.id) { screen = .list(nil) }
+                model.deleteProject(project.id)
+                deletingProject = nil
+            }
+        } message: { project in
+            let count = model.openCount(in: project.id)
+            Text(count == 0 ? "Il ne contient aucune tâche ouverte." : "Ses \(count) tâche\(count > 1 ? "s" : "") passe\(count > 1 ? "nt" : "") dans l'Inbox.")
+        }
+    }
+
+    /// Tâches du plan encore ouvertes.
+    private var planCounter: String? {
+        let count = model.planIDs.count
+        return count > 0 ? "\(count)" : nil
+    }
+
+    private func listItem(id: String?, name: String, symbol: String) -> some View {
+        let key = id ?? "inbox"
+        let count = model.openCount(in: id)
+        return NavItem(
+            title: name,
+            icon: Image(systemName: symbol),
+            counter: count > 0 ? "\(count)" : nil,
+            isSelected: screen == .list(id),
+            isDropTarget: dropTarget == key
+        ) {
+            screen = .list(id)
+        }
+        // Glisser une tâche sur une liste l'y range.
+        .dropDestination(for: String.self) { ids, _ in
+            for taskID in ids {
+                guard var task = model.store[taskID], task.parentID == nil else { continue }
+                task.projectID = id
+                model.update(task)
+            }
+            return true
+        } isTargeted: { targeted in
+            if targeted {
+                dropTarget = key
+            } else if dropTarget == key {
+                dropTarget = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func projectMenu(_ project: Project) -> some View {
+        Button("Renommer…") {
+            nameDraft = project.name
+            naming = .rename(project)
+        }
+        Button("Monter") { model.shiftProject(project.id, by: -1) }
+            .disabled(project.id == model.projects.first?.id)
+        Button("Descendre") { model.shiftProject(project.id, by: 1) }
+            .disabled(project.id == model.projects.last?.id)
+        Divider()
+        Button("Supprimer le projet…", role: .destructive) { deletingProject = project }
+    }
+
+    private func commitNaming() {
+        switch naming {
+        case .new:
+            if let project = model.addProject(named: nameDraft) { screen = .list(project.id) }
+        case .rename(let project):
+            model.renameProject(project.id, to: nameDraft)
+        case nil:
+            break
+        }
+        naming = nil
+    }
+}
+
+// MARK: Barre du haut
+
+/// Barre du haut, dans la zone de titre : réunion au centre, nouvelle tâche à droite.
 private struct TopBar: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
@@ -131,26 +318,25 @@ private struct TopBar: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
-            HStack(spacing: 12) {
+            HStack(spacing: DoneSpace.s12) {
+                // Place des feux de la fenêtre quand la barre latérale est masquée.
                 Color.clear.frame(width: 80)
                 Spacer(minLength: 0)
                 center(now: context.date)
                 Spacer(minLength: 0)
                 HStack {
-                    // Toujours présent, même invisible en session : ⌘N note une tâche sans perdre le fil.
                     Button(action: onCapture) {
                         Image(systemName: "plus")
                     }
-                    .buttonStyle(RoundGlassButtonStyle())
+                    .buttonStyle(DoneIconButtonStyle())
                     .help("Nouvelle tâche (⌘N)")
-                    .keyboardShortcut("n")
                     .opacity(inSession ? 0 : 1)
                     .allowsHitTesting(!inSession)
                 }
                 .frame(width: 80, alignment: .trailing)
             }
-            .padding(.horizontal, 16)
-            .frame(height: 60)
+            .padding(.horizontal, DoneSpace.s16)
+            .frame(height: 52)
         }
     }
 
@@ -170,127 +356,45 @@ private struct TopBar: View {
     }
 }
 
-/// Pastille en verre : réunion en cours ou prochaine réunion.
+/// Pastille de réunion : pleine Aubergine pendant une réunion, hachurée pour la prochaine.
 struct MeetingPill: View {
     struct Content {
-        enum Dot { case filled, hollow }
         let text: String
-        let dot: Dot
+        let isOngoing: Bool
         let help: String
     }
 
     let content: Content
 
     var body: some View {
-        HStack(spacing: 8) {
-            dot
-            Text(content.text)
-                .font(.text(13))
-                .foregroundStyle(Theme.label)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 14)
-        .frame(height: 32)
-        .glassBackground(Capsule())
-        .help(content.help)
-    }
-
-    @ViewBuilder
-    private var dot: some View {
-        switch content.dot {
-        case .filled:
-            Circle().fill(Theme.label2).frame(width: 7, height: 7)
-        case .hollow:
-            Circle().strokeBorder(Theme.label2, lineWidth: 1.5).frame(width: 7, height: 7)
-        }
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        Text(content.text)
+            .font(.plex(13, .medium))
+            .foregroundStyle(content.isOngoing ? DoneColor.meetingOnNow : DoneColor.textPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, DoneSpace.s12)
+            .frame(height: 28)
+            .background {
+                if content.isOngoing {
+                    shape.fill(DoneColor.meetingNow)
+                } else {
+                    ZStack {
+                        DoneColor.meetingBg
+                        Hatching()
+                    }
+                    .clipShape(shape)
+                }
+            }
+            .help(content.help)
     }
 
     static func make(meetings: [Meeting], now: Date, includeNext: Bool) -> Content? {
         if let ongoing = meetings.first(where: { $0.contains(now) }) {
-            return Content(text: "Réunion en cours jusqu'à \(Format.time(ongoing.end))", dot: .filled, help: ongoing.title)
+            return Content(text: "\(ongoing.title) · fin \(Format.time(ongoing.end))", isOngoing: true, help: "Réunion en cours")
         }
         guard includeNext, let next = meetings.first(where: { $0.start > now }) else { return nil }
         let minutes = Format.minutes(next.start.timeIntervalSince(now) / 60)
-        return Content(text: "Prochaine réunion à \(Format.time(next.start)) · dans \(minutes)", dot: .hollow, help: next.title)
-    }
-}
-
-/// Barre d'onglets flottante, centrée en bas : une pilule en verre.
-struct FloatingTabBar: View {
-    @Binding var selection: RootView.Screen
-    @Namespace private var namespace
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(RootView.Screen.allCases) { screen in
-                TabBarItem(screen: screen, isSelected: selection == screen, namespace: namespace) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                        selection = screen
-                    }
-                }
-                .keyboardShortcut(screen.shortcut, modifiers: .command)
-            }
-        }
-        .padding(5)
-        .liquidGlass(Capsule())
-    }
-}
-
-private struct TabBarItem: View {
-    let screen: RootView.Screen
-    let isSelected: Bool
-    let namespace: Namespace.ID
-    let action: () -> Void
-
-    @State private var hovered = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                icon
-                    .frame(width: 16, height: 16)
-                Text(screen.title)
-                    .font(.text(13, isSelected ? .semibold : .regular))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(isSelected ? Theme.accentText : (hovered ? Theme.label : Theme.label2))
-            .padding(.horizontal, 18)
-            .frame(height: 40)
-            .background {
-                if isSelected {
-                    Capsule()
-                        .fill(Theme.selection)
-                        .matchedGeometryEffect(id: "selection", in: namespace)
-                }
-            }
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovered = $0 }
-        .help("\(screen.title) (⌘\(String(screen.shortcut.character)))")
-    }
-
-    @ViewBuilder
-    private var icon: some View {
-        switch screen {
-        case .focus:
-            Image("DoneGlyph")
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-        case .tasks:
-            Image(systemName: "checklist")
-                .font(.system(size: 13, weight: .medium))
-        case .plan:
-            Image(systemName: "text.alignleft")
-                .font(.system(size: 13, weight: .medium))
-        case .stats:
-            Image(systemName: "chart.bar.fill")
-                .font(.system(size: 13, weight: .medium))
-        case .settings:
-            Image(systemName: "smallcircle.filled.circle")
-                .font(.system(size: 14, weight: .medium))
-        }
+        return Content(text: "\(next.title) à \(Format.time(next.start)) · dans \(minutes)", isOngoing: false, help: "Prochaine réunion")
     }
 }
 
@@ -299,12 +403,12 @@ struct ErrorBanner: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: DoneSpace.s8) {
             NoticeBox(text: message, tone: .error)
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.label2)
+                    .foregroundStyle(DoneColor.textSecondary)
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
             }

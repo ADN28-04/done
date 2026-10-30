@@ -31,13 +31,13 @@ struct DoneApp: App {
             RootView()
                 .environment(model)
                 .environment(engine)
-                .font(.text(13))
-                .foregroundStyle(Theme.label)
-                .tint(Theme.accent)
-                .frame(minWidth: 820, minHeight: 640)
+                .font(.done(.body))
+                .foregroundStyle(DoneColor.textPrimary)
+                .tint(DoneColor.stateActive)
+                .frame(minWidth: 1000, minHeight: 660)
         }
         .modelContainer(container)
-        // Le contenu monte sous la barre de titre : fond teinté et barre du haut maison.
+        // Le contenu monte sous la barre de titre : barre latérale et barre du haut maison.
         .windowStyle(.hiddenTitleBar)
 
         // Le minuteur reste visible dans la barre de menus, même fenêtre fermée.
@@ -45,8 +45,9 @@ struct DoneApp: App {
             MenuBarView()
                 .environment(model)
                 .environment(engine)
-                .font(.text(13))
-                .foregroundStyle(Theme.label)
+                .font(.done(.body))
+                .foregroundStyle(DoneColor.textPrimary)
+                .tint(DoneColor.stateActive)
         } label: {
             MenuBarLabel(engine: engine)
         }

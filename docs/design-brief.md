@@ -1,6 +1,6 @@
 # Brief design : Done, app Pomodoro pour macOS
 
-> Brief d'origine, écrit quand Done lisait ses tâches dans Todoist. Il reste la référence des maquettes v9 ; l'app gère maintenant ses tâches elle-même (voir `spec.md`).
+> Brief d'origine, écrit quand Done lisait ses tâches dans Todoist, à la base des maquettes v9 (« Verre »). Le design actuel est le design system v3 (voir `design-system.md`), et l'app gère maintenant ses tâches elle-même (voir `spec.md`).
 
 ## Contexte
 

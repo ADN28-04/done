@@ -7,7 +7,7 @@ Done gère simplement une liste de tâches et un minuteur Pomodoro. Il ne dépen
 ## 1. Scénarios d'usage
 
 ### S1. Noter une tâche
-Une demande arrive pendant que je travaille. ⌘N, depuis n'importe quel écran, même en pleine session : un champ, j'écris, Entrée. La tâche part dans l'Inbox. Plus tard, dans l'onglet Tâches, je la range dans un projet, je lui donne une priorité, une échéance si elle compte, et des étapes si elle est grosse.
+Une demande arrive pendant que je travaille. ⌘N, depuis n'importe quel écran, même en pleine session : un champ, j'écris, Entrée. La tâche part dans l'Inbox. Plus tard, dans l'Inbox, je la range dans un projet, je lui donne une priorité, une échéance si elle compte, et des étapes si elle est grosse.
 
 ### S2. Le rituel du matin
 J'arrive, je lis mes mails, j'ajoute ce qui manque. Dans le Plan du jour, Done me montre une liste de candidates : les tâches P1 et P2, et celles qui arrivent à échéance dans les 3 jours ou sont en retard. Je saisis mes réunions du jour, je glisse mes trois tâches dans l'ordre d'importance et je valide. Durée cible : moins de deux minutes.
@@ -40,14 +40,14 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 | Projets | Listes simples, en plus de l'Inbox. Créer, renommer, réordonner, supprimer (les tâches passent alors dans l'Inbox). Glisser une tâche sur une liste l'y range. |
 | Capture rapide | ⌘N depuis n'importe quel écran, même en session : une ligne, Entrée, la tâche part dans l'Inbox (ou la liste choisie). |
 | Liste de candidates | Les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin : une date lointaine est volontaire (« pas avant »). |
-| Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. Une tâche peut aussi y être ajoutée depuis l'onglet Tâches. |
+| Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. Une tâche peut aussi y être ajoutée depuis sa liste (clic droit). |
 | Réunions | Saisies à la main dans le Plan du jour : titre, jour, début, fin. Affichées dans la pastille du haut, prises en compte pour proposer une tâche qui tient avant la prochaine. Oubliées le lendemain. |
 | Prochaine action | La première étape faisable de la tâche en cours : ni bloquée, ni datée au-delà de l'horizon. Si plus rien n'est faisable, l'écran Focus indique la date de reprise. |
 | Durée adaptée | Rapide : 15 min. Par défaut : 25 min. Deepwork : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
 | Minuteur | Démarrer, pause, reprendre, « C'est fait ». Rallonge de 5 min en cours ou en fin de session, 10 min au plus par pomodoro. Une étape cochée avant la fin enchaîne sur la suivante de la même tâche, dans le temps qui reste. Pause obligatoire avant de changer de tâche principale. Notification de fin de session et de fin de pause, doublée d'un son joué par Done et du Dock qui rebondit jusqu'au retour dans l'app. Réglages › Notifications montre si macOS les autorise et permet d'en envoyer une de test. |
 | Interruptions | Bouton Interrompre avec raison (réunion, urgence, autre). Temps partiel enregistré. |
-| Étape bloquée | « Bloqué… » en session ou en fin de session : je dis en une ligne ce qui bloque. L'étape reste dans la liste, marquée bloquée, avec la raison en note de reprise. Done passe à l'étape suivante de la même tâche dans le temps qui reste (une minute au moins, sinon pause). S'il n'y en a pas, pause obligatoire puis tâche suivante du plan. Je la débloque dans l'onglet Tâches. |
-| Découpage | « Découper… » sur l'écran Focus (sauf tâche rapide), dans l'onglet Tâches et dans le bilan du soir : je saisis les étapes qui mènent la tâche au bout, dans l'ordre (10 au plus). Done les propose ensuite une par une, puis la tâche elle-même pour la clore. |
+| Étape bloquée | « Bloqué… » en session ou en fin de session : je dis en une ligne ce qui bloque. L'étape reste dans la liste, marquée bloquée, avec la raison en note de reprise. Done passe à l'étape suivante de la même tâche dans le temps qui reste (une minute au moins, sinon pause). S'il n'y en a pas, pause obligatoire puis tâche suivante du plan. Je la débloque dans sa liste. |
+| Découpage | « Découper… » sur l'écran Focus (sauf tâche rapide), dans les listes (clic droit) et dans le bilan du soir : je saisis les étapes qui mènent la tâche au bout, dans l'ordre (10 au plus). Done les propose ensuite une par une, puis la tâche elle-même pour la clore. |
 | Historique | Chaque session est enregistrée : tâche, projet, durée prévue, durée réelle, issue, interruptions. |
 | Stats | Temps de focus par jour et par semaine, sessions, tâches cochées, interruptions, temps par projet. |
 | Barre de menus | Temps restant affiché en permanence, avec Pause, Reprendre et Ouvrir Done. |
@@ -80,7 +80,7 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 ### Écrans
 
 1. **Focus** (écran principal) : la tâche du plan, sa prochaine action en grand, la durée proposée (modifiable), le temps avant la prochaine réunion. Boutons Démarrer, Passer, Changer de tâche, Découper. Sans tâche du tout, une invitation à en ajouter.
-2. **Tâches** : à gauche, l'Inbox et les projets avec leur nombre de tâches ouvertes. À droite, la liste choisie : champ d'ajout en haut, tâches et étapes indentées, case à cocher de la couleur de la priorité, une ligne de détails (échéance, étapes, type, « Bloquée »), pastille « Aujourd'hui » si la tâche est dans le plan. Un clic ouvre la fiche ; clic droit pour l'échéance, la priorité, le type, le déplacement, le plan du jour, le découpage, le blocage ou la suppression. En bas, les tâches terminées récemment, à rouvrir si besoin.
+2. **Liste de tâches** (Inbox ou projet, choisis dans la barre latérale) : champ d'ajout en haut, tâches et étapes indentées, case à cocher carrée, une ligne de détails (étapes, notes) et des puces à droite : priorité (P1, P2), « Bloquée », échéance (en couleur d'alerte une fois dépassée), durée pour une tâche rapide ou Deepwork, « Aujourd'hui » si la tâche est dans le plan. Un clic ouvre la fiche ; clic droit pour l'échéance, la priorité, le type, le déplacement, le plan du jour, le découpage, le blocage ou la suppression. En bas, les tâches terminées récemment, à rouvrir si besoin.
 3. **Fiche d'une tâche** : titre, notes, liste, priorité, type, échéance, bloquée, étapes (ajoutées et cochées tout de suite), Supprimer, Enregistrer (⌘↩).
 4. **Capture rapide** (⌘N) : une ligne et le choix de la liste.
 5. **Plan du jour** : à gauche, les candidates triées par priorité puis échéance. À droite, la liste « Aujourd'hui » que j'ordonne par glisser-déposer (3 recommandées, 5 au maximum), puis les réunions à venir avec « Ajouter ». Bouton « Chercher une autre tâche ». Bouton Valider.
@@ -120,7 +120,7 @@ Focus → Démarrer → Session en cours
 
 ### Navigation
 
-Une fenêtre sans barre latérale. La navigation passe par une barre d'onglets flottante, centrée en bas : une pilule en Liquid Glass (verre dépoli avant macOS 26) avec Focus, Tâches, Plan du jour, Stats et Réglages, accessibles aussi par ⌘1 à ⌘5. Pendant une session (minuteur, pause, interruption, fin de session, pause café), la barre s'efface et revient quand la souris approche du bas de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
+Une fenêtre avec une barre latérale à gauche : Focus (⌘1) et Plan du jour (⌘2) en haut, puis les listes (Inbox ⌘3, et les projets, avec leur nombre de tâches ouvertes), puis Stats (⌘4) et Réglages (⌘,) en bas. On crée, renomme, réordonne et supprime les projets depuis la barre (clic droit), et on y glisse une tâche pour la ranger. Pendant une session (minuteur, pause, interruption, fin de session), la barre s'efface pour ne laisser que le minuteur, et revient quand la souris touche le bord gauche de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
 
 ## 4. Données
 

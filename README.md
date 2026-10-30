@@ -14,7 +14,7 @@ Il faut un Mac sous macOS 14 ou plus récent, et Xcode 16 ou plus récent.
 2. Dans la cible **Done**, onglet **Signing & Capabilities**, choisir son équipe (un Apple ID gratuit, « Personal Team », suffit). Sans équipe, Xcode signe en local, ce qui marche aussi, mais macOS peut bloquer les notifications.
 3. Lancer avec ⌘R.
 4. Accepter les notifications quand macOS les demande.
-5. Ajouter ses tâches dans l'onglet Tâches, ou avec ⌘N depuis n'importe quel écran.
+5. Ajouter ses tâches dans l'Inbox (barre latérale), ou avec ⌘N depuis n'importe quel écran.
 
 ### Installer ou mettre à jour l'app dans Applications
 
@@ -67,8 +67,8 @@ Done/
   Data/       modèles SwiftData (plan du jour, sessions, interruptions)
   Services/   fichier des tâches, notifications, « Ne pas déranger », appels AppKit
   State/      AppModel (tâches, réunions, plan) et FocusEngine (minuteur)
-  Views/      écrans SwiftUI, et Theme.swift pour les couleurs, polices et composants du design system
-  Fonts/      Plus Jakarta Sans, DM Sans et DM Mono (licences OFL dans docs/fonts/)
+  Views/      écrans SwiftUI, et Theme.swift pour les tokens et composants du design system v3
+  Fonts/      Bricolage Grotesque et IBM Plex Sans (licences OFL dans docs/fonts/)
   Assets.xcassets/  icône de l'app et couleur d'accent
 ```
 
@@ -83,12 +83,12 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Durée** : 15 min pour une tâche rapide, 50 min pour une tâche Deepwork, 25 min sinon. Pause de 10 min après une session Deepwork, 5 min sinon.
 - **Enchaînement** : « C'est fait » coche l'action tout de suite. S'il reste au moins une minute et qu'une étape suit dans la même tâche, Done propose de l'enchaîner dans le même pomodoro ; sinon, pause. Chaque étape garde sa propre session dans les stats.
 - **Rallonge** : « Ajouter 5 min » pendant la session ou « Encore 5 min » à la fin, 10 min au plus par pomodoro. Au-delà, une pause avant de continuer la même étape.
-- **Étape bloquée** : « Bloqué… » marque l'étape bloquée, garde la raison en note de reprise, puis passe à l'étape suivante de la même tâche. On la débloque dans l'onglet Tâches (menu contextuel ou fiche de la tâche).
+- **Étape bloquée** : « Bloqué… » marque l'étape bloquée, garde la raison en note de reprise, puis passe à l'étape suivante de la même tâche. On la débloque dans sa liste (clic droit ou fiche de la tâche).
 - **Pause obligatoire** : changer de tâche principale passe par une pause qui ne se passe pas. Après une tâche cochée, elle démarre seule ; après « Arrêter là » ou une pause passée, l'écran Focus propose « Démarrer la pause » avant une autre tâche. Une interruption n'en impose pas, pour laisser passer une urgence.
 - **Réunions** : saisies à la main dans le Plan du jour (titre, jour, début, fin). Done ne propose pas de session qui déborde sur la prochaine réunion, et prévient 5 minutes avant (réglable).
 - **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.
 - **Note de reprise** : en fin de session ou pendant une interruption, une ligne « Où tu en es ? », réaffichée la prochaine fois que la tâche revient. Effacée quand la tâche est cochée ou supprimée.
-- **Découpage** : « Découper… » sur l'écran Focus ou dans l'onglet Tâches ajoute les étapes qui mènent la tâche au bout, dans l'ordre. Après chaque étape cochée, Done propose la suivante ; une fois toutes faites, la tâche elle-même, pour la clore.
+- **Découpage** : « Découper… » sur l'écran Focus ou dans une liste (clic droit) ajoute les étapes qui mènent la tâche au bout, dans l'ordre. Après chaque étape cochée, Done propose la suivante ; une fois toutes faites, la tâche elle-même, pour la clore.
 - **Bilan du soir** : à partir de 17 h, Done propose de clore la journée ; les tâches non finies marquées « Demain » sont reprises dans le plan du lendemain.
 - **Avant une réunion** : si la tâche prévue ne tient pas, Done propose la suivante du plan qui tient, puis une tâche rapide, puis la préparation de la réunion ou une pause.
 

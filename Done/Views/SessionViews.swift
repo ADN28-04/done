@@ -12,52 +12,60 @@ struct SessionView: View {
             let paused = engine.phase == .paused
             VStack(spacing: 0) {
                 Text(context(current))
-                    .font(.text(13))
-                    .foregroundStyle(Theme.label2)
+                    .doneText(.callout)
+                    .foregroundStyle(DoneColor.textSecondary)
                 Text(current.action.title)
-                    .font(.display(26))
+                    .doneText(.displayM)
+                    .foregroundStyle(DoneColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 620)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 6)
+                    .padding(.top, DoneSpace.s6)
                 if let steps = Planner.stepsAfter(current.action, in: model.index) {
                     StepsBadge(stepsAfter: steps)
-                        .padding(.top, 12)
+                        .padding(.top, DoneSpace.s12)
                 }
                 if let note = model.resumeNote(for: current.action.id) {
                     Text("Où tu en étais : \(note.text)")
-                        .font(.text(13))
-                        .foregroundStyle(Theme.label2)
+                        .doneText(.callout)
+                        .foregroundStyle(DoneColor.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .frame(maxWidth: 560)
-                        .padding(.top, 10)
+                        .padding(.top, DoneSpace.s8)
                 }
 
+                // Anneau de 280, trait 12 : Violet en concentration, gris à l'arrêt.
                 ZStack {
-                    ProgressRing(fraction: engine.remainingFraction, color: paused ? Theme.label3 : Theme.ring, lineWidth: 14)
-                    VStack(spacing: 6) {
-                        TimerText(text: Format.clock(engine.remaining), size: 80, color: paused ? Theme.label2 : Theme.label)
-                        Text(paused ? "En pause" : "sur \(Int(current.planned / 60)) min")
-                            .font(.text(14, paused ? .semibold : .regular))
-                            .foregroundStyle(Theme.label2)
+                    ProgressRing(fraction: engine.remainingFraction, color: paused ? DoneColor.pomodoroPaused : DoneColor.pomodoroFocus)
+                    VStack(spacing: DoneSpace.s4) {
+                        TimerText(text: Format.clock(engine.remaining), color: paused ? DoneColor.textSecondary : DoneColor.textPrimary)
+                        if paused {
+                            Label("En pause", systemImage: "pause.fill")
+                                .font(.plex(13, .semibold))
+                                .foregroundStyle(DoneColor.textSecondary)
+                        } else {
+                            Text("sur \(Int(current.planned / 60)) min")
+                                .doneText(.callout)
+                                .foregroundStyle(DoneColor.textSecondary)
+                        }
                     }
                 }
-                .frame(width: 320, height: 320)
-                .padding(.top, 36)
+                .frame(width: 280, height: 280)
+                .padding(.top, DoneSpace.s32)
 
-                HStack(spacing: 10) {
+                HStack(spacing: DoneSpace.s8) {
                     if paused {
                         Button("Reprendre") { engine.resume() }
-                            .buttonStyle(PillButtonStyle(kind: .primary))
+                            .buttonStyle(DoneButtonStyle(kind: .primary))
                             .keyboardShortcut(.space, modifiers: [])
                     } else {
                         Button("Pause") { engine.pause() }
-                            .buttonStyle(PillButtonStyle())
+                            .buttonStyle(DoneButtonStyle())
                             .keyboardShortcut(.space, modifiers: [])
                     }
                     Button("Interrompre") { showReasons = true }
-                        .buttonStyle(PillButtonStyle())
+                        .buttonStyle(DoneButtonStyle())
                         .popover(isPresented: $showReasons, arrowEdge: .bottom) {
                             ReasonMenu { reason in
                                 showReasons = false
@@ -69,22 +77,22 @@ struct SessionView: View {
                         engine.finishEarly()
                         engine.markDone()
                     }
-                    .buttonStyle(PillButtonStyle(kind: paused ? .glass : .primary))
+                    .buttonStyle(DoneButtonStyle())
                     .keyboardShortcut(.return, modifiers: .command)
                     .help("Cocher la tâche (⌘↩)")
                 }
-                .padding(.top, 40)
-                HStack(spacing: 2) {
+                .padding(.top, DoneSpace.s40)
+                HStack(spacing: DoneSpace.s2) {
                     if engine.canExtend {
                         Button("Ajouter \(Rules.extensionStepMinutes) min") { engine.extend() }
-                            .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                            .buttonStyle(DoneButtonStyle(kind: .plain))
                             .help("\(Rules.maxExtensionMinutes) minutes de plus au maximum par session")
                     }
                     Button("Bloqué…", action: onBlocked)
-                        .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                        .buttonStyle(DoneButtonStyle(kind: .plain))
                         .help("Laisser cette étape ouverte, marquée bloquée, et passer à la suite")
                 }
-                .padding(.top, 10)
+                .padding(.top, DoneSpace.s8)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -106,12 +114,12 @@ private struct ReasonMenu: View {
             ForEach(InterruptionReason.allCases) { reason in
                 Button { onPick(reason) } label: {
                     Text(reason.label)
-                        .font(.text(13))
-                        .foregroundStyle(hovered == reason ? Color.white : Theme.label)
+                        .doneText(.callout)
+                        .foregroundStyle(hovered == reason ? Color.white : DoneColor.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, DoneSpace.s8)
                         .frame(height: 28)
-                        .background(hovered == reason ? Theme.accent : Color.clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .background(hovered == reason ? DoneColor.actionPrimary : Color.clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -134,32 +142,31 @@ struct InterruptionView: View {
     var body: some View {
         VStack(spacing: 0) {
             Eyebrow(text: "Interrompu · \(reason.label)")
-            TimerText(text: Format.clock(interruptionDuration), size: 88)
-                .padding(.top, 16)
+            TimerText(text: Format.clock(interruptionDuration))
+                .padding(.top, DoneSpace.s16)
             if let current = engine.current {
-                Text("\(Text(current.action.title).foregroundStyle(Theme.label)) attend, \(Format.clock(engine.remaining)) restantes")
-                    .font(.text(15))
-                    .foregroundStyle(Theme.label2)
-                    .lineSpacing(3)
+                Text("\(Text(current.action.title).foregroundStyle(DoneColor.textPrimary)) attend, \(Format.clock(engine.remaining)) restantes")
+                    .doneText(.body)
+                    .foregroundStyle(DoneColor.textSecondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 520)
-                    .padding(.top, 24)
+                    .padding(.top, DoneSpace.s24)
                 ResumeNoteField(taskID: current.action.id, focused: $noteFocused)
                     .frame(width: 420)
-                    .padding(.top, 24)
+                    .padding(.top, DoneSpace.s24)
             }
-            HStack(spacing: 10) {
+            HStack(spacing: DoneSpace.s8) {
                 Button("Choisir autre chose") { engine.stop(as: .interrupted) }
-                    .buttonStyle(PillButtonStyle())
+                    .buttonStyle(DoneButtonStyle())
                 Button("Reprendre") { engine.resume() }
-                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
                     // Entrée dans le champ de note ne relance pas le minuteur.
                     .keyboardShortcut(noteFocused ? nil : .defaultAction)
             }
-            .padding(.top, 24)
+            .padding(.top, DoneSpace.s24)
             Button("Insérer une tâche urgente…") { showPicker = true }
-                .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-                .padding(.top, 10)
+                .buttonStyle(DoneButtonStyle(kind: .plain))
+                .padding(.top, DoneSpace.s8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showPicker) {
@@ -177,7 +184,7 @@ struct InterruptionView: View {
     }
 }
 
-/// Fin du minuteur, ou action cochée en avance : on décide de la suite.
+/// Fin du minuteur, ou action cochée en avance : carte de transition, comme la fin de pomodoro du v3.
 struct OutcomeView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
@@ -186,19 +193,41 @@ struct OutcomeView: View {
 
     var body: some View {
         if let current = engine.current {
-            VStack(spacing: 0) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 88, height: 88)
-                    .background(Theme.accent, in: Circle())
+            VStack(alignment: .leading, spacing: 0) {
                 if let checked = engine.checkedAction, let followUp = engine.followUp {
                     checkedContent(checked, followUp: followUp)
                 } else {
                     sessionEnded(current)
                 }
             }
+            .padding(DoneSpace.s24)
+            .frame(width: 520)
+            .doneRaised()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    /// Anneau Violet coché et titre de la carte.
+    private func header(_ title: String, subtitle: String) -> some View {
+        HStack(spacing: DoneSpace.s16) {
+            ZStack {
+                Circle()
+                    .strokeBorder(DoneColor.pomodoroFocus, lineWidth: 3)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(DoneColor.pomodoroFocus)
+            }
+            .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: DoneSpace.s2) {
+                Text(title)
+                    .doneText(.displayM)
+                    .foregroundStyle(DoneColor.textPrimary)
+                Text(subtitle)
+                    .doneText(.callout)
+                    .foregroundStyle(DoneColor.textSecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -206,61 +235,47 @@ struct OutcomeView: View {
 
     @ViewBuilder
     private func checkedContent(_ checked: TodoTask, followUp: Planner.FollowUp) -> some View {
-        Text(title(for: followUp))
-            .font(.display(36, bold: true))
-            .tracking(-0.54)
-            .padding(.top, 24)
-        Text("« \(checked.title) » est cochée.")
-            .font(.text(16))
-            .foregroundStyle(Theme.label2)
-            .lineSpacing(3)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: 520)
-            .padding(.top, 10)
+        header(title(for: followUp), subtitle: "« \(checked.title) » est cochée.")
         if let next = nextLine(for: followUp) {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: DoneSpace.s6) {
                 Eyebrow(text: "Ensuite")
                 Text(next.title)
-                    .font(.display(20))
-                    .multilineTextAlignment(.center)
+                    .doneText(.title)
+                    .foregroundStyle(DoneColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let steps = next.stepsAfter {
                     StepsBadge(stepsAfter: steps)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .frame(width: 360)
-            .surface(radius: 16)
-            .padding(.top, 24)
+            .padding(DoneSpace.s16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DoneColor.bgSunken, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
+            .padding(.top, DoneSpace.s20)
         }
-        VStack(spacing: 10) {
+        HStack(spacing: DoneSpace.s8) {
             switch followUp {
             case .step:
                 Button("Enchaîner · \(Format.clock(engine.remaining)) restantes") { engine.chainToNext() }
-                    .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
             case .closeRoot(let root):
                 Button("Cocher « \(root.title) »") { engine.closeRoot() }
-                    .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
             case .switchTask:
                 EmptyView()
             }
-            HStack(spacing: 10) {
-                Button("Pause d'abord") { engine.takeBreakAfterSession() }
-                    .buttonStyle(PillButtonStyle(fullWidth: true))
-                Button("Arrêter là") { engine.stop(as: .done) }
-                    .buttonStyle(PillButtonStyle(fullWidth: true))
-            }
+            Button("Pause d'abord") { engine.takeBreakAfterSession() }
+                .buttonStyle(DoneButtonStyle())
+            Button("Arrêter là") { engine.stop(as: .done) }
+                .buttonStyle(DoneButtonStyle(kind: .plain))
         }
-        .frame(width: 360)
-        .padding(.top, 20)
+        .padding(.top, DoneSpace.s20)
         if case .closeRoot = followUp {
             Text("Ensuite, \(engine.breakMinutesAfterSession) min de pause avant la tâche suivante.")
-                .font(.text(12))
-                .foregroundStyle(Theme.label3)
-                .padding(.top, 12)
+                .doneText(.caption)
+                .foregroundStyle(DoneColor.textSecondary)
+                .padding(.top, DoneSpace.s12)
         }
     }
 
@@ -278,48 +293,36 @@ struct OutcomeView: View {
 
     @ViewBuilder
     private func sessionEnded(_ current: FocusEngine.Current) -> some View {
-        Text("Session terminée")
-            .font(.display(36, bold: true))
-            .tracking(-0.54)
-            .padding(.top, 24)
-        Text("\(Format.minutes(engine.stepElapsed / 60)) sur « \(current.action.title) »")
-            .font(.text(16))
-            .foregroundStyle(Theme.label2)
-            .lineSpacing(3)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: 520)
-            .padding(.top, 10)
+        header("Pomodoro terminé", subtitle: "\(Format.minutes(engine.stepElapsed / 60)) sur « \(current.action.title) »")
         ResumeNoteField(taskID: current.action.id, placeholder: "Pas fini ? Note où tu en es pour reprendre plus vite", focused: $noteFocused)
-            .frame(width: 360)
-            .padding(.top, 28)
-        VStack(spacing: 10) {
+            .padding(.top, DoneSpace.s20)
+        HStack(spacing: DoneSpace.s8) {
             Button("Cocher la tâche") { engine.markDone() }
-                .buttonStyle(PillButtonStyle(kind: .primary, fullWidth: true))
-            // Entrée dans le champ de note ne coche pas la tâche.
-            .keyboardShortcut(noteFocused ? nil : .defaultAction)
-            HStack(spacing: 10) {
-                if engine.canExtend {
-                    Button("Encore \(Rules.extensionStepMinutes) min") { engine.extend() }
-                        .buttonStyle(PillButtonStyle(fullWidth: true))
-                }
-                Button("Pause, puis je reprends") { engine.takeBreakAfterSession() }
-                    .buttonStyle(PillButtonStyle(fullWidth: true))
+                .buttonStyle(DoneButtonStyle(kind: .primary))
+                // Entrée dans le champ de note ne coche pas la tâche.
+                .keyboardShortcut(noteFocused ? nil : .defaultAction)
+            if engine.canExtend {
+                Button("Encore \(Rules.extensionStepMinutes) min") { engine.extend() }
+                    .buttonStyle(DoneButtonStyle())
             }
-            HStack(spacing: 2) {
-                Button("Bloqué…", action: onBlocked)
-                    .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-                    .help("Laisser cette étape ouverte, marquée bloquée, et passer à la suite")
-                Button("Arrêter là") { engine.stop(as: .partial) }
-                    .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
-            }
+            Button("Pause, puis je reprends") { engine.takeBreakAfterSession() }
+                .buttonStyle(DoneButtonStyle())
         }
-        .frame(width: 360)
-        .padding(.top, 14)
+        .padding(.top, DoneSpace.s16)
+        HStack(spacing: DoneSpace.s4) {
+            Button("Bloqué…", action: onBlocked)
+                .buttonStyle(DoneButtonStyle(kind: .plain))
+                .help("Laisser cette étape ouverte, marquée bloquée, et passer à la suite")
+            Button("Arrêter là") { engine.stop(as: .partial) }
+                .buttonStyle(DoneButtonStyle(kind: .plain))
+            Spacer(minLength: 0)
+        }
+        .padding(.top, DoneSpace.s8)
         if !engine.canExtend {
             Text("Déjà \(Rules.maxExtensionMinutes) min de plus : une pause avant de continuer.")
-                .font(.text(12))
-                .foregroundStyle(Theme.label3)
-                .padding(.top, 4)
+                .doneText(.caption)
+                .foregroundStyle(DoneColor.textSecondary)
+                .padding(.top, DoneSpace.s4)
         }
     }
 }
@@ -330,11 +333,12 @@ struct StepsBadge: View {
 
     var body: some View {
         Text(text)
-            .font(.text(12, .medium))
-            .foregroundStyle(Theme.accentText)
-            .padding(.horizontal, 10)
-            .frame(height: 24)
-            .background(Theme.accentTint, in: Capsule())
+            .font(.done(.numericS))
+            .foregroundStyle(DoneColor.stateActiveText)
+            .padding(.horizontal, DoneSpace.s8)
+            .frame(height: 22)
+            .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous))
+            .fixedSize()
     }
 
     private var text: String {
@@ -360,49 +364,43 @@ struct BlockedSheet: View {
             Eyebrow(text: "Bloqué")
             if let current = engine.current {
                 Text(current.action.title)
-                    .font(.display(26, bold: true))
+                    .doneText(.displayM)
+                    .foregroundStyle(DoneColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 10)
-                Text("Elle reste dans ta liste, marquée bloquée, et Done ne la propose plus. Quand c'est réglé, débloque-la depuis l'onglet Tâches : ta raison s'affichera pour reprendre.")
-                    .font(.text(14))
-                    .foregroundStyle(Theme.label2)
+                    .padding(.top, DoneSpace.s8)
+                Text("Elle reste dans sa liste, marquée bloquée, et Done ne la propose plus. Quand c'est réglé, débloque-la depuis sa liste : ta raison s'affichera pour reprendre.")
+                    .doneText(.body)
+                    .foregroundStyle(DoneColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 6)
+                    .padding(.top, DoneSpace.s6)
                 TextField("Ce qui bloque, en une ligne", text: $reason)
-                    .textFieldStyle(.plain)
-                    .font(.text(14))
                     .focused($focused)
-                    .padding(.horizontal, 14)
-                    .frame(height: 40)
-                    .surface(radius: 12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Theme.ring.opacity(focused ? 0.45 : 0), lineWidth: 2)
-                    )
-                    .padding(.top, 20)
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    .doneField(focused: focused)
+                    .padding(.top, DoneSpace.s20)
+                HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s8) {
                     Eyebrow(text: "Ensuite")
                     Text(nextText(current))
-                        .font(.text(14))
+                        .doneText(.body)
+                        .foregroundStyle(DoneColor.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.top, 16)
-                HStack(spacing: 10) {
+                .padding(.top, DoneSpace.s16)
+                HStack(spacing: DoneSpace.s8) {
                     Button("Annuler") { dismiss() }
-                        .buttonStyle(PillButtonStyle(kind: .plain))
+                        .buttonStyle(DoneButtonStyle(kind: .plain))
                         .keyboardShortcut(.cancelAction)
                     Spacer()
                     Button("Laisser ouverte et passer à la suite", action: submit)
-                        .buttonStyle(PillButtonStyle(kind: .primary))
+                        .buttonStyle(DoneButtonStyle(kind: .primary))
                         .keyboardShortcut(.defaultAction)
                         .disabled(reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .padding(.top, 26)
+                .padding(.top, DoneSpace.s24)
             }
         }
-        .padding(28)
+        .padding(DoneSpace.s24)
         .frame(width: 520)
-        .background(Backdrop(style: .wash))
+        .background(DoneColor.bgCanvas)
         .onAppear { focused = true }
     }
 
@@ -425,7 +423,8 @@ struct BlockedSheet: View {
     }
 }
 
-/// Pause café : halo sable, anneau qui se vide. Entre deux tâches principales, elle ne se passe pas.
+/// Pause : fond pomodoro.breakBg (posé par RootView) et anneau de pause. Entre deux tâches
+/// principales, elle ne se passe pas.
 struct BreakView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
@@ -434,37 +433,38 @@ struct BreakView: View {
         VStack(spacing: 0) {
             Eyebrow(text: engine.breakIsMandatory ? "Pause avant la tâche suivante" : "Pause")
             ZStack {
-                ProgressRing(fraction: engine.breakRemainingFraction, lineWidth: 12)
-                VStack(spacing: 6) {
-                    TimerText(text: Format.clock(engine.breakRemaining), size: 72)
+                ProgressRing(fraction: engine.breakRemainingFraction, color: DoneColor.pomodoroBreak)
+                VStack(spacing: DoneSpace.s4) {
+                    TimerText(text: Format.clock(engine.breakRemaining))
                     Text("sur \(Int((engine.breakDuration / 60).rounded())) min")
-                        .font(.text(14))
-                        .foregroundStyle(Theme.label2)
+                        .doneText(.callout)
+                        .foregroundStyle(DoneColor.textSecondary)
                 }
             }
             .frame(width: 280, height: 280)
-            .padding(.top, 24)
+            .padding(.top, DoneSpace.s24)
             Text("Lève-toi, bois de l'eau, regarde loin de l'écran.")
-                .font(.text(17))
-                .padding(.top, 32)
+                .doneText(.title)
+                .foregroundStyle(DoneColor.textPrimary)
+                .padding(.top, DoneSpace.s32)
             if let next = nextUp {
                 Text("Ensuite : \(next)")
-                    .font(.text(14))
-                    .foregroundStyle(Theme.label2)
+                    .doneText(.body)
+                    .foregroundStyle(DoneColor.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .frame(maxWidth: 520)
-                    .padding(.top, 10)
+                    .padding(.top, DoneSpace.s8)
             }
             if engine.breakIsMandatory {
                 Text("Tu changes de tâche : la pause va jusqu'au bout.")
-                    .font(.text(13))
-                    .foregroundStyle(Theme.label3)
-                    .padding(.top, 28)
+                    .doneText(.callout)
+                    .foregroundStyle(DoneColor.textSecondary)
+                    .padding(.top, DoneSpace.s24)
             } else {
                 Button("Passer la pause") { engine.skipBreak() }
-                    .buttonStyle(PillButtonStyle())
-                    .padding(.top, 28)
+                    .buttonStyle(DoneButtonStyle())
+                    .padding(.top, DoneSpace.s24)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

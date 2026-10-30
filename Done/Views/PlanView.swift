@@ -17,31 +17,30 @@ struct PlanView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: DoneSpace.s4) {
                     Text("Plan du jour")
-                        .font(.display(30, bold: true))
-                        .tracking(-0.45)
+                        .doneText(.displayL)
+                        .foregroundStyle(DoneColor.textPrimary)
                     Text("Choisis \(planSize) tâche\(planSize > 1 ? "s" : ""), dans l'ordre. Le reste attendra.")
-                        .font(.text(15))
-                        .foregroundStyle(Theme.label2)
+                        .doneText(.body)
+                        .foregroundStyle(DoneColor.textSecondary)
                 }
                 Spacer()
                 if model.todayPlan != nil {
                     Button(model.reviewDoneToday ? "Revoir le bilan" : "Bilan du soir") { showReview = true }
-                        .buttonStyle(PillButtonStyle(size: .small))
+                        .buttonStyle(DoneButtonStyle())
                 }
             }
-            HStack(alignment: .top, spacing: 32) {
+            HStack(alignment: .top, spacing: DoneSpace.s32) {
                 candidateColumn
                 planColumn
             }
-            .padding(.top, 28)
+            .padding(.top, DoneSpace.s24)
             .frame(maxHeight: .infinity)
         }
-        .padding(.leading, 32)
-        .padding(.trailing, 40)
-        .padding(.top, 4)
-        .padding(.bottom, 24)
+        .padding(.horizontal, DoneSpace.s40)
+        .padding(.top, DoneSpace.s4)
+        .padding(.bottom, DoneSpace.s24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             if !loaded {
@@ -74,38 +73,39 @@ struct PlanView: View {
 
     private var candidateColumn: some View {
         let candidates = model.candidates.filter { !draft.contains($0.id) }
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: DoneSpace.s8) {
             Eyebrow(text: "Candidates")
-                .padding(.leading, 2)
+                .padding(.leading, DoneSpace.s2)
             if candidates.isEmpty {
-                VStack(spacing: 6) {
+                VStack(spacing: DoneSpace.s6) {
                     Text(model.index.all.isEmpty ? "Aucune tâche pour l'instant" : "Plus aucune candidate")
-                        .font(.text(14, .semibold))
-                    Text(model.index.all.isEmpty ? "Ajoute-les dans l'onglet Tâches, ou avec ⌘N." : "Les tâches P1 et P2 et celles qui arrivent à échéance sont déjà dans le plan. Les autres sont dans « Chercher une autre tâche ».")
-                        .font(.text(13))
-                        .foregroundStyle(Theme.label2)
+                        .doneText(.title)
+                        .foregroundStyle(DoneColor.textPrimary)
+                    Text(model.index.all.isEmpty ? "Ajoute-les dans l'Inbox, ou avec ⌘N." : "Les tâches P1 et P2 et celles qui arrivent à échéance sont déjà dans le plan. Les autres sont dans « Chercher une autre tâche ».")
+                        .doneText(.callout)
+                        .foregroundStyle(DoneColor.textSecondary)
                         .multilineTextAlignment(.center)
-                        .frame(maxWidth: 260)
+                        .frame(maxWidth: 280)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-                .surface(radius: 18)
+                .padding(.vertical, DoneSpace.s40)
+                .doneCard(radius: DoneRadius.lg)
             } else {
                 ScrollView {
-                    VStack(spacing: 0) {
+                    VStack(spacing: DoneSpace.s2) {
                         ForEach(candidates) { task in
                             candidateRow(task)
                         }
                     }
-                    .padding(6)
-                    .surface(radius: 18)
-                    .padding(.bottom, 2)
+                    .padding(DoneSpace.s6)
+                    .doneCard(radius: DoneRadius.lg)
+                    .padding(.bottom, DoneSpace.s2)
                 }
                 .scrollIndicators(.never)
                 .fixedSize(horizontal: false, vertical: candidates.count <= 8)
             }
             Button("Chercher une autre tâche…") { showPicker = true }
-                .buttonStyle(PillButtonStyle(kind: .plain, size: .small))
+                .buttonStyle(DoneButtonStyle(kind: .plain))
                 .disabled(draft.count >= Rules.maxPlanSize)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -113,26 +113,20 @@ struct PlanView: View {
 
     private func candidateRow(_ task: TodoTask) -> some View {
         let isFull = draft.count >= Rules.maxPlanSize
-        return HStack(spacing: 12) {
-            TaskRowContent(task: task, showDetails: false)
+        return HStack(spacing: DoneSpace.s12) {
+            TaskRowContent(task: task)
             Button {
                 add(task.id)
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.accentText)
-                    .frame(width: 26, height: 26)
-                    .background(Theme.accentTint, in: Circle())
-                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(DoneIconButtonStyle())
             .disabled(isFull)
-            .opacity(isFull ? 0.4 : 1)
             .help(isFull ? "Le plan compte déjà \(Rules.maxPlanSize) tâches" : "Ajouter au plan")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
-        .background(hovered == task.id ? Theme.fill : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, DoneSpace.s12)
+        .frame(minHeight: 52)
+        .background(hovered == task.id ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
         .contentShape(Rectangle())
         .onHover { inside in setHovered(task.id, inside) }
         .draggable(task.id)
@@ -141,11 +135,11 @@ struct PlanView: View {
     // MARK: Aujourd'hui
 
     private var planColumn: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: DoneSpace.s8) {
             Eyebrow(text: "Aujourd'hui")
-                .padding(.leading, 2)
+                .padding(.leading, DoneSpace.s2)
             ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: DoneSpace.s8) {
                     ForEach(Array(draft.enumerated()), id: \.element) { offset, id in
                         planRow(id, position: offset + 1)
                     }
@@ -156,24 +150,24 @@ struct PlanView: View {
                     }
                     if draft.count > planSize {
                         Text("\(draft.count) tâches. Au-delà de \(planSize), les suivantes passent en retrait.")
-                            .font(.text(12))
-                            .foregroundStyle(Theme.orangeText)
-                            .padding(.horizontal, 4)
+                            .doneText(.caption)
+                            .foregroundStyle(DoneColor.textSecondary)
+                            .padding(.horizontal, DoneSpace.s4)
                     }
                 }
-                .padding(.bottom, 2)
+                .padding(.bottom, DoneSpace.s2)
             }
             .scrollIndicators(.never)
             Spacer(minLength: 0)
             MeetingsCard()
-                .padding(.bottom, 8)
+                .padding(.bottom, DoneSpace.s16)
             HStack {
                 Text(doneText)
-                    .font(.text(12))
-                    .foregroundStyle(Theme.label2)
+                    .doneText(.caption)
+                    .foregroundStyle(DoneColor.textSecondary)
                 Spacer()
                 Button("Valider le plan", action: validate)
-                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
                     .disabled(draft.isEmpty)
             }
@@ -185,58 +179,58 @@ struct PlanView: View {
     private func planRow(_ id: String, position: Int) -> some View {
         let isHovered = hovered == id
         let isSecondary = position > planSize
-        HStack(spacing: 16) {
-            Text("\(position)")
-                .font(.mono(26))
-                .foregroundStyle(isSecondary ? Theme.label3 : Theme.accentText)
-                .frame(width: 22, alignment: .leading)
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: DoneSpace.s12) {
+            NumberTile(position: position, isFilled: !isSecondary)
+            VStack(alignment: .leading, spacing: DoneSpace.s2) {
                 if let task = model.index[id] {
                     Text(task.title)
-                        .font(.text(15, .medium))
+                        .doneText(.bodyStrong)
+                        .foregroundStyle(DoneColor.textPrimary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 6) {
+                    HStack(spacing: DoneSpace.s6) {
                         Text(model.projectName(for: task))
-                            .foregroundStyle(Theme.label2)
+                            .foregroundStyle(DoneColor.textSecondary)
                         if model.carriedOverIDs.contains(id) {
                             Text("· Reportée")
-                                .foregroundStyle(Theme.orangeText)
+                                .foregroundStyle(DoneColor.stateActiveText)
                         }
                     }
-                    .font(.text(12))
+                    .doneText(.caption)
                 } else {
                     Text("Tâche terminée ou introuvable")
-                        .font(.text(14))
-                        .foregroundStyle(Theme.label2)
+                        .doneText(.body)
+                        .foregroundStyle(DoneColor.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .opacity(isSecondary ? 0.55 : 1)
+            .opacity(isSecondary ? 0.6 : 1)
+            if let task = model.index[id] {
+                TaskChips(task: task)
+            }
             Button {
                 draft.removeAll { $0 == id }
             } label: {
-                Image(systemName: "minus")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.label2)
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(DoneColor.textSecondary)
                     .frame(width: 22, height: 22)
-                    .overlay(Circle().strokeBorder(Theme.label3, lineWidth: 1))
-                    .contentShape(Circle())
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .opacity(isHovered ? 1 : 0)
             .help("Retirer du plan")
             Image(systemName: "line.3.horizontal")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.label3)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(DoneColor.textDisabled)
                 .help("Glisser pour réordonner")
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .surface(radius: 16)
+        .padding(.horizontal, DoneSpace.s16)
+        .frame(minHeight: 60)
+        .doneCard()
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Theme.ring, lineWidth: dropTarget == id ? 2 : 0)
+            RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
+                .strokeBorder(DoneColor.focusRing, lineWidth: dropTarget == id ? 2 : 0)
         )
         .contentShape(Rectangle())
         .onHover { inside in setHovered(id, inside) }
@@ -259,21 +253,18 @@ struct PlanView: View {
 
     /// Emplacement en pointillés, en attendant une tâche.
     private func emptySlot(position: Int) -> some View {
-        HStack(spacing: 16) {
-            Text("\(position)")
-                .font(.mono(26))
-                .foregroundStyle(Theme.label3)
-                .frame(width: 22, alignment: .leading)
-            Text("Ajoute une \(position == 1 ? "1re" : "\(position)e") tâche depuis la liste")
-                .font(.text(14))
-                .foregroundStyle(Theme.label2)
+        HStack(spacing: DoneSpace.s12) {
+            NumberTile(position: position, isFilled: false)
+            Text("Emplacement libre : ajoute une \(position == 1 ? "1re" : "\(position)e") tâche depuis la liste")
+                .doneText(.callout)
+                .foregroundStyle(DoneColor.textSecondary)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 18)
-        .frame(height: 66)
+        .padding(.horizontal, DoneSpace.s16)
+        .frame(height: 60)
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Theme.label3, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
+                .strokeBorder(DoneColor.stateWaiting, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
         )
         .contentShape(Rectangle())
         .dropDestination(for: String.self) { items, _ in
@@ -322,5 +313,25 @@ struct PlanView: View {
         let to = from + offset
         guard draft.indices.contains(to) else { return }
         draft.swapAt(from, to)
+    }
+}
+
+/// Tuile numérotée de 24 : la place dans le plan. Pleine pour les tâches retenues, en contour sinon.
+struct NumberTile: View {
+    let position: Int
+    var isFilled = true
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        Text("\(position)")
+            .font(.plex(13, .semibold))
+            .foregroundStyle(isFilled ? DoneColor.stateOnActive : DoneColor.textSecondary)
+            .frame(width: 24, height: 24)
+            .background(isFilled ? DoneColor.stateActive : Color.clear, in: shape)
+            .overlay {
+                if !isFilled {
+                    shape.strokeBorder(DoneColor.borderDefault, lineWidth: 1)
+                }
+            }
     }
 }

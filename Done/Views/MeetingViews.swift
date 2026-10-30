@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Réunions saisies à la main, du jour et à venir. Done raccourcit les sessions avant elles
-/// et prévient quelques minutes avant.
+/// et prévient quelques minutes avant. Hachurées : le temps est pris.
 struct MeetingsCard: View {
     @Environment(AppModel.self) private var model
     @State private var showSheet = false
@@ -9,7 +9,7 @@ struct MeetingsCard: View {
 
     var body: some View {
         let meetings = Array(model.upcomingMeetings.prefix(5))
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: DoneSpace.s8) {
             HStack {
                 Eyebrow(text: "Réunions")
                 Spacer()
@@ -18,26 +18,23 @@ struct MeetingsCard: View {
                 } label: {
                     Label("Ajouter", systemImage: "plus")
                 }
-                .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+                .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
             }
-            .padding(.leading, 2)
+            .padding(.leading, DoneSpace.s2)
             if meetings.isEmpty {
                 Text("Aucune réunion prévue. Ajoute-les pour que Done propose des sessions qui tiennent avant.")
-                    .font(.text(12))
-                    .foregroundStyle(Theme.label2)
+                    .doneText(.caption)
+                    .foregroundStyle(DoneColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.leading, 2)
+                    .padding(.leading, DoneSpace.s2)
             } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(meetings.enumerated()), id: \.element.id) { offset, meeting in
-                        if offset > 0 {
-                            Hairline().padding(.horizontal, 12)
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    VStack(spacing: DoneSpace.s6) {
+                        ForEach(meetings) { meeting in
+                            row(meeting, now: context.date)
                         }
-                        row(meeting)
                     }
                 }
-                .padding(4)
-                .surface(radius: 16)
             }
         }
         .sheet(isPresented: $showSheet) {
@@ -46,40 +43,30 @@ struct MeetingsCard: View {
         }
     }
 
-    private func row(_ meeting: Meeting) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(meeting.title)
-                    .font(.text(14))
-                    .lineLimit(1)
-                Text(Format.slot(meeting))
-                    .font(.mono(11, medium: false))
-                    .foregroundStyle(Theme.label2)
+    private func row(_ meeting: Meeting, now: Date) -> some View {
+        MeetingBlock(meeting: meeting, now: now, detail: Format.slot(meeting, now: now))
+            .overlay(alignment: .trailing) {
+                Button {
+                    model.deleteMeeting(meeting.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(meeting.contains(now) ? DoneColor.meetingOnNow : DoneColor.textSecondary)
+                .padding(.trailing, DoneSpace.s6)
+                .opacity(hovered == meeting.id ? 1 : 0)
+                .help("Supprimer la réunion")
             }
-            Spacer(minLength: 0)
-            Button {
-                model.deleteMeeting(meeting.id)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.label2)
-                    .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
+            .onHover { inside in
+                if inside {
+                    hovered = meeting.id
+                } else if hovered == meeting.id {
+                    hovered = nil
+                }
             }
-            .buttonStyle(.plain)
-            .opacity(hovered == meeting.id ? 1 : 0)
-            .help("Supprimer la réunion")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .contentShape(Rectangle())
-        .onHover { inside in
-            if inside {
-                hovered = meeting.id
-            } else if hovered == meeting.id {
-                hovered = nil
-            }
-        }
     }
 }
 
@@ -98,21 +85,14 @@ struct MeetingSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Réunion")
             Text("Nouvelle réunion")
-                .font(.display(24))
-                .padding(.top, 10)
+                .doneText(.displayM)
+                .foregroundStyle(DoneColor.textPrimary)
+                .padding(.top, DoneSpace.s8)
             TextField("Titre, par exemple Point avec Zoé", text: $title)
-                .textFieldStyle(.plain)
-                .font(.text(14))
                 .focused($titleFocused)
-                .padding(.horizontal, 14)
-                .frame(height: 40)
-                .surface(radius: 12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Theme.ring.opacity(titleFocused ? 0.45 : 0), lineWidth: 2)
-                )
-                .padding(.top, 18)
-            HStack(alignment: .top, spacing: 20) {
+                .doneField(focused: titleFocused)
+                .padding(.top, DoneSpace.s16)
+            HStack(alignment: .top, spacing: DoneSpace.s20) {
                 labeled("Jour") {
                     DatePicker("Jour", selection: $day, displayedComponents: .date)
                         .labelsHidden()
@@ -126,41 +106,41 @@ struct MeetingSheet: View {
                         .labelsHidden()
                 }
             }
-            .padding(.top, 16)
+            .padding(.top, DoneSpace.s16)
             if !isValid {
                 Text("La fin doit venir après le début.")
-                    .font(.text(12))
-                    .foregroundStyle(Theme.orangeText)
-                    .padding(.top, 8)
+                    .doneText(.caption)
+                    .foregroundStyle(DoneColor.stateRiskText)
+                    .padding(.top, DoneSpace.s8)
             }
             Text("Done ne lance pas de session qui déborde sur une réunion, et te prévient avant (Réglages › Notifications).")
-                .font(.text(12))
-                .foregroundStyle(Theme.label2)
+                .doneText(.caption)
+                .foregroundStyle(DoneColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 14)
-            HStack(spacing: 10) {
+                .padding(.top, DoneSpace.s12)
+            HStack(spacing: DoneSpace.s8) {
                 Spacer()
                 Button("Annuler") { dismiss() }
-                    .buttonStyle(PillButtonStyle())
+                    .buttonStyle(DoneButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Button("Ajouter") {
                     model.addMeeting(title: title, start: combine(day, start), end: combine(day, end))
                     dismiss()
                 }
-                .buttonStyle(PillButtonStyle(kind: .primary))
+                .buttonStyle(DoneButtonStyle(kind: .primary))
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isValid)
             }
-            .padding(.top, 22)
+            .padding(.top, DoneSpace.s20)
         }
-        .padding(28)
+        .padding(DoneSpace.s24)
         .frame(width: 480)
-        .background(Backdrop(style: .wash))
+        .background(DoneColor.bgCanvas)
         .onAppear { titleFocused = true }
     }
 
     private func labeled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DoneSpace.s6) {
             Eyebrow(text: title)
             content()
         }

@@ -20,20 +20,20 @@ struct TaskEditorSheet: View {
                 form(task)
             } else {
                 Text("Cette tâche n'existe plus.")
-                    .font(.text(14))
-                    .foregroundStyle(Theme.label2)
+                    .doneText(.body)
+                    .foregroundStyle(DoneColor.textSecondary)
                 HStack {
                     Spacer()
                     Button("Fermer") { dismiss() }
-                        .buttonStyle(PillButtonStyle())
+                        .buttonStyle(DoneButtonStyle())
                         .keyboardShortcut(.cancelAction)
                 }
-                .padding(.top, 20)
+                .padding(.top, DoneSpace.s20)
             }
         }
-        .padding(28)
+        .padding(DoneSpace.s24)
         .frame(width: 600)
-        .background(Backdrop(style: .wash))
+        .background(DoneColor.bgCanvas)
         .onAppear {
             if draft == nil { draft = model.store[taskID] }
         }
@@ -45,11 +45,12 @@ struct TaskEditorSheet: View {
         Eyebrow(text: parent.map { "Étape de « \($0.title) »" } ?? model.projectName(task.wrappedValue.projectID))
         TextField("Titre", text: task.title)
             .textFieldStyle(.plain)
-            .font(.display(22))
+            .font(.done(.displayM))
+            .foregroundStyle(DoneColor.textPrimary)
             .onSubmit(save)
-            .padding(.top, 10)
+            .padding(.top, DoneSpace.s8)
         notesEditor(task.notes)
-            .padding(.top, 14)
+            .padding(.top, DoneSpace.s12)
 
         VStack(spacing: 0) {
             row("Liste") {
@@ -60,59 +61,60 @@ struct TaskEditorSheet: View {
                     }
                 } label: {
                     Text(model.projectName(task.wrappedValue.projectID))
+                        .font(.done(.body))
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .disabled(parent != nil)
                 .help(parent != nil ? "Une étape reste dans la liste de sa tâche" : "Ranger la tâche")
             }
-            Hairline().padding(.horizontal, 16)
+            Hairline().padding(.horizontal, DoneSpace.s16)
             row("Priorité") {
-                GlassSegmented(selection: task.priority, options: (1...4).map { (value: $0, title: "P\($0)") })
+                DoneSegmented(selection: task.priority, options: (1...4).map { (value: $0, title: "P\($0)") })
             }
-            Hairline().padding(.horizontal, 16)
+            Hairline().padding(.horizontal, DoneSpace.s16)
             row("Type") {
-                GlassSegmented(selection: task.kind, options: TaskKind.allCases.map { (value: $0, title: $0.label) })
+                DoneSegmented(selection: task.kind, options: TaskKind.allCases.map { (value: $0, title: $0.label) })
             }
-            Hairline().padding(.horizontal, 16)
+            Hairline().padding(.horizontal, DoneSpace.s16)
             row("Échéance") {
                 dueControl(task.due)
             }
-            Hairline().padding(.horizontal, 16)
+            Hairline().padding(.horizontal, DoneSpace.s16)
             row("Bloquée") {
                 Toggle("Bloquée", isOn: task.isBlocked)
                     .toggleStyle(.switch)
                     .labelsHidden()
-                    .tint(Theme.accent)
+                    .tint(DoneColor.stateActive)
             }
         }
-        .surface(radius: 16)
-        .padding(.top, 16)
+        .doneCard()
+        .padding(.top, DoneSpace.s16)
         if task.wrappedValue.isBlocked, let note = model.resumeNote(for: taskID) {
             Text(note.text)
-                .font(.text(12))
-                .foregroundStyle(Theme.label2)
+                .doneText(.caption)
+                .foregroundStyle(DoneColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 6)
-                .padding(.top, 8)
+                .padding(.horizontal, DoneSpace.s6)
+                .padding(.top, DoneSpace.s8)
         }
 
         stepsSection(task.wrappedValue)
-            .padding(.top, 18)
+            .padding(.top, DoneSpace.s20)
 
-        HStack(spacing: 10) {
+        HStack(spacing: DoneSpace.s8) {
             Button("Supprimer…") { confirmDelete = true }
-                .buttonStyle(PillButtonStyle(kind: .plain))
+                .buttonStyle(DoneButtonStyle(kind: .plain))
             Spacer()
             Button("Annuler") { dismiss() }
-                .buttonStyle(PillButtonStyle())
+                .buttonStyle(DoneButtonStyle())
                 .keyboardShortcut(.cancelAction)
             Button("Enregistrer", action: save)
-                .buttonStyle(PillButtonStyle(kind: .primary))
+                .buttonStyle(DoneButtonStyle(kind: .primary))
                 .keyboardShortcut(.return, modifiers: .command)
                 .help("⌘ Entrée")
         }
-        .padding(.top, 24)
+        .padding(.top, DoneSpace.s24)
         .confirmationDialog("Supprimer « \(task.wrappedValue.title) » ?", isPresented: $confirmDelete) {
             Button("Supprimer", role: .destructive) {
                 model.delete(task.wrappedValue)
@@ -124,13 +126,14 @@ struct TaskEditorSheet: View {
     }
 
     private func row<Trailing: View>(_ title: String, @ViewBuilder trailing: () -> Trailing) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DoneSpace.s12) {
             Text(title)
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             trailing()
         }
-        .font(.text(14))
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DoneSpace.s16)
         .frame(minHeight: 44)
     }
 
@@ -138,24 +141,26 @@ struct TaskEditorSheet: View {
         ZStack(alignment: .topLeading) {
             if notes.wrappedValue.isEmpty {
                 Text("Notes, liens, contexte")
-                    .font(.text(14))
-                    .foregroundStyle(Theme.label3)
-                    .padding(.top, 8)
+                    .doneText(.body)
+                    .foregroundStyle(DoneColor.textSecondary)
+                    .padding(.top, DoneSpace.s8)
                     .padding(.leading, 13)
                     .allowsHitTesting(false)
             }
             TextEditor(text: notes)
-                .font(.text(14))
+                .font(.done(.body))
+                .foregroundStyle(DoneColor.textPrimary)
                 .scrollContentBackground(.hidden)
                 .padding(8)
         }
         .frame(height: 84)
-        .background(Theme.fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(DoneColor.surfaceDefault, in: RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous).strokeBorder(DoneColor.borderControl, lineWidth: 1))
     }
 
     private func dueControl(_ due: Binding<Date?>) -> some View {
         let today = Calendar.current.startOfDay(for: .now)
-        return HStack(spacing: 6) {
+        return HStack(spacing: DoneSpace.s6) {
             if let value = due.wrappedValue {
                 DatePicker(
                     "Échéance",
@@ -164,56 +169,55 @@ struct TaskEditorSheet: View {
                 )
                 .labelsHidden()
                 Button("Retirer") { due.wrappedValue = nil }
-                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
             } else {
                 Button("Aujourd'hui") { due.wrappedValue = today }
-                    .buttonStyle(PillButtonStyle(size: .mini))
+                    .buttonStyle(DoneButtonStyle(compact: true))
                 Button("Demain") { due.wrappedValue = Calendar.current.date(byAdding: .day, value: 1, to: today) }
-                    .buttonStyle(PillButtonStyle(size: .mini))
+                    .buttonStyle(DoneButtonStyle(compact: true))
                 Button("Choisir…") { due.wrappedValue = today }
-                    .buttonStyle(PillButtonStyle(kind: .plain, size: .mini))
+                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
             }
         }
     }
 
     private func stepsSection(_ task: TodoTask) -> some View {
         let steps = model.index.children(of: task.id)
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: DoneSpace.s8) {
             Eyebrow(text: steps.isEmpty ? "Étapes" : "Étapes · \(steps.count)")
-                .padding(.leading, 2)
+                .padding(.leading, DoneSpace.s2)
             VStack(spacing: 0) {
                 ForEach(steps) { step in
-                    HStack(spacing: 10) {
-                        CheckCircle(priority: step.priority, isDone: false) { model.complete(step) }
+                    HStack(spacing: DoneSpace.s12) {
+                        TaskCheckbox(isDone: false) { model.complete(step) }
                         Text(step.title)
-                            .font(.text(14))
+                            .doneText(.body)
+                            .foregroundStyle(DoneColor.textPrimary)
                             .lineLimit(1)
                         Spacer(minLength: 0)
                         if step.isBlocked {
-                            Text("Bloquée")
-                                .font(.text(12))
-                                .foregroundStyle(Theme.orangeText)
+                            StateChip(kind: .blocked, title: "Bloquée")
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .frame(height: 36)
-                    Hairline().padding(.horizontal, 12)
+                    .padding(.horizontal, DoneSpace.s12)
+                    .frame(height: 40)
+                    Hairline().padding(.horizontal, DoneSpace.s12)
                 }
-                HStack(spacing: 10) {
+                HStack(spacing: DoneSpace.s12) {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.accentText)
+                        .foregroundStyle(DoneColor.stateActiveText)
                         .frame(width: 18)
                     TextField("Ajouter une étape", text: $newStep)
                         .textFieldStyle(.plain)
-                        .font(.text(14))
+                        .font(.done(.body))
                         .focused($stepFocused)
                         .onSubmit(addStep)
                 }
-                .padding(.horizontal, 12)
-                .frame(height: 38)
+                .padding(.horizontal, DoneSpace.s12)
+                .frame(height: 40)
             }
-            .surface(radius: 14)
+            .doneCard()
         }
     }
 
@@ -244,18 +248,10 @@ struct CaptureSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Nouvelle tâche")
             TextField("Ce que tu as à faire", text: $title)
-                .textFieldStyle(.plain)
-                .font(.text(15))
                 .focused($focused)
-                .padding(.horizontal, 14)
-                .frame(height: 44)
-                .surface(radius: 12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Theme.ring.opacity(focused ? 0.45 : 0), lineWidth: 2)
-                )
-                .padding(.top, 12)
-            HStack(spacing: 10) {
+                .doneField(focused: focused, height: 40)
+                .padding(.top, DoneSpace.s12)
+            HStack(spacing: DoneSpace.s8) {
                 Menu {
                     Button("Inbox") { projectID = nil }
                     ForEach(model.projects) { project in
@@ -263,24 +259,24 @@ struct CaptureSheet: View {
                     }
                 } label: {
                     Text("Dans : \(model.projectName(projectID))")
+                        .font(.done(.callout))
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 Spacer()
                 Button("Annuler") { dismiss() }
-                    .buttonStyle(PillButtonStyle())
+                    .buttonStyle(DoneButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Button("Ajouter", action: add)
-                    .buttonStyle(PillButtonStyle(kind: .primary))
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            .font(.text(13))
-            .padding(.top, 18)
+            .padding(.top, DoneSpace.s16)
         }
-        .padding(24)
+        .padding(DoneSpace.s24)
         .frame(width: 480)
-        .background(Backdrop(style: .wash))
+        .background(DoneColor.bgCanvas)
         .onAppear { focused = true }
     }
 
