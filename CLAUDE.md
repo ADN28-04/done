@@ -41,6 +41,11 @@ App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui transforme les tâches
 - Le projet Xcode utilise un dossier synchronisé : ajouter un fichier dans `Done/` suffit.
 - Pas de token, d'identifiant de tâche ni de donnée Todoist réelle dans le code ou les commits.
 
+## Done v2 (en préparation)
+
+- Objectif : remplacer Todoist par un serveur Done (o2switch) avec un connecteur MCP pour claude.ai. Plan dans `docs/v2/plan.md`, architecture proposée dans `docs/v2/architecture.md`.
+- Ne pas commencer une phase avant que la précédente soit validée par l'utilisateur, à commencer par les décisions de la section 10 de l'architecture.
+
 ## Prochaines étapes utiles
 
 - Ajouter une cible de tests unitaires et y couvrir `Planner` et `Stats` en priorité.
