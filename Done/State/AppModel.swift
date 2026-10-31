@@ -47,7 +47,8 @@ final class AppModel {
         }
         index = TaskIndex(store.openTasks)
         // Les réunions de la veille et d'avant ne servent plus.
-        commit { $0.pruneMeetings(endedBefore: Calendar.current.startOfDay(for: .now)) }
+        // Gardées jusqu'à la fin de la semaine, pour le calendrier.
+        commit { $0.pruneMeetings(endedBefore: Stats.week(containing: .now).start) }
         updateResumeNotes { $0.keepOnly(Set(store.openTasks.map(\.id))) }
         loadPlan()
     }
@@ -139,6 +140,20 @@ final class AppModel {
             return Planner.priorityOrder(a, b)
         }
         return Array(sorted.prefix(200))
+    }
+
+    // MARK: Absences
+
+    func absence(on day: Date) -> Absence? {
+        store.absence(on: day)
+    }
+
+    func setAbsence(on day: Date, title: String) {
+        commit { $0.setAbsence(on: day, title: title) }
+    }
+
+    func removeAbsence(on day: Date) {
+        commit { $0.removeAbsence(on: day) }
     }
 
     // MARK: Tâches
@@ -265,6 +280,10 @@ final class AppModel {
 
     func deleteMeeting(_ id: String) {
         commit { $0.deleteMeeting(id) }
+    }
+
+    func updateMeeting(_ meeting: Meeting) {
+        commit { $0.updateMeeting(meeting) }
     }
 
     /// Reprogramme les rappels des réunions des sept prochains jours, après chaque changement

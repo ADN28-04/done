@@ -42,7 +42,9 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 | Capture rapide | ⌘N dans Done, même en session, ou un raccourci global (⌃⌥N par défaut, réglable) depuis n'importe quelle app, tant que Done tourne. La saisie porte tous les détails : titre, notes, liste, priorité, type, échéance et étapes. Entrée dans le titre ajoute tout de suite, dans l'Inbox par défaut ; ⌘ Entrée ajoute depuis n'importe quel champ. Le champ d'ajout des listes et le panneau de la barre de menus restent en une ligne, avec « Détails… » pour passer à la saisie complète. |
 | Liste de candidates | Les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin : une date lointaine est volontaire (« pas avant »). |
 | Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. Une tâche peut aussi y être ajoutée depuis sa liste (clic droit). |
-| Réunions | Saisies à la main dans le Plan du jour : titre, jour, début, fin. Affichées dans la pastille du haut, prises en compte pour proposer une tâche qui tient avant la prochaine. Oubliées le lendemain. |
+| Réunions | Saisies à la main dans le Plan du jour ou le calendrier : titre, jour, début, fin. Affichées dans la pastille du haut et dans le calendrier, prises en compte pour proposer une tâche qui tient avant la prochaine. Gardées jusqu'à la fin de la semaine, puis oubliées. |
+| Calendrier | La semaine de travail, du lundi au vendredi (⌘5). En haut de chaque jour, les tâches à échéance ; aujourd'hui reprend aussi les retards. Glisser une tâche sur un autre jour, aujourd'hui ou plus tard, change son échéance ; un clic ouvre sa fiche. Dessous, une grille de 8 h à 19 h : les réunions hachurées (un clic les modifie ou les supprime), le focus déjà fait, l'heure courante. Un clic sur un créneau libre ajoute une réunion d'une heure. Le week-end, il montre la semaine qui vient. |
+| Jours d'absence | Congé, férié ou autre libellé, posés depuis le menu d'un jour du calendrier. Ce jour-là, l'écran Focus le signale et ne propose rien, sauf « Travailler quand même ». |
 | Prochaine action | La première étape faisable de la tâche en cours : ni bloquée, ni datée au-delà de l'horizon. Si plus rien n'est faisable, l'écran Focus indique la date de reprise. |
 | Durée adaptée | Rapide : 15 min. Par défaut : 25 min. Deepwork : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
 | Minuteur | Démarrer, pause, reprendre, « C'est fait ». Rallonge de 5 min en cours ou en fin de session, 10 min au plus par pomodoro. Une étape cochée avant la fin enchaîne sur la suivante de la même tâche, dans le temps qui reste. Pause obligatoire avant de changer de tâche principale. Notification de fin de session et de fin de pause, doublée d'un son joué par Done et du Dock qui rebondit jusqu'au retour dans l'app. Réglages › Notifications montre si macOS les autorise et permet d'en envoyer une de test. |
@@ -92,8 +94,9 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
    - Feuille « Bloqué » : ce qui bloque en une ligne, ce qui vient ensuite, puis « Laisser ouverte et passer à la suite ».
 8. **Interruption** : raison et durée de l'interruption, champ « Où tu en es ? », puis Reprendre, Choisir autre chose, ou Insérer une tâche urgente en tête du plan.
 9. **Pause** : compte à rebours, la prochaine action sous « Ensuite », bouton Passer la pause. Avant une nouvelle tâche principale, la pause est obligatoire : pas de bouton pour la passer.
-10. **Stats** : la semaine, avec le temps de focus par jour et par projet.
-11. **Réglages** : durées, tâches par jour, horizon des candidates, bilan du soir, Ne pas déranger, notifications, emplacement du fichier des tâches.
+10. **Calendrier** : le titre de la semaine, le nombre de réunions et d'échéances et le focus fait, les flèches et « Cette semaine ». Une colonne par jour : en-tête (jour, absence ou focus du jour, menu « … » pour ajouter une réunion ou marquer une absence), échéances, puis la grille horaire.
+11. **Stats** : la semaine, avec le temps de focus par jour et par projet.
+12. **Réglages** : durées, tâches par jour, horizon des candidates, bilan du soir, Ne pas déranger, notifications, emplacement du fichier des tâches.
 
 ### Parcours principal
 
@@ -121,7 +124,7 @@ Focus → Démarrer → Session en cours
 
 ### Navigation
 
-Une fenêtre avec une barre latérale à gauche : Focus (⌘1) et Plan du jour (⌘2) en haut, puis les listes (Inbox ⌘3, et les projets, avec leur nombre de tâches ouvertes), les étiquettes, puis Stats (⌘4) et Réglages (⌘,) en bas. On crée, renomme, réordonne et supprime les projets depuis la barre (clic droit), et on y glisse une tâche pour la ranger. Pendant une session (minuteur, pause, interruption, fin de session), la barre s'efface pour ne laisser que le minuteur, et revient quand la souris touche le bord gauche de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
+Une fenêtre avec une barre latérale à gauche : Focus (⌘1), Plan du jour (⌘2) et Calendrier (⌘5) en haut, puis les listes (Inbox ⌘3, et les projets, avec leur nombre de tâches ouvertes), les étiquettes, puis Stats (⌘4) et Réglages (⌘,) en bas. On crée, renomme, réordonne et supprime les projets depuis la barre (clic droit), et on y glisse une tâche pour la ranger. Pendant une session (minuteur, pause, interruption, fin de session), la barre s'efface pour ne laisser que le minuteur, et revient quand la souris touche le bord gauche de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
 
 ## 4. Données
 

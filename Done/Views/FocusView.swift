@@ -46,6 +46,8 @@ struct SuggestionView: View {
     @State private var showPicker = false
     @State private var breakdownTask: TodoTask?
     @State private var showReview = false
+    /// Jour d'absence : on peut quand même demander une tâche.
+    @State private var workAnyway = false
 
     private struct MinutesOverride {
         let taskID: String
@@ -69,15 +71,19 @@ struct SuggestionView: View {
                     ReviewPrompt { showReview = true }
                         .padding(.bottom, DoneSpace.s32)
                 }
-                switch suggestion.status {
-                case .planEmpty:
-                    planEmpty
-                case .allBlocked:
-                    allBlocked
-                case .noTimeBeforeMeeting:
-                    noTime(suggestion)
-                case .ready:
-                    ready(suggestion, now: context.date)
+                if let absence = model.absence(on: context.date), !workAnyway {
+                    absent(absence)
+                } else {
+                    switch suggestion.status {
+                    case .planEmpty:
+                        planEmpty
+                    case .allBlocked:
+                        allBlocked
+                    case .noTimeBeforeMeeting:
+                        noTime(suggestion)
+                    case .ready:
+                        ready(suggestion, now: context.date)
+                    }
                 }
                 Spacer(minLength: 16)
             }
@@ -96,6 +102,26 @@ struct SuggestionView: View {
             ReviewSheet()
                 .environment(model)
                 .modelContext(model.context)
+        }
+    }
+
+    // MARK: Absence
+
+    /// Congé ou férié, marqué dans le calendrier : Done ne propose rien.
+    private func absent(_ absence: Absence) -> some View {
+        VStack(spacing: 0) {
+            Eyebrow(text: "Jour d'absence")
+            Text(absence.title)
+                .doneText(.displayXL)
+                .foregroundStyle(DoneColor.textPrimary)
+                .padding(.top, DoneSpace.s12)
+            Text("Done ne propose rien aujourd'hui.")
+                .doneText(.body)
+                .foregroundStyle(DoneColor.textSecondary)
+                .padding(.top, DoneSpace.s8)
+            Button("Travailler quand même") { workAnyway = true }
+                .buttonStyle(DoneButtonStyle())
+                .padding(.top, DoneSpace.s24)
         }
     }
 

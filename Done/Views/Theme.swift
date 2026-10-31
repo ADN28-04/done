@@ -684,6 +684,8 @@ struct MeetingBlock: View {
     let now: Date
     /// Créneau affiché sous le titre, par exemple « 14:00–15:00 ».
     let detail: String
+    /// Remplit toute la hauteur proposée : un créneau de la grille du calendrier.
+    var fillsHeight = false
 
     private enum Moment { case upcoming, now, past }
 
@@ -701,7 +703,7 @@ struct MeetingBlock: View {
         .foregroundStyle(moment == .now ? DoneColor.meetingOnNow : (moment == .past ? DoneColor.textDisabled : DoneColor.textPrimary))
         .padding(.horizontal, DoneSpace.s8)
         .padding(.vertical, DoneSpace.s6)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
         .background {
             switch moment {
             case .now:

@@ -118,6 +118,15 @@ struct Project: Codable, Identifiable, Hashable {
     var position: Int
 }
 
+/// Jour d'absence (congé, férié) : Done ne propose rien ce jour-là.
+struct Absence: Codable, Hashable, Identifiable {
+    /// Clé de jour (« 2026-11-05 »).
+    let day: String
+    var title: String
+
+    var id: String { day }
+}
+
 /// Réunion saisie à la main : Done en tient compte pour proposer une session qui tient avant.
 struct Meeting: Codable, Identifiable, Hashable {
     let id: String
@@ -161,11 +170,12 @@ struct TaskStore: Codable, Equatable {
     var projects: [Project] = []
     var tasks: [TodoTask] = []
     var meetings: [Meeting] = []
+    var absences: [Absence] = []
 
     init() {}
 
     enum CodingKeys: String, CodingKey {
-        case version, projects, tasks, meetings
+        case version, projects, tasks, meetings, absences
     }
 
     init(from decoder: Decoder) throws {
@@ -174,6 +184,7 @@ struct TaskStore: Codable, Equatable {
         projects = try c.decodeIfPresent([Project].self, forKey: .projects) ?? []
         tasks = try c.decodeIfPresent([TodoTask].self, forKey: .tasks) ?? []
         meetings = try c.decodeIfPresent([Meeting].self, forKey: .meetings) ?? []
+        absences = try c.decodeIfPresent([Absence].self, forKey: .absences) ?? []
     }
 
     subscript(id: String) -> TodoTask? {
@@ -447,6 +458,34 @@ struct TaskStore: Codable, Equatable {
 
     mutating func deleteMeeting(_ id: String) {
         meetings.removeAll { $0.id == id }
+    }
+
+    /// Remplace la réunion du même identifiant. Refusée si la fin ne vient pas après le début.
+    mutating func updateMeeting(_ meeting: Meeting) {
+        guard meeting.end > meeting.start, let i = meetings.firstIndex(where: { $0.id == meeting.id }) else { return }
+        let trimmed = meeting.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        meetings[i] = Meeting(id: meeting.id, title: trimmed.isEmpty ? meetings[i].title : trimmed, start: meeting.start, end: meeting.end)
+    }
+
+    // MARK: Absences
+
+    func absence(on day: Date) -> Absence? {
+        let key = Format.dayKey(day)
+        return absences.first { $0.day == key }
+    }
+
+    /// Marque le jour comme absence, ou change son libellé. Un libellé vide devient « Absence ».
+    mutating func setAbsence(on day: Date, title: String) {
+        let key = Format.dayKey(day)
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        absences.removeAll { $0.day == key }
+        absences.append(Absence(day: key, title: trimmed.isEmpty ? "Absence" : trimmed))
+        absences.sort { $0.day < $1.day }
+    }
+
+    mutating func removeAbsence(on day: Date) {
+        let key = Format.dayKey(day)
+        absences.removeAll { $0.day == key }
     }
 
     /// Oublie les réunions finies avant `date`.

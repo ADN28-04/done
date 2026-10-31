@@ -70,21 +70,33 @@ struct MeetingsCard: View {
     }
 }
 
-/// Saisie d'une réunion : titre, jour, début et fin.
+/// Saisie d'une réunion : titre, jour, début et fin. Sert aussi à la modifier ou la supprimer
+/// (depuis le calendrier), et peut partir d'un créneau choisi.
 struct MeetingSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var title = ""
-    @State private var day = Date.now
-    @State private var start = MeetingSheet.nextQuarter()
-    @State private var end = MeetingSheet.nextQuarter().addingTimeInterval(3600)
+    /// La réunion modifiée, `nil` pour une nouvelle.
+    private let meeting: Meeting?
+    @State private var title: String
+    @State private var day: Date
+    @State private var start: Date
+    @State private var end: Date
     @FocusState private var titleFocused: Bool
+
+    init(meeting: Meeting? = nil, start: Date? = nil, end: Date? = nil) {
+        self.meeting = meeting
+        let from = meeting?.start ?? start ?? MeetingSheet.nextQuarter()
+        _title = State(initialValue: meeting?.title ?? "")
+        _day = State(initialValue: from)
+        _start = State(initialValue: from)
+        _end = State(initialValue: meeting?.end ?? end ?? from.addingTimeInterval(3600))
+    }
 
     var body: some View {
         let isValid = combine(day, end) > combine(day, start)
         VStack(alignment: .leading, spacing: 0) {
             Eyebrow(text: "Réunion")
-            Text("Nouvelle réunion")
+            Text(meeting == nil ? "Nouvelle réunion" : "Modifier la réunion")
                 .doneText(.displayM)
                 .foregroundStyle(DoneColor.textPrimary)
                 .padding(.top, DoneSpace.s8)
@@ -119,12 +131,23 @@ struct MeetingSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, DoneSpace.s12)
             HStack(spacing: DoneSpace.s8) {
+                if let meeting {
+                    Button("Supprimer") {
+                        model.deleteMeeting(meeting.id)
+                        dismiss()
+                    }
+                    .buttonStyle(DoneButtonStyle(kind: .plain))
+                }
                 Spacer()
                 Button("Annuler") { dismiss() }
                     .buttonStyle(DoneButtonStyle())
                     .keyboardShortcut(.cancelAction)
-                Button("Ajouter") {
-                    model.addMeeting(title: title, start: combine(day, start), end: combine(day, end))
+                Button(meeting == nil ? "Ajouter" : "Enregistrer") {
+                    if let meeting {
+                        model.updateMeeting(Meeting(id: meeting.id, title: title, start: combine(day, start), end: combine(day, end)))
+                    } else {
+                        model.addMeeting(title: title, start: combine(day, start), end: combine(day, end))
+                    }
                     dismiss()
                 }
                 .buttonStyle(DoneButtonStyle(kind: .primary))

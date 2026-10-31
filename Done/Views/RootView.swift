@@ -4,6 +4,7 @@ struct RootView: View {
     enum Screen: Hashable {
         case focus
         case plan
+        case calendar
         /// Une liste de tâches : l'Inbox, un projet ou une étiquette.
         case list(TaskList)
         case stats
@@ -99,6 +100,8 @@ struct RootView: View {
             FocusView(openPlan: { screen = .plan }, openTasks: { screen = .list(.inbox) })
         case .plan:
             PlanView(onValidate: { screen = .focus })
+        case .calendar:
+            CalendarView()
         case .list(let list):
             TaskListView(list: list)
                 .id(list)
@@ -125,6 +128,8 @@ private struct ShortcutKeys: View {
                 .keyboardShortcut("3")
             Button("Stats") { screen = .stats }
                 .keyboardShortcut("4")
+            Button("Calendrier") { screen = .calendar }
+                .keyboardShortcut("5")
             Button("Réglages") { screen = .settings }
                 .keyboardShortcut(",")
             Button("Nouvelle tâche", action: onCapture)
@@ -194,6 +199,8 @@ private struct Sidebar: View {
                 .help("Focus (⌘1)")
             NavItem(title: "Plan du jour", icon: Image(systemName: "calendar"), counter: planCounter, isSelected: screen == .plan) { screen = .plan }
                 .help("Plan du jour (⌘2)")
+            NavItem(title: "Calendrier", icon: Image(systemName: "calendar.day.timeline.left"), isSelected: screen == .calendar) { screen = .calendar }
+                .help("Calendrier (⌘5)")
 
             Eyebrow(text: "Listes")
                 .padding(.leading, DoneSpace.s8)

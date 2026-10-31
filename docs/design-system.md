@@ -111,11 +111,18 @@ Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date co
 - **Sélecteur** (`DoneSegmented`) : piste `bgSunken`, segment choisi sur une surface.
 - **Encadré** (`NoticeBox`) : sans contour ; information en `stateActiveTint`, erreur en `stateRiskTint`.
 
+## Calendrier
+
+- **Colonnes** : une par jour, du lundi au vendredi, séparées par un trait `borderSubtle`, après une gouttière de 44 pour les heures (`numericS`, texte secondaire).
+- **En-tête de jour** : « Lun 2 » en Archivo SemiBold 15 (Indigo actif pour aujourd'hui), puis une ligne `caption` : l'absence (icône `sun.max`), sinon le focus du jour, sinon « Aujourd'hui ». Menu « … » discret à droite, et le même menu au clic droit.
+- **Échéances** : 108 de haut, une petite carte par tâche (surface, liseré, rayon 6, `PriorityChip` et titre en `callout`), en texte d'alerte quand elle est en retard. Le jour survolé pendant un glisser-déposer prend la teinte active.
+- **Grille** : 44 par heure, de 8 h à 19 h, traits d'heure `borderSubtle`. Réunions en `MeetingBlock` qui remplit son créneau ; focus passé sur teinte active avec un filet `stateActive` de 3 à gauche et le titre en 11 Medium ; deux événements qui se chevauchent se partagent la largeur. Heure courante : un point et un trait de 1,5 en `stateActive`, jamais en couleur d'alerte. Jour d'absence : fond `bgSunken`.
+
 ## Navigation
 
 Barre latérale de 228, sur `bgSunken`, avec un trait `borderSubtle` à droite :
 
-- en haut, Focus (⌘1) et Plan du jour (⌘2, avec le nombre de tâches du plan) ;
+- en haut, Focus (⌘1), Plan du jour (⌘2, avec le nombre de tâches du plan) et Calendrier (⌘5, icône `calendar.day.timeline.left`) ;
 - au milieu, l'étiquette « Listes », puis l'Inbox (⌘3) et les projets, chacun avec son nombre de tâches ouvertes, et « Nouveau projet » ; ensuite, s'il y en a, l'étiquette « Étiquettes » et une entrée par étiquette (icône `tag`), avec son nombre de tâches ouvertes ;
 - en bas, Stats (⌘4) et Réglages (⌘,).
 

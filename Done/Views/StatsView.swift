@@ -222,6 +222,7 @@ struct StatTile: View {
     }
 }
 
-private func plural(_ count: Int, _ singular: String, _ pluralForm: String? = nil) -> String {
+/// « 1 réunion », « 3 réunions ».
+func plural(_ count: Int, _ singular: String, _ pluralForm: String? = nil) -> String {
     "\(count) \(count > 1 ? (pluralForm ?? singular + "s") : singular)"
 }

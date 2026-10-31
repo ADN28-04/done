@@ -87,7 +87,9 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Rallonge** : « Ajouter 5 min » pendant la session ou « Encore 5 min » à la fin, 10 min au plus par pomodoro. Au-delà, une pause avant de continuer la même étape.
 - **Étape bloquée** : « Bloqué… » marque l'étape bloquée, garde la raison en note de reprise, puis passe à l'étape suivante de la même tâche. On la débloque dans sa liste (clic droit ou fiche de la tâche).
 - **Pause obligatoire** : changer de tâche principale passe par une pause qui ne se passe pas. Après une tâche cochée, elle démarre seule ; après « Arrêter là » ou une pause passée, l'écran Focus propose « Démarrer la pause » avant une autre tâche. Une interruption n'en impose pas, pour laisser passer une urgence.
-- **Réunions** : saisies à la main dans le Plan du jour (titre, jour, début, fin). Done ne propose pas de session qui déborde sur la prochaine réunion, et prévient 5 minutes avant (réglable).
+- **Réunions** : saisies à la main dans le Plan du jour ou le calendrier (titre, jour, début, fin). Done ne propose pas de session qui déborde sur la prochaine réunion, et prévient 5 minutes avant (réglable). Elles restent visibles jusqu'à la fin de la semaine.
+- **Calendrier** (⌘5) : la semaine du lundi au vendredi, avec les échéances en haut de chaque jour (à glisser d'un jour à l'autre), les réunions et le focus déjà fait dans une grille de 8 h à 19 h. Un clic sur un créneau libre ajoute une réunion.
+- **Jours d'absence** : congé ou férié, posés depuis le menu d'un jour du calendrier. Ce jour-là, l'écran Focus ne propose rien.
 - **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.
 - **Note de reprise** : en fin de session ou pendant une interruption, une ligne « Où tu en es ? », réaffichée la prochaine fois que la tâche revient. Effacée quand la tâche est cochée ou supprimée.
 - **Découpage** : « Découper… » sur l'écran Focus ou dans une liste (clic droit) ajoute les étapes qui mènent la tâche au bout, dans l'ordre. Après chaque étape cochée, Done propose la suivante ; une fois toutes faites, la tâche elle-même, pour la clore.
