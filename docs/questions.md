@@ -5,7 +5,7 @@ Points à trancher à l'usage.
 ## Tranché
 
 - **Plateforme** : Mac uniquement. Pas de compte Apple Developer payant, pas de synchro iCloud, données locales.
-- **Todoist** : abandonné. Done gère les tâches lui-même, sans import : la liste repart de zéro. L'idée d'un serveur avec un connecteur pour Claude (« Done v2 ») a été écartée pour garder l'outil simple.
+- **Todoist** : abandonné. Done gère les tâches lui-même. Les tâches ouvertes ont été reprises une fois, par un fichier généré hors de l'app ; aucune fonction d'import n'est prévue. L'idée d'un serveur avec un connecteur pour Claude (« Done v2 ») a été écartée pour garder l'outil simple.
 - **IA intégrée** : retirée. Le découpage se fait à la main, étape par étape.
 - **Découpage** : une seule prochaine action ne suffisait pas, la tâche paraissait abandonnée après la première étape. Done ajoute toutes les étapes d'un coup, dans l'ordre, et les propose l'une après l'autre.
 

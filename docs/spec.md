@@ -67,7 +67,7 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 
 ### Hors périmètre
 
-- Todoist, ou toute synchronisation avec un autre gestionnaire de tâches. Pas d'import : la liste repart de zéro.
+- Todoist, ou toute synchronisation avec un autre gestionnaire de tâches. Les tâches ouvertes ont été reprises une seule fois, hors de l'app, au passage à Done : chantiers en projets, run et « Plus tard » en étiquettes, agenda en réunions. Done n'a pas de fonction d'import.
 - Serveur, compte, synchronisation entre appareils, accès par Claude ou par une autre app.
 - IA intégrée (le découpage par l'API Claude a été retiré).
 - Chantiers actifs limités, attentes, dépendances, calcul de charge : la liste reste simple. Les étiquettes restent de simples noms, sans couleur ni règle attachée.
