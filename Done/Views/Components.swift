@@ -6,7 +6,7 @@ struct TaskChips: View {
     let task: TodoTask
 
     var body: some View {
-        HStack(spacing: DoneSpace.s6) {
+        HStack(spacing: DoneSpace.s12) {
             PriorityChip(priority: task.priority)
             if task.isBlocked {
                 StateChip(kind: .blocked, title: "Bloquée")
@@ -92,7 +92,7 @@ struct TaskPickerView: View {
                         } label: {
                             TaskRowContent(task: task)
                                 .padding(.horizontal, DoneSpace.s12)
-                                .frame(minHeight: 52)
+                                .frame(minHeight: 48)
                                 .background(hovered == task.id ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
                                 .contentShape(Rectangle())
                         }

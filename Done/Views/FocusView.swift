@@ -272,7 +272,7 @@ struct SuggestionView: View {
                         StateChip(kind: .blocked, title: blockedReason(task))
                     }
                     .padding(.horizontal, DoneSpace.s12)
-                    .frame(minHeight: 52)
+                    .frame(minHeight: 48)
                 }
             }
             .padding(DoneSpace.s6)

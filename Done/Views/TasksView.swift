@@ -127,7 +127,7 @@ struct TaskListView: View {
 
     // MARK: Lignes
 
-    /// Ligne de tâche : hauteur 52, rayon 10. Au survol, fond surface.hover et poignée de déplacement.
+    /// Ligne de tâche : hauteur 48, rayon 10. Au survol, fond surface.hover et poignée de déplacement.
     private func taskRow(_ task: TodoTask, depth: Int) -> some View {
         let isHovered = hovered == task.id
         let inPlan = model.planIDs.contains(task.id)
@@ -160,7 +160,7 @@ struct TaskListView: View {
         }
         .padding(.leading, DoneSpace.s4 + CGFloat(depth) * 28)
         .padding(.trailing, DoneSpace.s12)
-        .frame(minHeight: 52)
+        .frame(minHeight: 48)
         .background(isHovered ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)

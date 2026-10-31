@@ -125,7 +125,7 @@ struct PlanView: View {
             .help(isFull ? "Le plan compte déjà \(Rules.maxPlanSize) tâches" : "Ajouter au plan")
         }
         .padding(.horizontal, DoneSpace.s12)
-        .frame(minHeight: 52)
+        .frame(minHeight: 48)
         .background(hovered == task.id ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
         .contentShape(Rectangle())
         .onHover { inside in setHovered(task.id, inside) }
@@ -324,7 +324,7 @@ struct NumberTile: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         Text("\(position)")
-            .font(.mono(13, .semibold))
+            .font(.sans(13, .semibold).monospacedDigit())
             .foregroundStyle(isFilled ? DoneColor.stateOnActive : DoneColor.textSecondary)
             .frame(width: 24, height: 24)
             .background(isFilled ? DoneColor.stateActive : Color.clear, in: shape)

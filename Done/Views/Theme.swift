@@ -3,51 +3,51 @@ import SwiftUI
 
 // MARK: Couleurs
 
-/// Design system Done v4 : couleurs nommées par rôle, en clair et en sombre.
-/// Référence : docs/design-system.md et docs/design/Done-Design-System-v4.html.
-/// Le code ne référence jamais une couleur de marque (Pierre, Encre, Indigo…) directement.
+/// Design system Done v5 : couleurs nommées par rôle, en clair et en sombre.
+/// Référence : docs/design-system.md et docs/design/Done-Design-System-v5.html.
+/// Le code ne référence jamais une couleur de marque (Papier, Graphite, Indigo…) directement.
 enum DoneColor {
     // Fonds et surfaces
-    static let bgCanvas = dynamic(0xF5F3EF, 0x1A1917)
-    static let bgSunken = dynamic(0xEEEBE5, 0x161513)
-    static let surfaceDefault = dynamic(0xFBFAF7, 0x22201D)
-    static let surfaceHover = dynamic(0xF1EEE8, 0x2A2825)
-    static let surfaceSelected = dynamic(0xE6E8F4, 0x2A2E4A)
+    static let bgCanvas = dynamic(0xF6F6F7, 0x17181C)
+    static let bgSunken = dynamic(0xEEEFF2, 0x131417)
+    static let surfaceDefault = dynamic(0xFFFFFF, 0x1F2025)
+    static let surfaceHover = dynamic(0xF0F1F4, 0x26272D)
+    static let surfaceSelected = dynamic(0xE7E9F4, 0x272B45)
 
     // Bordures
-    static let borderSubtle = dynamic(0xE1DCD3, 0x35322D)
-    static let borderDefault = dynamic(0xCFC8BC, 0x45413B)
-    static let borderControl = dynamic(0x8D857A, 0x8A8379)
+    static let borderSubtle = dynamic(0xE4E5EA, 0x2E3036)
+    static let borderDefault = dynamic(0xD2D4DB, 0x3D3F46)
+    static let borderControl = dynamic(0x8A8E99, 0x858A96)
 
     // Textes
-    static let textPrimary = dynamic(0x26231F, 0xE8E4DD)
-    static let textSecondary = dynamic(0x6B645A, 0xA39C91)
-    static let textDisabled = dynamic(0xB2ABA0, 0x5E5951)
+    static let textPrimary = dynamic(0x1C1E26, 0xE6E7EB)
+    static let textSecondary = dynamic(0x5E626D, 0x9EA2AD)
+    static let textDisabled = dynamic(0xB0B3BC, 0x565A63)
 
     // Actions
     static let actionPrimary = dynamic(0x4553A0, 0x5A68C0)
     static let actionPrimaryHover = dynamic(0x3A4690, 0x5260B8)
     static let actionPrimaryPressed = dynamic(0x313B7C, 0x4A57A8)
     static let actionOnPrimary = dynamic(0xFFFFFF, 0xFFFFFF)
-    static let actionDisabled = dynamic(0xE9E5DE, 0x2B2925)
+    static let actionDisabled = dynamic(0xE8E9EE, 0x26272D)
     static let focusRing = dynamic(0x4553A0, 0xAAB4F2)
 
     // États
     static let stateActive = dynamic(0x4F5CB0, 0x5A68C0)
     static let stateOnActive = dynamic(0xFFFFFF, 0xFFFFFF)
     static let stateActiveText = dynamic(0x3A4690, 0xAAB4F2)
-    static let stateActiveTint = dynamic(0xE6E8F4, 0x262A42)
-    static let stateBlocked = dynamic(0xE9E5DE, 0x2B2925)
-    static let stateOnBlocked = dynamic(0x26231F, 0xE8E4DD)
-    static let stateWaiting = dynamic(0x8D857A, 0x8A8379)
+    static let stateActiveTint = dynamic(0xE7E9F4, 0x23263B)
+    static let stateBlocked = dynamic(0xECEDF0, 0x26272D)
+    static let stateOnBlocked = dynamic(0x1C1E26, 0xE6E7EB)
+    static let stateWaiting = dynamic(0x8A8E99, 0x858A96)
     static let stateRisk = dynamic(0xC2463F, 0xE06A63)
-    static let stateRiskTint = dynamic(0xF6E3E1, 0x3A2321)
+    static let stateRiskTint = dynamic(0xF8E6E5, 0x3A2224)
     static let stateRiskText = dynamic(0xA3332E, 0xF0A29D)
-    static let stateDone = dynamic(0xEEEBE5, 0x1F1E1B)
-    static let stateOnDone = dynamic(0x6B645A, 0xA39C91)
+    static let stateDone = dynamic(0xEEEFF2, 0x1C1D21)
+    static let stateOnDone = dynamic(0x5E626D, 0x9EA2AD)
 
     // Réunions
-    static let meetingBg = dynamic(0xEFECE6, 0x24221F)
+    static let meetingBg = dynamic(0xEFF0F3, 0x222328)
     static let meetingHatch = dynamic(0x4553A0, 0xAAB4F2, lightAlpha: 0.14, darkAlpha: 0.14)
     static let meetingNow = dynamic(0x4553A0, 0x5A68C0)
     static let meetingOnNow = dynamic(0xFFFFFF, 0xFFFFFF)
@@ -55,14 +55,14 @@ enum DoneColor {
     // Pomodoro
     static let pomodoroFocus = dynamic(0x4553A0, 0x8F9BE8)
     static let pomodoroBreak = dynamic(0x6F7BC2, 0xAAB4F2)
-    static let pomodoroBreakBg = dynamic(0xECEEF7, 0x1F2133)
-    static let pomodoroTrack = dynamic(0xE6E2DA, 0x35322D)
-    static let pomodoroPaused = dynamic(0xB2ABA0, 0x5E5951)
+    static let pomodoroBreakBg = dynamic(0xEDEFF8, 0x1D2033)
+    static let pomodoroTrack = dynamic(0xE4E5EA, 0x2E3036)
+    static let pomodoroPaused = dynamic(0xB0B3BC, 0x565A63)
 
-    // Ombres : discrètes en clair, en sombre les contours font le travail.
-    static let shadowCard = dynamic(0x26231F, 0x000000, lightAlpha: 0.06, darkAlpha: 0.35)
-    static let shadowRaised = dynamic(0x26231F, 0x000000, lightAlpha: 0.10, darkAlpha: 0.45)
-    static let shadowRaisedNear = dynamic(0x26231F, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
+    // Ombres : réservées aux éléments surélevés. En sombre, les contours font le travail.
+    static let shadowCard = dynamic(0x1C1E26, 0x000000, lightAlpha: 0.06, darkAlpha: 0.35)
+    static let shadowRaised = dynamic(0x1C1E26, 0x000000, lightAlpha: 0.10, darkAlpha: 0.45)
+    static let shadowRaisedNear = dynamic(0x1C1E26, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
 
     static func dynamic(_ light: UInt32, _ dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -110,8 +110,9 @@ enum DoneRadius {
 
 // MARK: Typographie
 
-/// Échelle typographique : Instrument Sans pour les titres et le texte, IBM Plex Mono pour les heures,
-/// les durées et le minuteur (chiffres de même largeur). Fichiers dans Done/Fonts, chargés par `FontLoader`.
+/// Échelle typographique, en une seule famille : Archivo. Les titres d'affichage sont en largeur
+/// semi-étroite, le texte en largeur normale, les nombres en chiffres tabulaires et le minuteur en Light.
+/// Fichiers dans Done/Fonts, chargés par `FontLoader`.
 enum DoneTextStyle {
     /// 44/48, titre d'écran majeur (l'action proposée).
     case displayXL
@@ -129,7 +130,7 @@ enum DoneTextStyle {
     case callout
     /// 12/16, métadonnées.
     case caption
-    /// 11/14 SemiBold, capitales espacées.
+    /// 12/16 SemiBold, étiquette de section en casse normale.
     case label
     /// 56/60, minuteur.
     case numericXL
@@ -148,9 +149,8 @@ enum DoneTextStyle {
         case .title: 17
         case .body, .bodyStrong, .numericM: 14
         case .callout: 13
-        case .caption, .numericS: 12
-        case .label: 11
-        case .numericXL: 56
+        case .caption, .label, .numericS: 12
+        case .numericXL: 60
         case .numericL: 28
         }
     }
@@ -163,9 +163,8 @@ enum DoneTextStyle {
         case .title: 24
         case .body, .bodyStrong, .numericM: 20
         case .callout: 18
-        case .caption, .numericS: 16
-        case .label: 14
-        case .numericXL: 60
+        case .caption, .label, .numericS: 16
+        case .numericXL: 64
         case .numericL: 32
         }
     }
@@ -173,25 +172,37 @@ enum DoneTextStyle {
     /// Interlettrage, en em.
     var tracking: CGFloat {
         switch self {
-        case .displayXL: -0.025
-        case .displayL, .numericXL: -0.02
-        case .displayM, .numericL: -0.01
-        case .label: 0.06
+        case .numericXL: -0.02
+        case .displayXL: -0.015
+        case .displayL, .numericL: -0.01
+        case .displayM: -0.005
         default: 0
         }
     }
 
     var fontName: String {
         switch self {
-        case .displayXL, .displayL, .displayM, .title, .label: "InstrumentSans-SemiBold"
-        case .bodyStrong: "InstrumentSans-Medium"
-        case .body, .callout, .caption: "InstrumentSans-Regular"
-        case .numericL: "IBMPlexMono-SemiBold"
-        case .numericXL, .numericM, .numericS: "IBMPlexMono-Medium"
+        case .displayXL, .displayL, .displayM: "ArchivoSemiCondensed-SemiBold"
+        case .title, .label: "Archivo-SemiBold"
+        case .bodyStrong, .numericL, .numericM, .numericS: "Archivo-Medium"
+        case .body, .callout, .caption: "Archivo-Regular"
+        case .numericXL: "Archivo-Light"
         }
     }
 
-    var font: Font { .custom(fontName, fixedSize: size) }
+    var isNumeric: Bool {
+        switch self {
+        case .numericXL, .numericL, .numericM, .numericS: true
+        default: false
+        }
+    }
+
+    /// Les styles numériques prennent les chiffres tabulaires d'Archivo : les colonnes et le minuteur
+    /// ne bougent pas en largeur.
+    var font: Font {
+        let font = Font.custom(fontName, fixedSize: size)
+        return isNumeric ? font.monospacedDigit() : font
+    }
 }
 
 extension Font {
@@ -199,35 +210,25 @@ extension Font {
         case regular, medium, semibold
     }
 
-    enum MonoWeight {
-        case medium, semibold
-    }
-
     static func done(_ style: DoneTextStyle) -> Font { style.font }
 
-    /// Instrument Sans hors échelle : boutons, navigation active.
+    /// Archivo hors échelle : boutons, navigation active. Ajouter `.monospacedDigit()` pour un nombre.
     static func sans(_ size: CGFloat, _ weight: TextWeight = .regular) -> Font {
         let name = switch weight {
-        case .regular: "InstrumentSans-Regular"
-        case .medium: "InstrumentSans-Medium"
-        case .semibold: "InstrumentSans-SemiBold"
+        case .regular: "Archivo-Regular"
+        case .medium: "Archivo-Medium"
+        case .semibold: "Archivo-SemiBold"
         }
         return .custom(name, fixedSize: size)
-    }
-
-    /// IBM Plex Mono hors échelle : chiffres isolés (numéros du plan).
-    static func mono(_ size: CGFloat, _ weight: MonoWeight = .medium) -> Font {
-        .custom(weight == .medium ? "IBMPlexMono-Medium" : "IBMPlexMono-SemiBold", fixedSize: size)
     }
 }
 
 extension View {
-    /// Style de texte du design system : police, interlignage, interlettrage et capitales.
+    /// Style de texte du design system : police, interlignage et interlettrage.
     func doneText(_ style: DoneTextStyle) -> some View {
         font(style.font)
             .tracking(style.size * style.tracking)
             .lineSpacing(max(0, style.lineHeight - style.size * 1.3))
-            .textCase(style == .label ? Text.Case.uppercase : nil)
     }
 }
 
@@ -245,7 +246,7 @@ struct TimerText: View {
     }
 }
 
-/// Étiquette en capitales (style label) : « CANDIDATES », « ENSUITE ».
+/// Étiquette de section (style label), en casse normale : « Candidates », « Ensuite ».
 struct Eyebrow: View {
     let text: String
     var color: Color = DoneColor.textSecondary
@@ -260,11 +261,10 @@ struct Eyebrow: View {
 // MARK: Surfaces
 
 extension View {
-    /// Carte : surface, liseré border.subtle et ombre shadow.card.
+    /// Carte : surface et liseré border.subtle, sans ombre.
     func doneCard(radius: CGFloat = DoneRadius.md) -> some View {
         background(DoneColor.surfaceDefault, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
-            .shadow(color: DoneColor.shadowCard, radius: 1, y: 1)
     }
 
     /// Carte surélevée (shadow.raised) : carte de fin de pomodoro, carte survolée.
@@ -325,7 +325,7 @@ struct DoneButtonStyle: ButtonStyle {
     enum Kind {
         /// Indigo en clair, Indigo 400 en sombre.
         case primary
-        /// Contour border.control.
+        /// Surface et contour border.default.
         case secondary
         /// Texte seul, discret.
         case plain
@@ -362,7 +362,7 @@ private struct DoneButtonBody: View {
             .background(background, in: shape)
             .overlay {
                 if kind == .secondary {
-                    shape.strokeBorder(isEnabled ? DoneColor.borderControl : DoneColor.borderSubtle, lineWidth: 1)
+                    shape.strokeBorder(isEnabled ? DoneColor.borderDefault : DoneColor.borderSubtle, lineWidth: 1)
                 }
             }
             .contentShape(shape)
@@ -412,7 +412,7 @@ private struct DoneIconButtonBody: View {
             .foregroundStyle(isEnabled ? DoneColor.textPrimary : DoneColor.textDisabled)
             .frame(width: 32, height: 32)
             .background(isEnabled && (hovered || configuration.isPressed) ? DoneColor.surfaceHover : DoneColor.surfaceDefault, in: shape)
-            .overlay(shape.strokeBorder(isEnabled ? DoneColor.borderControl : DoneColor.borderSubtle, lineWidth: 1))
+            .overlay(shape.strokeBorder(isEnabled ? DoneColor.borderDefault : DoneColor.borderSubtle, lineWidth: 1))
             .contentShape(shape)
             .onHover { hovered = $0 }
     }
@@ -474,7 +474,7 @@ struct DoneSegmented<Value: Hashable>: View {
 
 // MARK: Tâches
 
-/// Case à cocher de tâche : carré de 18, rayon 5, contour 1,5. La coche apparaît en filigrane
+/// Case à cocher de tâche : carré de 16, rayon 4, contour 1,5. La coche apparaît en filigrane
 /// au survol ; cochée, plein action.primary.
 struct TaskCheckbox: View {
     let isDone: Bool
@@ -484,7 +484,7 @@ struct TaskCheckbox: View {
     @State private var hovered = false
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 4, style: .continuous)
         Button(action: action) {
             shape
                 .fill(isDone ? DoneColor.actionPrimary : (isEnabled ? DoneColor.surfaceDefault : DoneColor.actionDisabled))
@@ -496,11 +496,11 @@ struct TaskCheckbox: View {
                 .overlay {
                     if isDone || (hovered && isEnabled) {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(isDone ? DoneColor.actionOnPrimary : DoneColor.borderControl)
                     }
                 }
-                .frame(width: 18, height: 18)
+                .frame(width: 16, height: 16)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -509,16 +509,17 @@ struct TaskCheckbox: View {
     }
 }
 
-/// Puce d'état : hauteur 22, rayon 3, texte 12 Medium. Chaque état a une forme en plus de sa couleur.
+/// Puce d'état : hauteur 20, rayon 4, texte 12 Medium. Une forme en plus de la couleur ; fond léger,
+/// jamais de plein ni de contour, pour que la ligne reste calme.
 struct StateChip: View {
     enum Kind {
-        /// Tâche du plan du jour, en cours : point plein sur Indigo.
+        /// Tâche du plan du jour : point Indigo sur teinte active.
         case active
         /// Ne peut pas avancer.
         case blocked
-        /// Échéance dépassée : contour Alerte.
+        /// Échéance dépassée : teinte d'alerte.
         case risk
-        /// Fait : recule visuellement.
+        /// Fait : texte seul, recule visuellement.
         case done
     }
 
@@ -526,21 +527,15 @@ struct StateChip: View {
     let title: String
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
         HStack(spacing: 5) {
             icon
             Text(title)
         }
         .font(.sans(12, .medium))
         .foregroundStyle(foreground)
-        .padding(.horizontal, 7)
-        .frame(height: 22)
-        .background(background, in: shape)
-        .overlay {
-            if kind == .risk {
-                shape.strokeBorder(DoneColor.stateRisk, lineWidth: 1)
-            }
-        }
+        .padding(.horizontal, kind == .done ? 0 : 7)
+        .frame(height: 20)
+        .background(background, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
         .fixedSize()
     }
 
@@ -548,28 +543,28 @@ struct StateChip: View {
     private var icon: some View {
         switch kind {
         case .active:
-            Circle().fill(DoneColor.stateOnActive).frame(width: 5, height: 5)
+            Circle().fill(DoneColor.stateActive).frame(width: 5, height: 5)
         case .blocked:
-            Image(systemName: "nosign").font(.system(size: 9, weight: .bold))
+            Image(systemName: "nosign").font(.system(size: 9, weight: .semibold))
         case .risk:
-            Image(systemName: "triangle").font(.system(size: 9, weight: .bold))
+            Image(systemName: "exclamationmark.triangle").font(.system(size: 9, weight: .semibold))
         case .done:
-            Image(systemName: "checkmark").font(.system(size: 9, weight: .bold))
+            Image(systemName: "checkmark").font(.system(size: 9, weight: .semibold))
         }
     }
 
     private var background: Color {
         switch kind {
-        case .active: DoneColor.stateActive
+        case .active: DoneColor.stateActiveTint
         case .blocked: DoneColor.stateBlocked
         case .risk: DoneColor.stateRiskTint
-        case .done: DoneColor.stateDone
+        case .done: .clear
         }
     }
 
     private var foreground: Color {
         switch kind {
-        case .active: DoneColor.stateOnActive
+        case .active: DoneColor.stateActiveText
         case .blocked: DoneColor.stateOnBlocked
         case .risk: DoneColor.stateRiskText
         case .done: DoneColor.stateOnDone
@@ -577,8 +572,8 @@ struct StateChip: View {
     }
 }
 
-/// Puce de durée ou de date : hauteur 24, rayon 3, chiffres tabulaires. Une échéance dépassée
-/// passe en teinte d'alerte.
+/// Date ou durée : icône et texte secondaires, chiffres tabulaires, sans fond. Une échéance
+/// dépassée passe en texte d'alerte.
 struct InfoChip: View {
     /// Symbole SF : « calendar » pour une date, « clock » pour une durée.
     let symbol: String
@@ -586,38 +581,30 @@ struct InfoChip: View {
     var isAlert = false
 
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             Image(systemName: symbol)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 10, weight: .medium))
             Text(text)
         }
         .font(.done(.numericS))
-        .foregroundStyle(isAlert ? DoneColor.stateRiskText : DoneColor.textPrimary)
-        .padding(.horizontal, 7)
-        .frame(height: 24)
-        .background(isAlert ? DoneColor.stateRiskTint : DoneColor.bgSunken, in: RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous))
+        .foregroundStyle(isAlert ? DoneColor.stateRiskText : DoneColor.textSecondary)
+        .frame(height: 20)
         .fixedSize()
     }
 }
 
-/// Priorité : « P1 » en Indigo plein, « P2 » en contour Indigo, rien pour P3 et P4.
+/// Priorité : « P1 » sur teinte active, « P2 » en texte actif seul, rien pour P3 et P4.
 struct PriorityChip: View {
     let priority: Int
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
         if priority <= 2 {
             Text("P\(priority)")
-                .font(.done(.numericS))
-                .foregroundStyle(priority == 1 ? DoneColor.stateOnActive : DoneColor.stateActiveText)
-                .padding(.horizontal, DoneSpace.s6)
-                .frame(height: 22)
-                .background(priority == 1 ? DoneColor.stateActive : Color.clear, in: shape)
-                .overlay {
-                    if priority == 2 {
-                        shape.strokeBorder(DoneColor.stateActiveText, lineWidth: 1)
-                    }
-                }
+                .font(.sans(12, priority == 1 ? .semibold : .medium).monospacedDigit())
+                .foregroundStyle(DoneColor.stateActiveText)
+                .padding(.horizontal, priority == 1 ? DoneSpace.s6 : 0)
+                .frame(height: 20)
+                .background(priority == 1 ? DoneColor.stateActiveTint : Color.clear, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .fixedSize()
                 .help(priority == 1 ? "Priorité 1" : "Priorité 2")
         }
@@ -626,7 +613,7 @@ struct PriorityChip: View {
 
 // MARK: Navigation
 
-/// Élément de navigation : hauteur 32, rayon 6, icône 16, compteur tabulaire à droite.
+/// Élément de navigation : hauteur 32, rayon 6, icône 16, compteur en chiffres tabulaires à droite.
 /// Actif : surface.selected et graisse Semibold.
 struct NavItem: View {
     let title: String
@@ -744,11 +731,11 @@ struct DoneAppIcon: View {
 }
 
 /// Anneau du minuteur : la part restante, depuis midi, dans le sens horaire.
-/// Diamètre 280 et trait 12 en session ; Indigo en concentration, couleur de pause, gris à l'arrêt.
+/// Diamètre 280 et trait 8 en session ; Indigo en concentration, couleur de pause, gris à l'arrêt.
 struct ProgressRing: View {
     let fraction: Double
     var color: Color = DoneColor.pomodoroFocus
-    var lineWidth: CGFloat = 12
+    var lineWidth: CGFloat = 8
 
     var body: some View {
         ZStack {
@@ -783,7 +770,7 @@ struct ProgressBar: View {
     }
 }
 
-/// Encadré de message : information (teinte active) ou erreur (alerte, la seule couleur chaude).
+/// Encadré de message, sans contour : information (teinte active) ou erreur (teinte d'alerte, la seule couleur chaude).
 struct NoticeBox: View {
     enum Tone {
         case info, error
@@ -795,7 +782,7 @@ struct NoticeBox: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s8) {
-            Image(systemName: tone == .info ? "info.circle" : "triangle")
+            Image(systemName: tone == .info ? "info.circle" : "exclamationmark.triangle")
                 .font(.system(size: 11, weight: .semibold))
             Text(text)
                 .doneText(.callout)
@@ -806,10 +793,5 @@ struct NoticeBox: View {
         .padding(.horizontal, DoneSpace.s12)
         .padding(.vertical, DoneSpace.s8)
         .background(tone == .info ? DoneColor.stateActiveTint : DoneColor.stateRiskTint, in: shape)
-        .overlay {
-            if tone == .error {
-                shape.strokeBorder(DoneColor.stateRisk, lineWidth: 1)
-            }
-        }
     }
 }
