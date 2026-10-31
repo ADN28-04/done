@@ -18,8 +18,9 @@ struct CalendarView: View {
     private static let firstHour = 8
     private static let lastHour = 19
     private static let hourHeight: CGFloat = 44
-    private static let gutter: CGFloat = 44
-    private static let dueHeight: CGFloat = 108
+    private static let gutter: CGFloat = 64
+    /// Hauteur d'une carte d'échéance, espacement compris.
+    private static let dueRow: CGFloat = 30
 
     /// Une réunion à créer sur un créneau, ou à modifier.
     private struct MeetingRequest: Identifiable {
@@ -46,6 +47,9 @@ struct CalendarView: View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             let now = context.date
             let days = WorkWeek.days(containing: reference(now))
+            // La rangée des échéances suit le jour le plus chargé, jusqu'à cinq cartes ; au-delà, elle défile.
+            let busiest = days.map { WorkWeek.dueTasks(on: $0, in: model.index.all, today: now).count }.max() ?? 0
+            let dueHeight = min(max(CGFloat(busiest) * Self.dueRow + DoneSpace.s8, 40), 5 * Self.dueRow + DoneSpace.s8)
             VStack(alignment: .leading, spacing: 0) {
                 header(days: days, now: now)
                 row {
@@ -56,14 +60,15 @@ struct CalendarView: View {
                 .padding(.top, DoneSpace.s20)
                 row {
                     ForEach(days, id: \.self) { day in
-                        dueCell(day, now: now)
+                        dueCell(day, now: now, height: dueHeight)
                     }
                 } gutter: {
                     Text("Échéances")
                         .doneText(.caption)
                         .foregroundStyle(DoneColor.textSecondary)
-                        .lineLimit(2)
-                        .padding(.top, DoneSpace.s6)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(.top, DoneSpace.s8)
                 }
                 Hairline()
                 ScrollViewReader { proxy in
@@ -212,7 +217,7 @@ struct CalendarView: View {
 
     // MARK: Échéances
 
-    private func dueCell(_ day: Date, now: Date) -> some View {
+    private func dueCell(_ day: Date, now: Date, height: CGFloat) -> some View {
         let tasks = WorkWeek.dueTasks(on: day, in: model.index.all, today: now)
         return ScrollView {
             VStack(alignment: .leading, spacing: DoneSpace.s4) {
@@ -224,7 +229,7 @@ struct CalendarView: View {
         }
         .scrollIndicators(.never)
         .frame(maxWidth: .infinity)
-        .frame(height: Self.dueHeight)
+        .frame(height: height)
         .background(dropDay == day ? DoneColor.stateActiveTint : Color.clear)
         .modifier(DayDrop(day: day, now: now, dropDay: $dropDay) { move($0, to: $1, now: $2) })
     }
@@ -429,8 +434,9 @@ struct CalendarView: View {
         }
     }
 
+    /// Sans gouttière : une marge vide, de hauteur nulle (un `Color.clear` seul prendrait toute la hauteur libre).
     private func row<Days: View>(@ViewBuilder days: () -> Days) -> some View {
-        row(days: days) { Color.clear }
+        row(days: days) { Color.clear.frame(height: 0) }
     }
 }
 
