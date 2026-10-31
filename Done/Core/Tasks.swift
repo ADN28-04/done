@@ -120,6 +120,21 @@ struct Meeting: Codable, Identifiable, Hashable {
     func contains(_ date: Date) -> Bool { start <= date && date < end }
 }
 
+/// Tâche en cours de saisie, avec tous ses détails : la capture la crée d'un coup,
+/// au lieu de la noter puis de la compléter.
+struct TaskDraft: Equatable {
+    var title = ""
+    var notes = ""
+    /// `nil` pour l'Inbox.
+    var projectID: String?
+    var priority = 4
+    var kind: TaskKind = .normal
+    var due: Date?
+    var steps: [String] = []
+
+    var hasTitle: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+}
+
 /// Projets, tâches (ouvertes et terminées) et réunions, enregistrés en JSON par `TaskStorage`.
 /// Les opérations sont pures, pour être testées hors de l'app.
 struct TaskStore: Codable, Equatable {
@@ -216,6 +231,22 @@ struct TaskStore: Codable, Equatable {
         )
         tasks.append(task)
         return task
+    }
+
+    /// Crée une tâche avec tous ses détails et ses étapes, dans l'ordre. Rien si le titre est vide ;
+    /// les étapes vides sont ignorées.
+    @discardableResult
+    mutating func addTask(_ draft: TaskDraft, now: Date = .now, id: String = UUID().uuidString) -> TodoTask? {
+        guard var task = addTask(title: draft.title, projectID: draft.projectID, now: now, id: id) else { return nil }
+        task.notes = draft.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        task.priority = draft.priority
+        task.kind = draft.kind
+        task.due = draft.due
+        update(task)
+        for step in draft.steps {
+            addTask(title: step, projectID: task.projectID, parentID: task.id, now: now)
+        }
+        return self[task.id]
     }
 
     /// Remplace la tâche du même identifiant. Un titre vide garde l'ancien titre.

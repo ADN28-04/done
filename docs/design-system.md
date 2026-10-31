@@ -133,7 +133,13 @@ En session (minuteur, pause, interruption, fin), la barre latérale s'efface et 
   - Concentration : mini-anneau de 16 rendu à la volée, et temps restant en chiffres tabulaires.
   - Arrêt et pause : icônes pause et tasse.
   - Fin : anneau plein et « Fini ».
-- **Panneau de la barre de menus** : 300 de large, sur `bgCanvas`. En haut, la capture : `Eyebrow` « Nouvelle tâche », champ `doneField`, menu « Dans : Inbox » en `callout` et, après un ajout, « Ajoutée dans … » en `caption` secondaire. Un `Hairline`, puis la session en cours et les boutons.
+- **Panneau de la barre de menus** : 300 de large, sur `bgCanvas`. En haut, la capture : `Eyebrow` « Nouvelle tâche », champ `doneField`, menu « Dans : Inbox » en `callout` et, à droite, « Détails… » en bouton discret, remplacé après un ajout par « Ajoutée dans … » en `caption` secondaire. Un `Hairline`, puis la session en cours et les boutons.
+
+## Saisie d'une tâche
+
+- **Formulaire de capture** (`CaptureForm`) : la fiche d'une tâche, vide, sur 560 de large. `Eyebrow` « Nouvelle tâche », titre en `displayM` sans contour, notes (`NotesEditor`, 64 de haut), carte des détails (`TaskDetailsCard` : liste, priorité, type, échéance, en lignes `DetailRow` de 44), puis la carte des étapes (lignes de 36, numéro en `numericS`, croix pour retirer). Annuler et Ajouter (⌘ Entrée) en bas à droite. La fiche d'une tâche existante (`TaskEditorSheet`) reprend les mêmes composants, avec la ligne « Bloquée » en plus.
+- **Fenêtre flottante** (`QuickCapturePanel`) : le même formulaire dans une fenêtre sans barre de titre visible, au niveau flottant, sur `bgCanvas`, posée un peu au-dessus du centre de l'écran où se trouve la souris. Elle ne fait pas passer Done au premier plan.
+- **Champ d'ajout des listes** : une ligne `doneField` de 36, avec « Détails… » en bouton discret à droite.
 
 ## Logo
 

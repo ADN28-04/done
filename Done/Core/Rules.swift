@@ -17,6 +17,8 @@ enum SettingsKey {
     static let meetingReminder = "rules.meetingReminder"
     static let meetingReminderMinutes = "rules.meetingReminderMinutes"
     static let endSound = "rules.endSound"
+    /// Raccourci global de la saisie flottante (`CaptureShortcut`).
+    static let captureShortcut = "capture.shortcut"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.

@@ -24,6 +24,8 @@ struct DoneApp: App {
         model.updateMeetingReminders()
         DoNotDisturb.shared.onError = { [weak model] message in model?.errorMessage = message }
         SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }
+        // Saisie flottante, par le raccourci global choisi dans les réglages.
+        QuickCapturePanel.shared.configure(model: model)
     }
 
     var body: some Scene {

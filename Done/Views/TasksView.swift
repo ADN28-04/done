@@ -14,6 +14,7 @@ struct TaskListView: View {
     @State private var editing: TodoTask?
     @State private var breakdownTask: TodoTask?
     @State private var deleting: TodoTask?
+    @State private var showDetails = false
 
     /// Une ligne, avec son niveau d'indentation.
     private struct Row: Identifiable {
@@ -102,8 +103,15 @@ struct TaskListView: View {
                 .textFieldStyle(.plain)
                 .focused($addFocused)
                 .onSubmit(addTask)
+            Button("Détails…") { showDetails = true }
+                .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
+                .help("Saisir la tâche avec sa priorité, son type, son échéance, ses notes et ses étapes")
         }
         .doneField(focused: addFocused, height: 36)
+        .sheet(isPresented: $showDetails) {
+            CaptureSheet(draft: TaskDraft(title: newTitle, projectID: listID)) { newTitle = "" }
+                .environment(model)
+        }
     }
 
     private var emptyState: some View {

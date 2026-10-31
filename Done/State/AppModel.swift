@@ -136,6 +136,14 @@ final class AppModel {
         return created
     }
 
+    /// Crée une tâche avec tous ses détails et ses étapes, en une seule écriture du fichier.
+    @discardableResult
+    func addTask(_ draft: TaskDraft) -> TodoTask? {
+        var created: TodoTask?
+        commit { created = $0.addTask(draft) }
+        return created
+    }
+
     /// Ajoute les étapes d'un découpage, dans l'ordre.
     @discardableResult
     func addSubtasks(_ titles: [String], to parent: TodoTask) -> [TodoTask] {

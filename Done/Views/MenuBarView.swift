@@ -126,6 +126,14 @@ struct MenuBarView: View {
                         .doneText(.caption)
                         .foregroundStyle(DoneColor.textSecondary)
                         .lineLimit(1)
+                } else {
+                    // Ouvre la saisie complète, avec le titre et la liste déjà choisis.
+                    Button("Détails…") {
+                        QuickCapturePanel.shared.show(prefill: TaskDraft(title: title, projectID: projectID))
+                        title = ""
+                    }
+                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
+                    .help("Saisir la priorité, le type, l'échéance, les notes et les étapes")
                 }
             }
             .padding(.top, DoneSpace.s8)

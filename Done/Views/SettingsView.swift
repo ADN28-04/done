@@ -18,10 +18,12 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.meetingReminder) private var meetingReminder = Rules().meetingReminder
     @AppStorage(SettingsKey.meetingReminderMinutes) private var meetingReminderMinutes = Rules().meetingReminderMinutes
     @AppStorage(SettingsKey.endSound) private var endSound = Rules().endSound
+    @AppStorage(SettingsKey.captureShortcut) private var captureShortcut = CaptureShortcut.standard.rawValue
 
     @State private var dndStatus: CheckStatus = .unknown
     @State private var notificationStatus: Notifier.Permission?
     @State private var notificationTestError: String?
+    @State private var shortcutTaken = false
 
     /// Résultat de la vérification des raccourcis « Ne pas déranger ».
     private enum CheckStatus: Equatable {
@@ -111,6 +113,32 @@ struct SettingsView: View {
                 .task { notificationStatus = await Notifier.shared.permission() }
                 .onChange(of: meetingReminder) { model.updateMeetingReminders() }
                 .onChange(of: meetingReminderMinutes) { model.updateMeetingReminders() }
+
+                SettingsSection("Saisie rapide", footer: "Ouvre une fenêtre de saisie par-dessus n'importe quelle app, avec tous les détails de la tâche. Elle marche tant que Done tourne : l'app reste dans la barre de menus, même fenêtre fermée.") {
+                    SettingsRow {
+                        VStack(alignment: .leading, spacing: DoneSpace.s2) {
+                            Text("Raccourci global")
+                            if shortcutTaken {
+                                Text("Déjà pris par une autre app : choisis-en un autre.")
+                                    .doneText(.caption)
+                                    .foregroundStyle(DoneColor.stateRiskText)
+                            }
+                        }
+                    } trailing: {
+                        Menu {
+                            ForEach(CaptureShortcut.allCases) { option in
+                                Button(option.label) { captureShortcut = option.rawValue }
+                            }
+                        } label: {
+                            Text((CaptureShortcut(rawValue: captureShortcut) ?? .standard).label)
+                                .font(.done(.body))
+                        }
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
+                    }
+                }
+                .onAppear { shortcutTaken = !QuickCapturePanel.shared.shortcutIsActive }
+                .onChange(of: captureShortcut) { shortcutTaken = !QuickCapturePanel.shared.applyShortcut() }
 
                 SettingsSection("Données", footer: "Tes tâches, projets et réunions restent sur ce Mac, dans un seul fichier. Done en garde une copie par jour, sur 30 jours, dans le dossier Sauvegardes à côté.") {
                     SettingsRow {
@@ -255,7 +283,7 @@ struct SettingsView: View {
 
 // MARK: Composants des réglages
 
-/// Section : étiquette en capitales, carte, note facultative.
+/// Section : étiquette, carte, note facultative.
 private struct SettingsSection<Content: View>: View {
     let title: String
     let footer: String?

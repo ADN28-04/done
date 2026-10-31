@@ -14,7 +14,7 @@ Il faut un Mac sous macOS 14 ou plus récent, et Xcode 16 ou plus récent.
 2. Dans la cible **Done**, onglet **Signing & Capabilities**, choisir son équipe (un Apple ID gratuit, « Personal Team », suffit). Sans équipe, Xcode signe en local, ce qui marche aussi, mais macOS peut bloquer les notifications.
 3. Lancer avec ⌘R.
 4. Accepter les notifications quand macOS les demande.
-5. Ajouter ses tâches dans l'Inbox (barre latérale), avec ⌘N depuis n'importe quel écran, ou en cliquant sur l'icône de Done dans la barre de menus, depuis n'importe quelle app.
+5. Ajouter ses tâches dans l'Inbox (barre latérale), avec ⌘N depuis n'importe quel écran, ou avec ⌃⌥N depuis n'importe quelle app, tant que Done tourne (raccourci réglable dans Réglages › Saisie rapide). La saisie porte tous les détails : liste, priorité, type, échéance, notes et étapes.
 
 ### Installer ou mettre à jour l'app dans Applications
 
@@ -76,7 +76,8 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 
 ## Règles de l'app
 
-- **Tâches** : un titre, des notes, une liste (Inbox ou projet), une priorité de P1 à P4, un type (normale, rapide, Deepwork), une échéance facultative, des étapes (sous-tâches). Une tâche peut être marquée bloquée.
+- **Tâches** : un titre, des notes, une liste (Inbox ou projet), une priorité de P1 à P4, un type (normale, rapide, Deepwork), une échéance facultative, des étapes (sous-tâches). Tout se choisit dès la saisie. Une tâche peut être marquée bloquée.
+- **Saisie hors de Done** : le raccourci global ouvre une fenêtre flottante par-dessus l'app en cours, sans la quitter. Entrée dans le titre ajoute, Échap annule, un clic ailleurs masque la fenêtre en gardant la saisie.
 - **Candidates du matin** : les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin.
 - **Dates lointaines** : une tâche datée au-delà de ces 3 jours n'est pas proposée (ni candidate, ni prochaine action, ni tâche rapide avant une réunion). Elle reste trouvable avec « Chercher une autre tâche », en fin de liste.
 - **Prochaine action** : la première étape ni bloquée ni datée plus tard, dans l'ordre de la liste.
