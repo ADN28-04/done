@@ -17,7 +17,8 @@ struct CalendarView: View {
 
     private static let firstHour = 8
     private static let lastHour = 19
-    private static let hourHeight: CGFloat = 44
+    /// La grille s'étire sur la hauteur libre ; en dessous de 44 par heure, elle défile.
+    private static let minHourHeight: CGFloat = 44
     private static let gutter: CGFloat = 64
     /// Hauteur d'une carte d'échéance, espacement compris.
     private static let dueRow: CGFloat = 30
@@ -71,23 +72,27 @@ struct CalendarView: View {
                         .padding(.top, DoneSpace.s8)
                 }
                 Hairline()
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        row {
-                            ForEach(days, id: \.self) { day in
-                                dayColumn(day, now: now)
+                GeometryReader { space in
+                    let hours = CGFloat(Self.lastHour - Self.firstHour)
+                    let hourHeight = max(Self.minHourHeight, ((space.size.height - 2 * DoneSpace.s8) / hours).rounded(.down))
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            row {
+                                ForEach(days, id: \.self) { day in
+                                    dayColumn(day, now: now, hourHeight: hourHeight)
+                                }
+                            } gutter: {
+                                hourLabels(hourHeight)
                             }
-                        } gutter: {
-                            hourLabels
+                            .frame(height: hourHeight * hours)
+                            .padding(.top, DoneSpace.s8)
+                            .padding(.bottom, DoneSpace.s8)
                         }
-                        .frame(height: Self.hourHeight * CGFloat(Self.lastHour - Self.firstHour))
-                        .padding(.top, DoneSpace.s8)
-                        .padding(.bottom, DoneSpace.s8)
-                    }
-                    .scrollIndicators(.never)
-                    .onAppear {
-                        let hour = Calendar.current.component(.hour, from: now) - 1
-                        proxy.scrollTo(min(max(hour, Self.firstHour), Self.lastHour - 1), anchor: .top)
+                        .scrollIndicators(.never)
+                        .onAppear {
+                            let hour = Calendar.current.component(.hour, from: now) - 1
+                            proxy.scrollTo(min(max(hour, Self.firstHour), Self.lastHour - 1), anchor: .top)
+                        }
                     }
                 }
             }
@@ -266,7 +271,7 @@ struct CalendarView: View {
 
     // MARK: Grille
 
-    private var hourLabels: some View {
+    private func hourLabels(_ hourHeight: CGFloat) -> some View {
         VStack(alignment: .trailing, spacing: 0) {
             ForEach(Self.firstHour..<Self.lastHour, id: \.self) { hour in
                 Text("\(hour):00")
@@ -275,13 +280,13 @@ struct CalendarView: View {
                     .offset(y: -8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .padding(.trailing, DoneSpace.s8)
-                    .frame(height: Self.hourHeight)
+                    .frame(height: hourHeight)
                     .id(hour)
             }
         }
     }
 
-    private func dayColumn(_ day: Date, now: Date) -> some View {
+    private func dayColumn(_ day: Date, now: Date, hourHeight: CGFloat) -> some View {
         let isToday = Calendar.current.isDate(day, inSameDayAs: now)
         let isPast = Calendar.current.startOfDay(for: day) < Calendar.current.startOfDay(for: now)
         let dayBlocks = blocks(on: day, now: now)
@@ -295,27 +300,27 @@ struct CalendarView: View {
                     Rectangle()
                         .fill(DoneColor.borderSubtle)
                         .frame(height: 1)
-                        .offset(y: CGFloat(index) * Self.hourHeight)
+                        .offset(y: CGFloat(index) * hourHeight)
                 }
                 ForEach(dayBlocks) { block in
                     let lane = lanes[block.id] ?? WorkWeek.Lane(index: 0, count: 1)
                     let laneWidth = (width - 6) / CGFloat(lane.count)
-                    let top = y(of: block.start, on: day)
-                    let height = max(y(of: block.end, on: day) - top - 2, 14)
+                    let top = y(of: block.start, on: day, hourHeight: hourHeight)
+                    let height = max(y(of: block.end, on: day, hourHeight: hourHeight) - top - 2, 14)
                     blockView(block, now: now)
                         .frame(width: max(laneWidth - 2, 0), height: height)
                         .offset(x: 3 + laneWidth * CGFloat(lane.index), y: top + 1)
                 }
                 if isToday {
                     nowLine
-                        .offset(y: y(of: now, on: day) - 3)
+                        .offset(y: y(of: now, on: day, hourHeight: hourHeight) - 3)
                 }
             }
             .contentShape(Rectangle())
             // Un clic sur un créneau libre, aujourd'hui ou plus tard, ajoute une réunion d'une heure.
             .onTapGesture(coordinateSpace: .local) { location in
                 guard !isPast else { return }
-                let start = time(at: location.y, on: day)
+                let start = time(at: location.y, on: day, hourHeight: hourHeight)
                 meetingRequest = MeetingRequest(start: start, end: start.addingTimeInterval(3600))
             }
         }
@@ -407,17 +412,17 @@ struct CalendarView: View {
     }
 
     /// Position verticale d'une heure dans la grille, bornée à la plage affichée.
-    private func y(of date: Date, on day: Date) -> CGFloat {
+    private func y(of date: Date, on day: Date, hourHeight: CGFloat) -> CGFloat {
         let calendar = Calendar.current
         let start = calendar.date(bySettingHour: Self.firstHour, minute: 0, second: 0, of: day) ?? day
         let minutes = date.timeIntervalSince(start) / 60
         let total = Double(Self.lastHour - Self.firstHour) * 60
-        return CGFloat(min(max(minutes, 0), total) / 60) * Self.hourHeight
+        return CGFloat(min(max(minutes, 0), total) / 60) * hourHeight
     }
 
     /// L'heure sous un point de la grille, à la demi-heure inférieure.
-    private func time(at y: CGFloat, on day: Date) -> Date {
-        let minutes = Int((Double(y / Self.hourHeight) * 60).rounded(.down))
+    private func time(at y: CGFloat, on day: Date, hourHeight: CGFloat) -> Date {
+        let minutes = Int((Double(y / hourHeight) * 60).rounded(.down))
         let rounded = min(max(minutes / 30 * 30, 0), (Self.lastHour - Self.firstHour) * 60 - 30)
         let start = Calendar.current.date(bySettingHour: Self.firstHour, minute: 0, second: 0, of: day) ?? day
         return start.addingTimeInterval(Double(rounded) * 60)
