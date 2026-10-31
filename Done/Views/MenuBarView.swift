@@ -146,7 +146,7 @@ struct MenuBarView: View {
     private func add() {
         guard let task = model.addTask(title, projectID: projectID) else { return }
         title = ""
-        addedTo = model.projectName(for: task)
+        addedTo = model.listName(for: task)
     }
 
     @ViewBuilder

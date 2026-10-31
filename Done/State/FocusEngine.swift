@@ -114,7 +114,7 @@ final class FocusEngine {
     func start(action: TodoTask, root: TodoTask, minutes: Int) {
         endBreak()
         let planned = TimeInterval(max(1, minutes) * 60)
-        let projectName = model.projectName(for: root)
+        let projectName = model.listName(for: root)
         current = Current(action: action, root: root, projectName: projectName, planned: planned)
         elapsedBefore = 0
         recordOffset = 0

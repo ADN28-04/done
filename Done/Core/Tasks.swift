@@ -17,7 +17,8 @@ enum TaskKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// Une tâche de Done. Une sous-tâche pointe vers sa parente ; sans projet, la tâche est dans l'Inbox.
+/// Une tâche de Done. Une sous-tâche pointe vers sa parente ; sans projet ni étiquette, la tâche est
+/// dans l'Inbox.
 struct TodoTask: Codable, Identifiable, Hashable {
     let id: String
     var title: String
@@ -33,6 +34,9 @@ struct TodoTask: Codable, Identifiable, Hashable {
     var due: Date?
     /// Bloquée : Done ne la propose plus tant qu'elle n'est pas débloquée.
     var isBlocked: Bool
+    /// Étiquettes (« Run Shop », « Reporting »…), sur les tâches de premier niveau seulement :
+    /// une étape suit celles de sa tâche.
+    var tags: [String]
     let createdAt: Date
     var completedAt: Date?
 
@@ -47,6 +51,7 @@ struct TodoTask: Codable, Identifiable, Hashable {
         kind: TaskKind = .normal,
         due: Date? = nil,
         isBlocked: Bool = false,
+        tags: [String] = [],
         createdAt: Date = .now,
         completedAt: Date? = nil
     ) {
@@ -60,6 +65,7 @@ struct TodoTask: Codable, Identifiable, Hashable {
         self.kind = kind
         self.due = due
         self.isBlocked = isBlocked
+        self.tags = tags
         self.createdAt = createdAt
         self.completedAt = completedAt
     }
@@ -67,7 +73,7 @@ struct TodoTask: Codable, Identifiable, Hashable {
     var isOpen: Bool { completedAt == nil }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, notes, projectID, parentID, position, priority, kind, due, isBlocked, createdAt, completedAt
+        case id, title, notes, projectID, parentID, position, priority, kind, due, isBlocked, tags, createdAt, completedAt
     }
 
     // Lecture tolérante : un champ ajouté plus tard prend sa valeur par défaut dans un ancien fichier.
@@ -83,6 +89,7 @@ struct TodoTask: Codable, Identifiable, Hashable {
         kind = try c.decodeIfPresent(String.self, forKey: .kind).flatMap(TaskKind.init(rawValue:)) ?? .normal
         due = try c.decodeIfPresent(String.self, forKey: .due).flatMap(Format.date(fromDayKey:))
         isBlocked = try c.decodeIfPresent(Bool.self, forKey: .isBlocked) ?? false
+        tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
         completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
     }
@@ -99,6 +106,7 @@ struct TodoTask: Codable, Identifiable, Hashable {
         try c.encode(kind.rawValue, forKey: .kind)
         try c.encodeIfPresent(due.map(Format.dayKey), forKey: .due)
         try c.encode(isBlocked, forKey: .isBlocked)
+        if !tags.isEmpty { try c.encode(tags, forKey: .tags) }
         try c.encode(createdAt, forKey: .createdAt)
         try c.encodeIfPresent(completedAt, forKey: .completedAt)
     }
@@ -120,6 +128,14 @@ struct Meeting: Codable, Identifiable, Hashable {
     func contains(_ date: Date) -> Bool { start <= date && date < end }
 }
 
+/// Ce qu'affiche une liste : l'Inbox (ni projet ni étiquette), un projet, ou une étiquette.
+/// Une tâche peut apparaître à la fois dans son projet et sous ses étiquettes.
+enum TaskList: Hashable {
+    case inbox
+    case project(String)
+    case tag(String)
+}
+
 /// Tâche en cours de saisie, avec tous ses détails : la capture la crée d'un coup,
 /// au lieu de la noter puis de la compléter.
 struct TaskDraft: Equatable {
@@ -130,6 +146,7 @@ struct TaskDraft: Equatable {
     var priority = 4
     var kind: TaskKind = .normal
     var due: Date?
+    var tags: [String] = []
     var steps: [String] = []
 
     var hasTitle: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -166,6 +183,72 @@ struct TaskStore: Codable, Equatable {
     var openTasks: [TodoTask] { tasks.filter(\.isOpen) }
 
     var sortedProjects: [Project] { projects.sorted { $0.position < $1.position } }
+
+    /// Étiquettes des tâches ouvertes, par ordre alphabétique. Une étiquette sans tâche ouverte disparaît.
+    var tags: [String] {
+        var seen = Set<String>()
+        return openTasks.flatMap(\.tags)
+            .filter { seen.insert($0).inserted }
+            .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
+    /// La tâche appartient-elle à cette liste ?
+    func contains(_ task: TodoTask, in list: TaskList) -> Bool {
+        switch list {
+        case .inbox: task.projectID == nil && task.tags.isEmpty
+        case .project(let id): task.projectID == id
+        case .tag(let name): task.tags.contains(name)
+        }
+    }
+
+    /// Étiquettes nettoyées : sans espaces autour, sans vide ni doublon (casse ignorée), dans l'ordre.
+    /// Une étiquette déjà connue garde son orthographe d'origine.
+    static func normalizedTags(_ tags: [String], known: [String] = []) -> [String] {
+        var result: [String] = []
+        for raw in tags {
+            let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            guard !result.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) else { continue }
+            result.append(known.first { $0.caseInsensitiveCompare(name) == .orderedSame } ?? name)
+        }
+        return result
+    }
+
+    // MARK: Étiquettes
+
+    /// Renomme l'étiquette sur toutes les tâches. Si le nouveau nom existe déjà, les deux se fondent.
+    mutating func renameTag(_ old: String, to new: String) {
+        let name = new.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name != old else { return }
+        let known = tags.filter { $0 != old }
+        for i in tasks.indices where tasks[i].tags.contains(old) {
+            let renamed = tasks[i].tags.map { $0 == old ? name : $0 }
+            tasks[i].tags = Self.normalizedTags(renamed, known: known)
+        }
+    }
+
+    /// Retire l'étiquette de toutes les tâches. Les tâches restent.
+    mutating func removeTag(_ name: String) {
+        for i in tasks.indices where tasks[i].tags.contains(name) {
+            tasks[i].tags.removeAll { $0 == name }
+        }
+    }
+
+    /// Range une tâche de premier niveau dans une liste : l'Inbox la vide de son projet et de ses
+    /// étiquettes, un projet la déplace, une étiquette s'ajoute aux siennes.
+    mutating func file(_ id: String, into list: TaskList) {
+        guard var task = self[id], task.parentID == nil else { return }
+        switch list {
+        case .inbox:
+            task.projectID = nil
+            task.tags = []
+        case .project(let projectID):
+            task.projectID = projectID
+        case .tag(let name):
+            task.tags.append(name)
+        }
+        update(task)
+    }
 
     // MARK: Projets
 
@@ -242,6 +325,7 @@ struct TaskStore: Codable, Equatable {
         task.priority = draft.priority
         task.kind = draft.kind
         task.due = draft.due
+        task.tags = draft.tags
         update(task)
         for step in draft.steps {
             addTask(title: step, projectID: task.projectID, parentID: task.id, now: now)
@@ -258,6 +342,7 @@ struct TaskStore: Codable, Equatable {
         updated.title = trimmed.isEmpty ? tasks[i].title : trimmed
         updated.priority = min(max(updated.priority, 1), 4)
         updated.due = updated.due.map { Calendar.current.startOfDay(for: $0) }
+        updated.tags = updated.parentID == nil ? Self.normalizedTags(updated.tags, known: tags) : []
         if let parentID = updated.parentID, let parent = self[parentID] {
             updated.projectID = parent.projectID
         } else if let id = updated.projectID, !projects.contains(where: { $0.id == id }) {

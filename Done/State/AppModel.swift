@@ -65,6 +65,9 @@ final class AppModel {
 
     var projects: [Project] { store.sortedProjects }
 
+    /// Étiquettes des tâches ouvertes, par ordre alphabétique.
+    var tags: [String] { store.tags }
+
     var meetingsToday: [Meeting] { store.meetings(on: .now) }
 
     /// Réunions pas encore finies, à partir d'aujourd'hui.
@@ -84,25 +87,35 @@ final class AppModel {
         project(id)?.name ?? "Inbox"
     }
 
-    func projectName(for task: TodoTask) -> String {
-        projectName(task.projectID)
+    func listName(_ list: TaskList) -> String {
+        switch list {
+        case .inbox: "Inbox"
+        case .project(let id): projectName(id)
+        case .tag(let name): name
+        }
     }
 
-    /// Tâches ouvertes de premier niveau d'un projet (`nil` pour l'Inbox), dans l'ordre de la liste.
-    func topLevelTasks(in projectID: String?) -> [TodoTask] {
+    /// Où la tâche est rangée : son projet, sinon sa première étiquette, sinon l'Inbox.
+    func listName(for task: TodoTask) -> String {
+        if let project = project(task.projectID) { return project.name }
+        return task.tags.first ?? "Inbox"
+    }
+
+    /// Tâches ouvertes de premier niveau d'une liste, dans l'ordre de la liste.
+    func topLevelTasks(in list: TaskList) -> [TodoTask] {
         index.all
-            .filter { $0.parentID == nil && $0.projectID == projectID }
+            .filter { $0.parentID == nil && store.contains($0, in: list) }
             .sorted { $0.position < $1.position }
     }
 
-    func openCount(in projectID: String?) -> Int {
-        index.all.filter { $0.parentID == nil && $0.projectID == projectID }.count
+    func openCount(in list: TaskList) -> Int {
+        index.all.filter { $0.parentID == nil && store.contains($0, in: list) }.count
     }
 
-    /// Tâches cochées d'un projet, les plus récentes d'abord.
-    func completedTasks(in projectID: String?, limit: Int = 50) -> [TodoTask] {
+    /// Tâches cochées d'une liste, les plus récentes d'abord.
+    func completedTasks(in list: TaskList, limit: Int = 50) -> [TodoTask] {
         let done = store.tasks
-            .filter { !$0.isOpen && $0.projectID == projectID }
+            .filter { !$0.isOpen && store.contains($0, in: list) }
             .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
         return Array(done.prefix(limit))
     }
@@ -114,7 +127,8 @@ final class AppModel {
         let matches = index.all.filter { task in
             guard !text.isEmpty else { return true }
             return task.title.localizedCaseInsensitiveContains(text)
-                || projectName(for: task).localizedCaseInsensitiveContains(text)
+                || listName(for: task).localizedCaseInsensitiveContains(text)
+                || task.tags.contains { $0.localizedCaseInsensitiveContains(text) }
         }
         // Les tâches datées plus tard restent trouvables, mais en fin de liste.
         let now = Date.now
@@ -160,6 +174,19 @@ final class AppModel {
 
     func update(_ task: TodoTask) {
         commit { $0.update(task) }
+    }
+
+    /// Range une tâche par glisser-déposer sur une liste de la barre latérale.
+    func file(_ id: String, into list: TaskList) {
+        commit { $0.file(id, into: list) }
+    }
+
+    func renameTag(_ old: String, to new: String) {
+        commit { $0.renameTag(old, to: new) }
+    }
+
+    func removeTag(_ name: String) {
+        commit { $0.removeTag(name) }
     }
 
     /// Coche la tâche et ses sous-tâches, et la sort du plan du jour.

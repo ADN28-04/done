@@ -54,6 +54,7 @@ struct TaskEditorSheet: View {
 
         TaskDetailsCard(
             projectID: task.projectID,
+            tags: task.tags,
             priority: task.priority,
             kind: task.kind,
             due: task.due,
@@ -157,20 +158,22 @@ struct TaskEditorSheet: View {
 
 // MARK: Détails partagés
 
-/// Détails communs à la fiche et à la capture : liste, priorité, type et échéance, dans une carte.
-/// La fiche y ajoute la ligne « Bloquée ».
+/// Détails communs à la fiche et à la capture : liste, étiquettes, priorité, type et échéance, dans
+/// une carte. La fiche y ajoute la ligne « Bloquée ».
 struct TaskDetailsCard<Extra: View>: View {
     @Environment(AppModel.self) private var model
     @Binding var projectID: String?
+    @Binding var tags: [String]
     @Binding var priority: Int
     @Binding var kind: TaskKind
     @Binding var due: Date?
-    /// Une étape reste dans la liste de sa tâche.
+    /// Une étape reste dans la liste de sa tâche et suit ses étiquettes.
     var listLocked = false
     let extra: Extra
 
     init(
         projectID: Binding<String?>,
+        tags: Binding<[String]>,
         priority: Binding<Int>,
         kind: Binding<TaskKind>,
         due: Binding<Date?>,
@@ -178,6 +181,7 @@ struct TaskDetailsCard<Extra: View>: View {
         @ViewBuilder extra: () -> Extra
     ) {
         _projectID = projectID
+        _tags = tags
         _priority = priority
         _kind = kind
         _due = due
@@ -202,6 +206,12 @@ struct TaskDetailsCard<Extra: View>: View {
                 .disabled(listLocked)
                 .help(listLocked ? "Une étape reste dans la liste de sa tâche" : "Ranger la tâche")
             }
+            if !listLocked {
+                Hairline().padding(.horizontal, DoneSpace.s16)
+                DetailRow("Étiquettes") {
+                    TagEditor(tags: $tags)
+                }
+            }
             Hairline().padding(.horizontal, DoneSpace.s16)
             DetailRow("Priorité") {
                 DoneSegmented(selection: $priority, options: (1...4).map { (value: $0, title: "P\($0)") })
@@ -221,8 +231,91 @@ struct TaskDetailsCard<Extra: View>: View {
 }
 
 extension TaskDetailsCard where Extra == EmptyView {
-    init(projectID: Binding<String?>, priority: Binding<Int>, kind: Binding<TaskKind>, due: Binding<Date?>) {
-        self.init(projectID: projectID, priority: priority, kind: kind, due: due) { EmptyView() }
+    init(projectID: Binding<String?>, tags: Binding<[String]>, priority: Binding<Int>, kind: Binding<TaskKind>, due: Binding<Date?>) {
+        self.init(projectID: projectID, tags: tags, priority: priority, kind: kind, due: due) { EmptyView() }
+    }
+}
+
+/// Étiquettes d'une tâche : jetons retirables, un champ pour en créer une, et le menu des étiquettes
+/// existantes. Une étiquette tapée est ajoutée avec Entrée, ou en quittant le champ.
+struct TagEditor: View {
+    @Environment(AppModel.self) private var model
+    @Binding var tags: [String]
+    @State private var newTag = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        let available = model.tags.filter { known in
+            !tags.contains { $0.caseInsensitiveCompare(known) == .orderedSame }
+        }
+        HStack(spacing: DoneSpace.s6) {
+            if !tags.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(spacing: DoneSpace.s4) {
+                        ForEach(tags, id: \.self) { tag in
+                            token(tag)
+                        }
+                    }
+                }
+                .scrollIndicators(.never)
+                .frame(maxWidth: 240)
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            TextField("Ajouter", text: $newTag)
+                .textFieldStyle(.plain)
+                .font(.done(.body))
+                .frame(width: 84)
+                .focused($focused)
+                .onSubmit(commit)
+                .onChange(of: focused) {
+                    if !focused { commit() }
+                }
+            if !available.isEmpty {
+                Menu {
+                    ForEach(available, id: \.self) { tag in
+                        Button(tag) { tags.append(tag) }
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Étiquettes existantes")
+            }
+        }
+    }
+
+    private func token(_ tag: String) -> some View {
+        HStack(spacing: DoneSpace.s4) {
+            Text(tag)
+                .lineLimit(1)
+            Button {
+                tags.removeAll { $0 == tag }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .frame(width: 12, height: 12)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Retirer « \(tag) »")
+        }
+        .font(.sans(12, .medium))
+        .foregroundStyle(DoneColor.stateActiveText)
+        .padding(.leading, 7)
+        .padding(.trailing, 5)
+        .frame(height: 22)
+        .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .fixedSize()
+    }
+
+    private func commit() {
+        let name = newTag.trimmingCharacters(in: .whitespacesAndNewlines)
+        newTag = ""
+        guard !name.isEmpty else { return }
+        tags = TaskStore.normalizedTags(tags + [name], known: model.tags)
     }
 }
 
@@ -336,7 +429,7 @@ struct CaptureForm: View {
                 .padding(.top, DoneSpace.s8)
             NotesEditor(text: $draft.notes, height: 64)
                 .padding(.top, DoneSpace.s12)
-            TaskDetailsCard(projectID: $draft.projectID, priority: $draft.priority, kind: $draft.kind, due: $draft.due)
+            TaskDetailsCard(projectID: $draft.projectID, tags: $draft.tags, priority: $draft.priority, kind: $draft.kind, due: $draft.due)
                 .padding(.top, DoneSpace.s16)
             stepsSection
                 .padding(.top, DoneSpace.s20)

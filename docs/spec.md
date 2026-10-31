@@ -36,8 +36,9 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 
 | Fonctionnalité | Détail |
 |---|---|
-| Tâches | Titre, notes, liste (Inbox ou projet), priorité P1 à P4, type (normale, rapide, Deepwork), échéance facultative (un jour), étapes (sous-tâches, sur plusieurs niveaux), marquage « bloquée ». Ajouter, modifier, cocher, rouvrir, supprimer, réordonner par glisser-déposer. |
-| Projets | Listes simples, en plus de l'Inbox. Créer, renommer, réordonner, supprimer (les tâches passent alors dans l'Inbox). Glisser une tâche sur une liste l'y range. |
+| Tâches | Titre, notes, liste (Inbox ou projet), étiquettes, priorité P1 à P4, type (normale, rapide, Deepwork), échéance facultative (un jour), étapes (sous-tâches, sur plusieurs niveaux), marquage « bloquée ». Ajouter, modifier, cocher, rouvrir, supprimer, réordonner par glisser-déposer. |
+| Projets | Listes simples, en plus de l'Inbox, pour les chantiers qui ont une fin. Créer, renommer, réordonner, supprimer (les tâches passent alors dans l'Inbox). Glisser une tâche sur une liste l'y range. |
+| Étiquettes | Pour ce qui n'est pas un chantier : le run (« Run Shop » et ses thèmes), « Plus tard », une personne. Une tâche de premier niveau en porte autant qu'il faut, une étape suit celles de sa tâche. Chaque étiquette a sa vue dans la barre latérale, avec les tâches de tous les projets ; une tâche ajoutée depuis cette vue la porte. L'Inbox ne garde que ce qui n'a ni projet ni étiquette : ce qui reste à trier. Renommer une étiquette (vers un nom existant, elles se fondent) ou la retirer de toutes ses tâches, au clic droit. Glisser une tâche sur une étiquette la lui ajoute ; sur l'Inbox, lui retire projet et étiquettes. Une étiquette sans tâche ouverte disparaît. |
 | Capture rapide | ⌘N dans Done, même en session, ou un raccourci global (⌃⌥N par défaut, réglable) depuis n'importe quelle app, tant que Done tourne. La saisie porte tous les détails : titre, notes, liste, priorité, type, échéance et étapes. Entrée dans le titre ajoute tout de suite, dans l'Inbox par défaut ; ⌘ Entrée ajoute depuis n'importe quel champ. Le champ d'ajout des listes et le panneau de la barre de menus restent en une ligne, avec « Détails… » pour passer à la saisie complète. |
 | Liste de candidates | Les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin : une date lointaine est volontaire (« pas avant »). |
 | Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. Une tâche peut aussi y être ajoutée depuis sa liste (clic droit). |
@@ -69,7 +70,7 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 - Todoist, ou toute synchronisation avec un autre gestionnaire de tâches. Pas d'import : la liste repart de zéro.
 - Serveur, compte, synchronisation entre appareils, accès par Claude ou par une autre app.
 - IA intégrée (le découpage par l'API Claude a été retiré).
-- Chantiers, attentes, personnes, dépendances, calcul de charge : la liste reste simple.
+- Chantiers actifs limités, attentes, dépendances, calcul de charge : la liste reste simple. Les étiquettes restent de simples noms, sans couleur ni règle attachée.
 - Lecture du calendrier : les réunions se saisissent à la main.
 - Publication sur l'App Store, multi-utilisateur, partage.
 - iPhone, iPad, Android, Windows ou web.
@@ -80,8 +81,8 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 ### Écrans
 
 1. **Focus** (écran principal) : la tâche du plan, sa prochaine action en grand, la durée proposée (modifiable), le temps avant la prochaine réunion. Boutons Démarrer, Passer, Changer de tâche, Découper. Sans tâche du tout, une invitation à en ajouter.
-2. **Liste de tâches** (Inbox ou projet, choisis dans la barre latérale) : champ d'ajout en haut, tâches et étapes indentées, case à cocher carrée, une ligne de détails (étapes, notes) et des puces à droite : priorité (P1, P2), « Bloquée », échéance (en couleur d'alerte une fois dépassée), durée pour une tâche rapide ou Deepwork, « Aujourd'hui » si la tâche est dans le plan. Un clic ouvre la fiche ; clic droit pour l'échéance, la priorité, le type, le déplacement, le plan du jour, le découpage, le blocage ou la suppression. En bas, les tâches terminées récemment, à rouvrir si besoin.
-3. **Fiche d'une tâche** : titre, notes, liste, priorité, type, échéance, bloquée, étapes (ajoutées et cochées tout de suite), Supprimer, Enregistrer (⌘↩).
+2. **Liste de tâches** (Inbox, projet ou étiquette, choisis dans la barre latérale) : champ d'ajout en haut, tâches et étapes indentées, case à cocher carrée, une ligne de détails (étapes, notes) et des puces à droite : priorité (P1, P2), « Bloquée », étiquettes (sauf celle de la vue), échéance (en couleur d'alerte une fois dépassée), durée pour une tâche rapide ou Deepwork, « Aujourd'hui » si la tâche est dans le plan. Un clic ouvre la fiche ; clic droit pour l'échéance, la priorité, le type, le déplacement, les étiquettes, le plan du jour, le découpage, le blocage ou la suppression. En bas, les tâches terminées récemment, à rouvrir si besoin.
+3. **Fiche d'une tâche** : titre, notes, liste, étiquettes, priorité, type, échéance, bloquée, étapes (ajoutées et cochées tout de suite), Supprimer, Enregistrer (⌘↩).
 4. **Capture rapide** (⌘N, ou le raccourci global hors de Done) : la fiche d'une tâche, vide. Le titre, des notes, la carte des détails (liste, priorité, type, échéance) et les étapes, numérotées, qu'on peut retirer avant de valider. Hors de Done, elle s'ouvre dans une fenêtre flottante, au centre de l'écran où se trouve la souris, sans faire passer Done au premier plan : en la fermant, on retrouve l'app d'avant. Un clic ailleurs la masque en gardant la saisie, Annuler ou Échap l'efface. Le panneau de la barre de menus garde une ligne en haut : le champ y a le focus à l'ouverture, Entrée ajoute la tâche et le champ reste prêt pour la suivante, avec « Ajoutée dans … » en confirmation ; « Détails… » ouvre la saisie complète avec ce qui est déjà tapé.
 5. **Plan du jour** : à gauche, les candidates triées par priorité puis échéance. À droite, la liste « Aujourd'hui » que j'ordonne par glisser-déposer (3 recommandées, 5 au maximum), puis les réunions à venir avec « Ajouter ». Bouton « Chercher une autre tâche ». Bouton Valider.
 6. **Session en cours** : anneau de progression, minuteur, repère « Encore N étapes après celle-ci » pour une tâche découpée, boutons Pause (barre d'espace), Interrompre (menu des raisons), C'est fait (⌘↩), « Ajouter 5 min » tant que la rallonge le permet, et « Bloqué… ».
@@ -120,7 +121,7 @@ Focus → Démarrer → Session en cours
 
 ### Navigation
 
-Une fenêtre avec une barre latérale à gauche : Focus (⌘1) et Plan du jour (⌘2) en haut, puis les listes (Inbox ⌘3, et les projets, avec leur nombre de tâches ouvertes), puis Stats (⌘4) et Réglages (⌘,) en bas. On crée, renomme, réordonne et supprime les projets depuis la barre (clic droit), et on y glisse une tâche pour la ranger. Pendant une session (minuteur, pause, interruption, fin de session), la barre s'efface pour ne laisser que le minuteur, et revient quand la souris touche le bord gauche de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
+Une fenêtre avec une barre latérale à gauche : Focus (⌘1) et Plan du jour (⌘2) en haut, puis les listes (Inbox ⌘3, et les projets, avec leur nombre de tâches ouvertes), les étiquettes, puis Stats (⌘4) et Réglages (⌘,) en bas. On crée, renomme, réordonne et supprime les projets depuis la barre (clic droit), et on y glisse une tâche pour la ranger. Pendant une session (minuteur, pause, interruption, fin de session), la barre s'efface pour ne laisser que le minuteur, et revient quand la souris touche le bord gauche de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
 
 ## 4. Données
 

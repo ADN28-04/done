@@ -4,8 +4,8 @@ struct RootView: View {
     enum Screen: Hashable {
         case focus
         case plan
-        /// Une liste de tâches : `nil` pour l'Inbox, sinon l'identifiant du projet.
-        case list(String?)
+        /// Une liste de tâches : l'Inbox, un projet ou une étiquette.
+        case list(TaskList)
         case stats
         case settings
     }
@@ -53,7 +53,7 @@ struct RootView: View {
         .onAppear {
             if !choseInitialScreen {
                 if model.index.all.isEmpty {
-                    screen = .list(nil)
+                    screen = .list(.inbox)
                 } else {
                     screen = model.todayPlan == nil ? .plan : .focus
                 }
@@ -96,12 +96,12 @@ struct RootView: View {
     private var detail: some View {
         switch screen {
         case .focus:
-            FocusView(openPlan: { screen = .plan }, openTasks: { screen = .list(nil) })
+            FocusView(openPlan: { screen = .plan }, openTasks: { screen = .list(.inbox) })
         case .plan:
             PlanView(onValidate: { screen = .focus })
-        case .list(let projectID):
-            TaskListView(projectID: projectID)
-                .id(projectID ?? "inbox")
+        case .list(let list):
+            TaskListView(list: list)
+                .id(list)
         case .stats:
             StatsView()
         case .settings:
@@ -121,7 +121,7 @@ private struct ShortcutKeys: View {
                 .keyboardShortcut("1")
             Button("Plan du jour") { screen = .plan }
                 .keyboardShortcut("2")
-            Button("Inbox") { screen = .list(nil) }
+            Button("Inbox") { screen = .list(.inbox) }
                 .keyboardShortcut("3")
             Button("Stats") { screen = .stats }
                 .keyboardShortcut("4")
@@ -150,14 +150,18 @@ private struct Sidebar: View {
     @State private var nameDraft = ""
     @State private var deletingProject: Project?
 
+    @State private var removingTag: String?
+
     private enum Naming: Identifiable {
         case new
         case rename(Project)
+        case renameTag(String)
 
         var id: String {
             switch self {
             case .new: "new"
             case .rename(let project): project.id
+            case .renameTag(let tag): "tag:" + tag
             }
         }
 
@@ -165,13 +169,21 @@ private struct Sidebar: View {
             switch self {
             case .new: "Nouveau projet"
             case .rename: "Renommer le projet"
+            case .renameTag: "Renommer l'étiquette"
             }
         }
 
         var action: String {
             switch self {
             case .new: "Créer"
-            case .rename: "Renommer"
+            case .rename, .renameTag: "Renommer"
+            }
+        }
+
+        var placeholder: String {
+            switch self {
+            case .new, .rename: "Nom du projet"
+            case .renameTag: "Nom de l'étiquette"
             }
         }
     }
@@ -189,10 +201,10 @@ private struct Sidebar: View {
                 .padding(.bottom, DoneSpace.s6)
             ScrollView {
                 VStack(alignment: .leading, spacing: DoneSpace.s2) {
-                    listItem(id: nil, name: "Inbox", symbol: "tray")
+                    listItem(.inbox, name: "Inbox", symbol: "tray")
                         .help("Inbox (⌘3)")
                     ForEach(model.projects) { project in
-                        listItem(id: project.id, name: project.name, symbol: "folder")
+                        listItem(.project(project.id), name: project.name, symbol: "folder")
                             .contextMenu { projectMenu(project) }
                     }
                     Button {
@@ -203,6 +215,16 @@ private struct Sidebar: View {
                     }
                     .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
                     .padding(.top, DoneSpace.s4)
+                    if !model.tags.isEmpty {
+                        Eyebrow(text: "Étiquettes")
+                            .padding(.leading, DoneSpace.s8)
+                            .padding(.top, DoneSpace.s16)
+                            .padding(.bottom, DoneSpace.s6)
+                        ForEach(model.tags, id: \.self) { tag in
+                            listItem(.tag(tag), name: tag, symbol: "tag")
+                                .contextMenu { tagMenu(tag) }
+                        }
+                    }
                 }
             }
             .scrollIndicators(.never)
@@ -224,7 +246,7 @@ private struct Sidebar: View {
             Rectangle().fill(DoneColor.borderSubtle).frame(width: 1)
         }
         .alert(naming?.title ?? "", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
-            TextField("Nom du projet", text: $nameDraft)
+            TextField(naming?.placeholder ?? "Nom", text: $nameDraft)
             Button("Annuler", role: .cancel) { naming = nil }
             Button(naming?.action ?? "OK") { commitNaming() }
         }
@@ -234,13 +256,27 @@ private struct Sidebar: View {
             presenting: deletingProject
         ) { project in
             Button("Supprimer le projet", role: .destructive) {
-                if screen == .list(project.id) { screen = .list(nil) }
+                if screen == .list(.project(project.id)) { screen = .list(.inbox) }
                 model.deleteProject(project.id)
                 deletingProject = nil
             }
         } message: { project in
-            let count = model.openCount(in: project.id)
+            let count = model.openCount(in: .project(project.id))
             Text(count == 0 ? "Il ne contient aucune tâche ouverte." : "Ses \(count) tâche\(count > 1 ? "s" : "") passe\(count > 1 ? "nt" : "") dans l'Inbox.")
+        }
+        .confirmationDialog(
+            "Retirer l'étiquette « \(removingTag ?? "") » ?",
+            isPresented: Binding(get: { removingTag != nil }, set: { if !$0 { removingTag = nil } }),
+            presenting: removingTag
+        ) { tag in
+            Button("Retirer l'étiquette", role: .destructive) {
+                if screen == .list(.tag(tag)) { screen = .list(.inbox) }
+                model.removeTag(tag)
+                removingTag = nil
+            }
+        } message: { tag in
+            let count = model.openCount(in: .tag(tag))
+            Text("Elle disparaît de \(count == 1 ? "sa tâche" : "ses \(count) tâches") ; les tâches restent dans leur projet, ou dans l'Inbox.")
         }
     }
 
@@ -250,25 +286,25 @@ private struct Sidebar: View {
         return count > 0 ? "\(count)" : nil
     }
 
-    private func listItem(id: String?, name: String, symbol: String) -> some View {
-        let key = id ?? "inbox"
-        let count = model.openCount(in: id)
+    private func listItem(_ list: TaskList, name: String, symbol: String) -> some View {
+        let key = switch list {
+        case .inbox: "inbox"
+        case .project(let id): "project:" + id
+        case .tag(let tag): "tag:" + tag
+        }
+        let count = model.openCount(in: list)
         return NavItem(
             title: name,
             icon: Image(systemName: symbol),
             counter: count > 0 ? "\(count)" : nil,
-            isSelected: screen == .list(id),
+            isSelected: screen == .list(list),
             isDropTarget: dropTarget == key
         ) {
-            screen = .list(id)
+            screen = .list(list)
         }
-        // Glisser une tâche sur une liste l'y range.
+        // Glisser une tâche sur une liste l'y range : projet, étiquette en plus, ou retour à l'Inbox.
         .dropDestination(for: String.self) { ids, _ in
-            for taskID in ids {
-                guard var task = model.store[taskID], task.parentID == nil else { continue }
-                task.projectID = id
-                model.update(task)
-            }
+            ids.forEach { model.file($0, into: list) }
             return true
         } isTargeted: { targeted in
             if targeted {
@@ -293,12 +329,31 @@ private struct Sidebar: View {
         Button("Supprimer le projet…", role: .destructive) { deletingProject = project }
     }
 
+    @ViewBuilder
+    private func tagMenu(_ tag: String) -> some View {
+        Button("Renommer…") {
+            nameDraft = tag
+            naming = .renameTag(tag)
+        }
+        Divider()
+        Button("Retirer l'étiquette…", role: .destructive) { removingTag = tag }
+    }
+
     private func commitNaming() {
         switch naming {
         case .new:
-            if let project = model.addProject(named: nameDraft) { screen = .list(project.id) }
+            if let project = model.addProject(named: nameDraft) { screen = .list(.project(project.id)) }
         case .rename(let project):
             model.renameProject(project.id, to: nameDraft)
+        case .renameTag(let old):
+            model.renameTag(old, to: nameDraft)
+            // Reste sur la vue de l'étiquette, sous son nouveau nom (ou celui de l'étiquette où elle s'est fondue).
+            if screen == .list(.tag(old)) {
+                let name = nameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let renamed = model.tags.first(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) {
+                    screen = .list(.tag(renamed))
+                }
+            }
         case nil:
             break
         }

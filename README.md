@@ -76,7 +76,8 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 
 ## Règles de l'app
 
-- **Tâches** : un titre, des notes, une liste (Inbox ou projet), une priorité de P1 à P4, un type (normale, rapide, Deepwork), une échéance facultative, des étapes (sous-tâches). Tout se choisit dès la saisie. Une tâche peut être marquée bloquée.
+- **Tâches** : un titre, des notes, une liste (Inbox ou projet), des étiquettes, une priorité de P1 à P4, un type (normale, rapide, Deepwork), une échéance facultative, des étapes (sous-tâches). Tout se choisit dès la saisie. Une tâche peut être marquée bloquée.
+- **Projets et étiquettes** : un projet pour chaque chantier qui a une fin ; une étiquette pour le reste (le run, « Plus tard », une personne). Chaque étiquette a sa vue dans la barre latérale. L'Inbox ne garde que ce qui n'a ni projet ni étiquette.
 - **Saisie hors de Done** : le raccourci global ouvre une fenêtre flottante par-dessus l'app en cours, sans la quitter. Entrée dans le titre ajoute, Échap annule, un clic ailleurs masque la fenêtre en gardant la saisie.
 - **Candidates du matin** : les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin.
 - **Dates lointaines** : une tâche datée au-delà de ces 3 jours n'est pas proposée (ni candidate, ni prochaine action, ni tâche rapide avant une réunion). Elle reste trouvable avec « Chercher une autre tâche », en fin de liste.

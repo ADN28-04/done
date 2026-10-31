@@ -593,6 +593,24 @@ struct InfoChip: View {
     }
 }
 
+/// Étiquette : icône et nom en texte secondaire, sans fond, comme les dates et les durées.
+struct TagChip: View {
+    let name: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "tag")
+                .font(.system(size: 10, weight: .medium))
+            Text(name)
+                .lineLimit(1)
+        }
+        .font(.sans(12, .medium))
+        .foregroundStyle(DoneColor.textSecondary)
+        .frame(height: 20)
+        .fixedSize()
+    }
+}
+
 /// Priorité : « P1 » sur teinte active, « P2 » en texte actif seul, rien pour P3 et P4.
 struct PriorityChip: View {
     let priority: Int

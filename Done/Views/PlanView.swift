@@ -189,7 +189,7 @@ struct PlanView: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: DoneSpace.s6) {
-                        Text(model.projectName(for: task))
+                        Text(model.listName(for: task))
                             .foregroundStyle(DoneColor.textSecondary)
                         if model.carriedOverIDs.contains(id) {
                             Text("· Reportée")

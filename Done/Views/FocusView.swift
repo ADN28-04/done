@@ -338,7 +338,7 @@ struct SuggestionView: View {
     // MARK: Aides
 
     private func caption(_ suggestion: Suggestion, root: TodoTask) -> String {
-        let project = model.projectName(for: root)
+        let project = model.listName(for: root)
         guard suggestion.position > 0 else { return "Hors plan · \(project)" }
         return "\(suggestion.position) sur \(suggestion.planCount) · \(project)"
     }

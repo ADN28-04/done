@@ -23,7 +23,7 @@ App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui gère simplement une l
 
 ## Tâches
 
-- Priorité de 1 (P1) à 4 (P4), sans inversion. Type de travail (`TaskKind` : normale, rapide, Deepwork) pour la durée des sessions. Échéance enregistrée comme clé de jour (« 2026-10-31 »). Une sous-tâche suit toujours le projet de sa parente.
+- Priorité de 1 (P1) à 4 (P4), sans inversion. Type de travail (`TaskKind` : normale, rapide, Deepwork) pour la durée des sessions. Échéance enregistrée comme clé de jour (« 2026-10-31 »). Une sous-tâche suit toujours le projet de sa parente, et ne porte pas d'étiquette : seules les tâches de premier niveau en ont (`tags`, normalisées par `TaskStore.normalizedTags`). Une liste est un `TaskList` (Inbox, projet ou étiquette) ; l'Inbox ne contient que les tâches sans projet ni étiquette.
 - Le fichier JSON est lu de façon tolérante : un champ absent prend sa valeur par défaut. Tout nouveau champ doit avoir une valeur par défaut dans `init(from:)`.
 - Les réunions sont saisies à la main et oubliées le lendemain. Les rappels « réunion proche » sont reprogrammés à chaque changement de réunion ou de réglage (`Done/Core/MeetingReminder.swift`).
 - Le bilan du soir et le report vers le plan du lendemain sont stockés dans `UserDefaults` (`review.lastDay`, `review.carryOver`). La logique pure est dans `Done/Core/Rituals.swift`.

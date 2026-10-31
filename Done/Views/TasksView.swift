@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Une liste de tâches : l'Inbox ou un projet, choisi dans la barre latérale.
+/// Une liste de tâches : l'Inbox, un projet ou une étiquette, choisi dans la barre latérale.
 struct TaskListView: View {
     @Environment(AppModel.self) private var model
-    /// `nil` pour l'Inbox.
-    let projectID: String?
+    let list: TaskList
 
     @State private var newTitle = ""
     @FocusState private var addFocused: Bool
@@ -24,17 +23,32 @@ struct TaskListView: View {
     }
 
     /// La liste demandée, ou l'Inbox si son projet a été supprimé.
-    private var listID: String? {
-        model.project(projectID) == nil ? nil : projectID
+    private var current: TaskList {
+        if case .project(let id) = list, model.project(id) == nil { return .inbox }
+        return list
+    }
+
+    /// Une tâche ajoutée ici arrive dans cette liste.
+    private func draft(titled title: String) -> TaskDraft {
+        switch current {
+        case .inbox: TaskDraft(title: title)
+        case .project(let id): TaskDraft(title: title, projectID: id)
+        case .tag(let name): TaskDraft(title: title, tags: [name])
+        }
+    }
+
+    private var currentTag: String? {
+        if case .tag(let name) = current { return name }
+        return nil
     }
 
     var body: some View {
-        let tasks = model.topLevelTasks(in: listID)
+        let tasks = model.topLevelTasks(in: current)
         let rows = flattened(tasks)
-        let completed = model.completedTasks(in: listID, limit: 30)
+        let completed = model.completedTasks(in: current, limit: 30)
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: DoneSpace.s4) {
-                Text(model.projectName(listID))
+                Text(model.listName(current))
                     .doneText(.displayL)
                     .foregroundStyle(DoneColor.textPrimary)
                 Text(subtitle(count: tasks.count))
@@ -99,7 +113,7 @@ struct TaskListView: View {
             Image(systemName: "plus")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(DoneColor.stateActiveText)
-            TextField("Ajouter une tâche dans « \(model.projectName(listID)) »", text: $newTitle)
+            TextField("Ajouter une tâche dans « \(model.listName(current)) »", text: $newTitle)
                 .textFieldStyle(.plain)
                 .focused($addFocused)
                 .onSubmit(addTask)
@@ -109,17 +123,17 @@ struct TaskListView: View {
         }
         .doneField(focused: addFocused, height: 36)
         .sheet(isPresented: $showDetails) {
-            CaptureSheet(draft: TaskDraft(title: newTitle, projectID: listID)) { newTitle = "" }
+            CaptureSheet(draft: draft(titled: newTitle)) { newTitle = "" }
                 .environment(model)
         }
     }
 
     private var emptyState: some View {
         VStack(spacing: DoneSpace.s6) {
-            Text(listID == nil ? "Inbox vide" : "Rien à faire ici")
+            Text(emptyTitle)
                 .doneText(.title)
                 .foregroundStyle(DoneColor.textPrimary)
-            Text(listID == nil ? "Note ici tout ce qui te passe par la tête, puis range-le dans un projet." : "Ajoute la première tâche de ce projet dans le champ ci-dessus.")
+            Text(emptyMessage)
                 .doneText(.callout)
                 .foregroundStyle(DoneColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -164,7 +178,7 @@ struct TaskListView: View {
                 StateChip(kind: .active, title: "Aujourd'hui")
                     .help("Dans le plan du jour")
             }
-            TaskChips(task: task)
+            TaskChips(task: task, hiding: currentTag)
         }
         .padding(.leading, DoneSpace.s4 + CGFloat(depth) * 28)
         .padding(.trailing, DoneSpace.s12)
@@ -227,6 +241,20 @@ struct TaskListView: View {
                 ForEach(model.projects) { project in
                     Button(project.name) { edit(task.id) { $0.projectID = project.id } }
                         .disabled(task.projectID == project.id)
+                }
+            }
+            if !model.tags.isEmpty || !task.tags.isEmpty {
+                Menu("Étiquettes") {
+                    ForEach(Array(Set(model.tags + task.tags)).sorted { $0.localizedStandardCompare($1) == .orderedAscending }, id: \.self) { tag in
+                        Toggle(tag, isOn: Binding(
+                            get: { task.tags.contains(tag) },
+                            set: { on in
+                                edit(task.id) { item in
+                                    if on { item.tags.append(tag) } else { item.tags.removeAll { $0 == tag } }
+                                }
+                            }
+                        ))
+                    }
                 }
             }
         }
@@ -296,8 +324,24 @@ struct TaskListView: View {
         }
     }
 
+    private var emptyTitle: String {
+        switch current {
+        case .inbox: "Inbox vide"
+        case .project: "Rien à faire ici"
+        case .tag: "Aucune tâche ouverte"
+        }
+    }
+
+    private var emptyMessage: String {
+        switch current {
+        case .inbox: "Note ici tout ce qui te passe par la tête, puis range-le dans un projet ou sous une étiquette."
+        case .project: "Ajoute la première tâche de ce projet dans le champ ci-dessus."
+        case .tag: "Une tâche ajoutée ici porte cette étiquette."
+        }
+    }
+
     private func addTask() {
-        guard model.addTask(newTitle, projectID: listID) != nil else { return }
+        guard model.addTask(draft(titled: newTitle)) != nil else { return }
         newTitle = ""
         addFocused = true
     }

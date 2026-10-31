@@ -4,12 +4,17 @@ import SwiftUI
 struct TaskChips: View {
     @Environment(AppModel.self) private var model
     let task: TodoTask
+    /// L'étiquette de la vue en cours : inutile de la répéter sur chaque ligne.
+    var hiding: String?
 
     var body: some View {
         HStack(spacing: DoneSpace.s12) {
             PriorityChip(priority: task.priority)
             if task.isBlocked {
                 StateChip(kind: .blocked, title: "Bloquée")
+            }
+            ForEach(task.tags.filter { $0 != hiding }, id: \.self) { tag in
+                TagChip(name: tag)
             }
             if let due = task.due {
                 InfoChip(symbol: "calendar", text: Format.chipDate(due), isAlert: Format.isOverdue(due))
@@ -58,7 +63,7 @@ struct TaskRowContent: View {
     }
 
     var details: String {
-        var parts = [model.projectName(for: task)]
+        var parts = [model.listName(for: task)]
         let steps = model.index.children(of: task.id).count
         if steps > 0 { parts.append("\(steps) étape\(steps > 1 ? "s" : "")") }
         return parts.filter { !$0.isEmpty }.joined(separator: " · ")

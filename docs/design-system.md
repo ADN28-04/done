@@ -99,6 +99,8 @@ Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date co
   - `StateChip` : une forme en plus de la couleur, sur un fond léger. Point Indigo « Aujourd'hui » sur teinte active pour une tâche du plan, « Bloquée » sur `stateBlocked`, alerte sur `stateRiskTint`, terminé en texte seul.
   - `InfoChip` : date (calendrier) ou durée (horloge), icône et texte secondaires sans fond ; en texte d'alerte une fois l'échéance dépassée.
   - `PriorityChip` : P1 sur teinte active, P2 en texte actif seul, rien pour P3 et P4.
+  - `TagChip` : étiquette, icône `tag` et nom en texte secondaire, sans fond. Dans la vue d'une étiquette, celle-ci n'est pas répétée sur les lignes.
+- **Éditeur d'étiquettes** (`TagEditor`, dans la carte des détails) : jetons sur teinte active avec une croix, un champ « Ajouter » (Entrée ou sortie du champ) et le menu des étiquettes existantes. Absent pour une étape.
 - **Ligne de tâche** : hauteur 48, rayon 10.
   - Au survol, `surfaceHover` et poignée de déplacement.
   - Puces à droite, espacées de 12, la date avant la durée.
@@ -114,7 +116,7 @@ Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date co
 Barre latérale de 228, sur `bgSunken`, avec un trait `borderSubtle` à droite :
 
 - en haut, Focus (⌘1) et Plan du jour (⌘2, avec le nombre de tâches du plan) ;
-- au milieu, l'étiquette « Listes », puis l'Inbox (⌘3) et les projets, chacun avec son nombre de tâches ouvertes, et « Nouveau projet » ;
+- au milieu, l'étiquette « Listes », puis l'Inbox (⌘3) et les projets, chacun avec son nombre de tâches ouvertes, et « Nouveau projet » ; ensuite, s'il y en a, l'étiquette « Étiquettes » et une entrée par étiquette (icône `tag`), avec son nombre de tâches ouvertes ;
 - en bas, Stats (⌘4) et Réglages (⌘,).
 
 Les feux de la fenêtre sont posés sur le haut de la barre. La barre du haut, de 52, porte au centre la pastille de réunion (Focus et Plan du jour), à droite le bouton « + » de la capture rapide (⌘N).
@@ -137,7 +139,7 @@ En session (minuteur, pause, interruption, fin), la barre latérale s'efface et 
 
 ## Saisie d'une tâche
 
-- **Formulaire de capture** (`CaptureForm`) : la fiche d'une tâche, vide, sur 560 de large. `Eyebrow` « Nouvelle tâche », titre en `displayM` sans contour, notes (`NotesEditor`, 64 de haut), carte des détails (`TaskDetailsCard` : liste, priorité, type, échéance, en lignes `DetailRow` de 44), puis la carte des étapes (lignes de 36, numéro en `numericS`, croix pour retirer). Annuler et Ajouter (⌘ Entrée) en bas à droite. La fiche d'une tâche existante (`TaskEditorSheet`) reprend les mêmes composants, avec la ligne « Bloquée » en plus.
+- **Formulaire de capture** (`CaptureForm`) : la fiche d'une tâche, vide, sur 560 de large. `Eyebrow` « Nouvelle tâche », titre en `displayM` sans contour, notes (`NotesEditor`, 64 de haut), carte des détails (`TaskDetailsCard` : liste, étiquettes, priorité, type, échéance, en lignes `DetailRow` de 44), puis la carte des étapes (lignes de 36, numéro en `numericS`, croix pour retirer). Annuler et Ajouter (⌘ Entrée) en bas à droite. La fiche d'une tâche existante (`TaskEditorSheet`) reprend les mêmes composants, avec la ligne « Bloquée » en plus.
 - **Fenêtre flottante** (`QuickCapturePanel`) : le même formulaire dans une fenêtre sans barre de titre visible, au niveau flottant, sur `bgCanvas`, posée un peu au-dessus du centre de l'écran où se trouve la souris. Elle ne fait pas passer Done au premier plan.
 - **Champ d'ajout des listes** : une ligne `doneField` de 36, avec « Détails… » en bouton discret à droite.
 
