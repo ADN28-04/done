@@ -146,14 +146,14 @@ struct MenuBarView: View {
         switch engine.phase {
         case .idle:
             Text("Aucune session en cours")
-                .font(.plex(14, .semibold))
+                .font(.sans(14, .semibold))
             Text("Ouvre Done pour lancer la prochaine tâche.")
                 .doneText(.caption)
                 .foregroundStyle(DoneColor.textSecondary)
                 .padding(.top, DoneSpace.s4)
         case .awaitingOutcome:
             Text(engine.checkedAction == nil ? "Session terminée" : "Étape cochée")
-                .font(.plex(14, .semibold))
+                .font(.sans(14, .semibold))
             Text(engine.checkedAction == nil ? "Ouvre Done pour cocher la tâche ou ajouter du temps." : "Ouvre Done pour enchaîner sur la suite.")
                 .doneText(.caption)
                 .foregroundStyle(DoneColor.textSecondary)
@@ -165,7 +165,7 @@ struct MenuBarView: View {
             if let current = engine.current {
                 caption(engine.phase == .focusing ? current.projectName : statusCaption)
                 Text(current.action.title)
-                    .font(.plex(14, .semibold))
+                    .font(.sans(14, .semibold))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, DoneSpace.s4)

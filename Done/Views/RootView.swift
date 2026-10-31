@@ -356,7 +356,7 @@ private struct TopBar: View {
     }
 }
 
-/// Pastille de réunion : pleine Aubergine pendant une réunion, hachurée pour la prochaine.
+/// Pastille de réunion : pleine Indigo pendant une réunion, hachurée pour la prochaine.
 struct MeetingPill: View {
     struct Content {
         let text: String
@@ -369,7 +369,7 @@ struct MeetingPill: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         Text(content.text)
-            .font(.plex(13, .medium))
+            .font(.sans(13, .medium))
             .foregroundStyle(content.isOngoing ? DoneColor.meetingOnNow : DoneColor.textPrimary)
             .lineLimit(1)
             .padding(.horizontal, DoneSpace.s12)

@@ -35,14 +35,14 @@ struct SessionView: View {
                         .padding(.top, DoneSpace.s8)
                 }
 
-                // Anneau de 280, trait 12 : Violet en concentration, gris à l'arrêt.
+                // Anneau de 280, trait 12 : Indigo en concentration, gris à l'arrêt.
                 ZStack {
                     ProgressRing(fraction: engine.remainingFraction, color: paused ? DoneColor.pomodoroPaused : DoneColor.pomodoroFocus)
                     VStack(spacing: DoneSpace.s4) {
                         TimerText(text: Format.clock(engine.remaining), color: paused ? DoneColor.textSecondary : DoneColor.textPrimary)
                         if paused {
                             Label("En pause", systemImage: "pause.fill")
-                                .font(.plex(13, .semibold))
+                                .font(.sans(13, .semibold))
                                 .foregroundStyle(DoneColor.textSecondary)
                         } else {
                             Text("sur \(Int(current.planned / 60)) min")
@@ -184,7 +184,7 @@ struct InterruptionView: View {
     }
 }
 
-/// Fin du minuteur, ou action cochée en avance : carte de transition, comme la fin de pomodoro du v3.
+/// Fin du minuteur, ou action cochée en avance : carte de transition, comme la fin de pomodoro du design system.
 struct OutcomeView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
@@ -207,7 +207,7 @@ struct OutcomeView: View {
         }
     }
 
-    /// Anneau Violet coché et titre de la carte.
+    /// Anneau Indigo coché et titre de la carte.
     private func header(_ title: String, subtitle: String) -> some View {
         HStack(spacing: DoneSpace.s16) {
             ZStack {
@@ -333,7 +333,7 @@ struct StepsBadge: View {
 
     var body: some View {
         Text(text)
-            .font(.done(.numericS))
+            .font(.sans(12, .medium))
             .foregroundStyle(DoneColor.stateActiveText)
             .padding(.horizontal, DoneSpace.s8)
             .frame(height: 22)

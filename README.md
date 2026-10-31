@@ -67,8 +67,8 @@ Done/
   Data/       modèles SwiftData (plan du jour, sessions, interruptions)
   Services/   fichier des tâches, notifications, « Ne pas déranger », appels AppKit
   State/      AppModel (tâches, réunions, plan) et FocusEngine (minuteur)
-  Views/      écrans SwiftUI, et Theme.swift pour les tokens et composants du design system v3
-  Fonts/      Bricolage Grotesque et IBM Plex Sans (licences OFL dans docs/fonts/)
+  Views/      écrans SwiftUI, et Theme.swift pour les tokens et composants du design system v4
+  Fonts/      Instrument Sans et IBM Plex Mono (licences OFL dans docs/fonts/)
   Assets.xcassets/  icône de l'app et couleur d'accent
 ```
 

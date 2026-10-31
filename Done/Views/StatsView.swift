@@ -98,7 +98,7 @@ private struct DailyBars: View {
                             .frame(width: 40, height: 6)
                     }
                     Text(Format.weekdayShort(day.day))
-                        .font(isToday ? .plex(12, .semibold) : .done(.caption))
+                        .font(isToday ? .sans(12, .semibold) : .done(.caption))
                         .foregroundStyle(isToday ? DoneColor.textPrimary : DoneColor.textSecondary)
                 }
                 .frame(maxWidth: .infinity)

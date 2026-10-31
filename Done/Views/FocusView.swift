@@ -172,7 +172,7 @@ struct SuggestionView: View {
                         }
                     } label: {
                         Text("Durée : \(minutes) min")
-                            .font(.plex(14, .medium))
+                            .font(.sans(14, .medium))
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()

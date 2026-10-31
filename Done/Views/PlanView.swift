@@ -324,7 +324,7 @@ struct NumberTile: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         Text("\(position)")
-            .font(.plex(13, .semibold))
+            .font(.mono(13, .semibold))
             .foregroundStyle(isFilled ? DoneColor.stateOnActive : DoneColor.textSecondary)
             .frame(width: 24, height: 24)
             .background(isFilled ? DoneColor.stateActive : Color.clear, in: shape)
