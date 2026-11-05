@@ -59,6 +59,13 @@ enum SystemBridge {
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
+    /// Ouvre Réglages Système › Confidentialité et sécurité › Rappels.
+    static func openRemindersSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     static func openShortcutsApp() {
         if let url = URL(string: "shortcuts://") {
             NSWorkspace.shared.open(url)

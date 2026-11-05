@@ -40,6 +40,7 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 | Projets | Listes simples, en plus de l'Inbox, pour les chantiers qui ont une fin. Créer, renommer, réordonner, supprimer (les tâches passent alors dans l'Inbox). Glisser une tâche sur une liste l'y range. |
 | Étiquettes | Pour ce qui n'est pas un chantier : le run (« Run Shop » et ses thèmes), « Plus tard », une personne. Une tâche de premier niveau en porte autant qu'il faut, une étape suit celles de sa tâche. Chaque étiquette a sa vue dans la barre latérale, avec les tâches de tous les projets ; une tâche ajoutée depuis cette vue la porte. L'Inbox ne garde que ce qui n'a ni projet ni étiquette : ce qui reste à trier. Renommer une étiquette (vers un nom existant, elles se fondent) ou la retirer de toutes ses tâches, au clic droit. Glisser une tâche sur une étiquette la lui ajoute ; sur l'Inbox, lui retire projet et étiquettes. Une étiquette sans tâche ouverte disparaît. |
 | Capture rapide | ⌘N dans Done, même en session, ou un raccourci global (⌃⌥N par défaut, réglable) depuis n'importe quelle app, tant que Done tourne. La saisie porte tous les détails : titre, notes, liste, priorité, type, échéance et étapes. Entrée dans le titre ajoute tout de suite, dans l'Inbox par défaut ; ⌘ Entrée ajoute depuis n'importe quel champ. Le champ d'ajout des listes et le panneau de la barre de menus restent en une ligne, avec « Détails… » pour passer à la saisie complète. |
+| Boîte Rappels | Depuis l'iPhone, on note dans la liste Rappels « Done » (Siri, widget, partage), synchronisée par iCloud. Done la lit au lancement, à chaque changement apporté par iCloud et toutes les cinq minutes. Un rappel au titre d'une tâche ouverte, étapes comprises (casse, accents et espaces ignorés), la met à jour : échéance et priorité s'il en a (haute en P1, moyenne en P2, basse en P3), notes et lien ajoutés à la suite. Coché, il coche la tâche. Sinon il devient une tâche de l'Inbox. Le rappel traité est supprimé de Rappels. Si plusieurs tâches portent le titre, le rappel reste, avec une note qui demande de le préciser. Activée et nom de liste dans Réglages › Rappels de l'iPhone. |
 | Liste de candidates | Les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin : une date lointaine est volontaire (« pas avant »). |
 | Plan du jour | Je choisis et ordonne 3 tâches (nombre réglable de 1 à 5). Le plan est gardé pour la journée. Une tâche peut aussi y être ajoutée depuis sa liste (clic droit). |
 | Réunions | Saisies à la main dans le Plan du jour ou le calendrier : titre, jour, début, fin. Affichées dans la pastille du haut et dans le calendrier, prises en compte pour proposer une tâche qui tient avant la prochaine. Gardées jusqu'à la fin de la semaine, puis oubliées. |
@@ -70,12 +71,12 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 ### Hors périmètre
 
 - Todoist, ou toute synchronisation avec un autre gestionnaire de tâches. Les tâches ouvertes ont été reprises une seule fois, hors de l'app, au passage à Done : chantiers en projets, run et « Plus tard » en étiquettes, agenda en réunions. Done n'a pas de fonction d'import.
-- Serveur, compte, synchronisation entre appareils, accès par Claude ou par une autre app.
+- Serveur, compte, synchronisation entre appareils, accès par Claude ou par une autre app. La liste Rappels de capture est une boîte d'arrivée dans un seul sens, pas une synchronisation : Done ne publie rien vers Rappels.
 - IA intégrée (le découpage par l'API Claude a été retiré).
 - Chantiers actifs limités, attentes, dépendances, calcul de charge : la liste reste simple. Les étiquettes restent de simples noms, sans couleur ni règle attachée.
 - Lecture du calendrier : les réunions se saisissent à la main.
 - Publication sur l'App Store, multi-utilisateur, partage.
-- iPhone, iPad, Android, Windows ou web.
+- Une app iPhone, iPad, Android, Windows ou web. Depuis l'iPhone, on note dans Rappels.
 - Blocage d'apps ou de sites web.
 
 ## 3. Écrans et parcours
@@ -150,6 +151,7 @@ Remarques :
 - **Xcode, SwiftUI, une cible macOS** (macOS 14 minimum, pour SwiftData et `@Observable`).
 - **Tâches en JSON**, plutôt qu'en SwiftData : un fichier lisible, facile à sauvegarder et à restaurer, et une logique (`TaskStore`) testable sans l'app.
 - **SwiftData local** pour le plan, les sessions et les interruptions. Le modèle `BacklogSnapshot`, hérité de la version Todoist, reste déclaré pour ouvrir les bases existantes sans migration.
+- **EventKit** pour la boîte Rappels (accès complet aux rappels demandé à la première lecture ; phrase d'autorisation dans `Done-Info.plist`, droit Calendrier du Hardened Runtime dans `Done.entitlements`, tous deux hors du dossier synchronisé).
 - **App Raccourcis** (`/usr/bin/shortcuts run`) pour « Ne pas déranger », macOS n'ayant pas d'API publique pour les modes de concentration.
 - **UserNotifications** pour les fins de session et de pause, les rappels du bilan et des réunions, **MenuBarExtra** pour le minuteur et la capture dans la barre de menus, **RegisterEventHotKey** (Carbon) pour le raccourci global, sans autorisation d'accessibilité à demander.
 - App non sandboxée et signée localement : elle n'est pas distribuée.

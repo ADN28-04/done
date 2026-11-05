@@ -26,6 +26,8 @@ struct DoneApp: App {
         SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }
         // Saisie flottante, par le raccourci global choisi dans les réglages.
         QuickCapturePanel.shared.configure(model: model)
+        // Boîte d'arrivée Rappels, si elle est activée dans les réglages.
+        RemindersBridge.shared.start(model: model)
     }
 
     var body: some Scene {

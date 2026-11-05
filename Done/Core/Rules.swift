@@ -19,6 +19,9 @@ enum SettingsKey {
     static let endSound = "rules.endSound"
     /// Raccourci global de la saisie flottante (`CaptureShortcut`).
     static let captureShortcut = "capture.shortcut"
+    /// Boîte d'arrivée Rappels : activée, et nom de la liste lue.
+    static let remindersEnabled = "reminders.enabled"
+    static let remindersList = "reminders.list"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.

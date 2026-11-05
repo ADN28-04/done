@@ -19,6 +19,8 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.meetingReminderMinutes) private var meetingReminderMinutes = Rules().meetingReminderMinutes
     @AppStorage(SettingsKey.endSound) private var endSound = Rules().endSound
     @AppStorage(SettingsKey.captureShortcut) private var captureShortcut = CaptureShortcut.standard.rawValue
+    @AppStorage(SettingsKey.remindersEnabled) private var remindersEnabled = false
+    @AppStorage(SettingsKey.remindersList) private var remindersList = RemindersBridge.defaultList
 
     @State private var dndStatus: CheckStatus = .unknown
     @State private var notificationStatus: Notifier.Permission?
@@ -140,6 +142,28 @@ struct SettingsView: View {
                 .onAppear { shortcutTaken = !QuickCapturePanel.shared.shortcutIsActive }
                 .onChange(of: captureShortcut) { shortcutTaken = !QuickCapturePanel.shared.applyShortcut() }
 
+                SettingsSection("Rappels de l'iPhone", footer: "Note tes tâches dans la liste Rappels, depuis l'iPhone (Siri, widget, partage). Done la lit au lancement, dès qu'iCloud apporte un changement, et toutes les cinq minutes. Un rappel au titre d'une tâche ouverte la met à jour (échéance, priorité, notes), ou la coche s'il est coché ; sinon il devient une tâche de l'Inbox. Le rappel est ensuite supprimé de Rappels. Mac et iPhone doivent utiliser le même compte iCloud.") {
+                    toggleRow("Lire la liste Rappels", isOn: $remindersEnabled)
+                    RowDivider()
+                    textRow("Liste", text: $remindersList)
+                        .disabled(!remindersEnabled)
+                    RowDivider()
+                    SettingsRow {
+                        remindersStatusLabel
+                    } trailing: {
+                        HStack(spacing: DoneSpace.s6) {
+                            if RemindersBridge.shared.status == .denied {
+                                Button("Réglages") { SystemBridge.openRemindersSettings() }
+                                    .buttonStyle(DoneButtonStyle(compact: true))
+                            }
+                            Button("Lire maintenant") { Task { await RemindersBridge.shared.sync() } }
+                                .buttonStyle(DoneButtonStyle(compact: true))
+                                .disabled(!remindersEnabled)
+                        }
+                    }
+                }
+                .onChange(of: remindersEnabled) { Task { await RemindersBridge.shared.sync() } }
+
                 SettingsSection("Données", footer: "Tes tâches, projets et réunions restent sur ce Mac, dans un seul fichier. Done en garde une copie par jour, sur 30 jours, dans le dossier Sauvegardes à côté.") {
                     SettingsRow {
                         VStack(alignment: .leading, spacing: DoneSpace.s2) {
@@ -215,6 +239,35 @@ struct SettingsView: View {
             Label(message, systemImage: "triangle")
                 .foregroundStyle(DoneColor.stateRiskText)
                 .lineLimit(2)
+        }
+    }
+
+    @ViewBuilder
+    private var remindersStatusLabel: some View {
+        switch RemindersBridge.shared.status {
+        case .off:
+            Text("Désactivée")
+                .foregroundStyle(DoneColor.textSecondary)
+        case .denied:
+            Label("Accès aux Rappels refusé : autorise Done dans Réglages Système", systemImage: "exclamationmark.triangle")
+                .foregroundStyle(DoneColor.stateRiskText)
+                .lineLimit(2)
+        case .missingList(let name):
+            Label("Liste « \(name) » introuvable dans Rappels", systemImage: "exclamationmark.triangle")
+                .foregroundStyle(DoneColor.stateRiskText)
+                .lineLimit(2)
+        case .failed(let message):
+            Label("Rappels : \(message)", systemImage: "exclamationmark.triangle")
+                .foregroundStyle(DoneColor.stateRiskText)
+                .lineLimit(2)
+        case .ready:
+            if let pass = RemindersBridge.shared.lastPass, let report = RemindersBridge.shared.lastReport {
+                Label("Lue à \(Format.time(pass)) : \(report)", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(DoneColor.stateActiveText)
+            } else {
+                Text("Prête")
+                    .foregroundStyle(DoneColor.textSecondary)
+            }
         }
     }
 

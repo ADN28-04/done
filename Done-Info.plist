@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Done lit ta liste Rappels de capture (« Done » par défaut) pour ajouter ou mettre à jour tes tâches, puis supprime les rappels traités.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Done lit ta liste Rappels de capture (« Done » par défaut) pour ajouter ou mettre à jour tes tâches, puis supprime les rappels traités.</string>
+</dict>
+</plist>

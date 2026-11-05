@@ -32,7 +32,7 @@ Points à trancher à l'usage.
 ## Méthode et usage
 
 7. **Données professionnelles.**
-   Les tâches mentionnent des projets et des collègues. Elles restent sur le Mac, dans un fichier et une base locale, sauvegardés par Time Machine si elle est active. Rien ne part ailleurs.
+   Les tâches mentionnent des projets et des collègues. Elles restent sur le Mac, dans un fichier et une base locale, sauvegardés par Time Machine si elle est active. Rien ne part ailleurs. Exception : ce qui est noté sur l'iPhone dans la liste Rappels « Done » passe par iCloud, le temps que Done le récupère et supprime le rappel.
 
 8. **« Ne pas déranger » pendant une pause manuelle ?**
    Aujourd'hui, le mode est coupé dès que le minuteur est en pause ou interrompu. Si les pauses sont très courtes, on pourrait le garder actif pour éviter les allers-retours.

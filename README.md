@@ -39,6 +39,16 @@ macOS ne laisse pas une app piloter les modes de concentration. Done passe par l
 
 Done active le mode quand le minuteur de focus tourne, et le coupe en pause, en interruption, en fin de session et quand l'app se ferme. Si Done est arrêté brutalement (par exemple avec le bouton Stop d'Xcode), le mode reste actif : il faut le couper dans le Centre de contrôle.
 
+### Capturer depuis l'iPhone (facultatif)
+
+Done lit une liste de l'app Rappels, remplie depuis l'iPhone, et en fait des tâches.
+
+1. Dans Rappels, créer une liste nommée `Done`. Mac et iPhone doivent utiliser le même compte iCloud, avec Rappels activé.
+2. Dans Done, Réglages › Rappels de l'iPhone : activer « Lire la liste Rappels », puis accepter l'accès aux Rappels quand macOS le demande.
+3. Sur l'iPhone, noter dans la liste « Done » : l'app Rappels, Siri (« Ajoute… à Done »), le widget ou le menu Partager.
+
+Un rappel au titre d'une tâche ouverte met cette tâche à jour (échéance, priorité, notes), ou la coche s'il est coché ; sinon il devient une tâche de l'Inbox. Le rappel est ensuite supprimé de Rappels. Si l'accès a été refusé, le bouton Réglages de cette section ouvre Confidentialité › Rappels.
+
 ### Si les notifications n'arrivent pas
 
 Dans Done, Réglages › Notifications indique ce que macOS autorise, avec un bouton Tester.
