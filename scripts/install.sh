@@ -24,12 +24,17 @@ if [ ! -d "$APP" ]; then
   exit 1
 fi
 
+# L'app elle-même, pas le connecteur (« Done --mcp ») que Claude lance en arrière-plan.
+app_running() {
+  [ "$(osascript -e 'application "Done" is running' 2> /dev/null)" = "true" ]
+}
+
 # Ferme Done proprement si elle tourne : elle coupe alors « Ne pas déranger ».
-if pgrep -x Done > /dev/null; then
+if app_running; then
   echo "Fermeture de la version en cours…"
   osascript -e 'quit app "Done"' > /dev/null 2>&1 || true
   for _ in $(seq 1 20); do
-    pgrep -x Done > /dev/null || break
+    app_running || break
     sleep 0.5
   done
 fi
@@ -46,3 +51,6 @@ rm -rf "$APP"
 
 open /Applications/Done.app
 echo "Done est à jour dans Applications."
+if pgrep -f "Done.app/Contents/MacOS/Done --mcp" > /dev/null; then
+  echo "Claude utilise encore l'ancien connecteur : quitte et relance Claude pour passer au nouveau."
+fi

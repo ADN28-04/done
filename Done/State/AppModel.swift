@@ -21,22 +21,30 @@ final class AppModel {
 
     private static let lastReviewKey = "review.lastDay"
     private static let carryOverKey = "review.carryOver"
-    private static let resumeNotesKey = "resume.notes"
+    private static let resumeNotesKey = ResumeNotes.defaultsKey
 
     let context: ModelContext
     let storage: TaskStorage
+    /// Plan du jour échangé avec le connecteur Claude.
+    let planFiles: PlanFiles
     /// Faux si le fichier illisible n'a pas pu être mis de côté : on ne l'écrase jamais.
     @ObservationIgnored private var canSave = true
+    /// Version du fichier des tâches à la dernière lecture ou écriture par Done. Si elle change, le
+    /// connecteur Claude l'a réécrit : Done le relit avant d'y toucher.
+    @ObservationIgnored private var fileStamp: TaskStorage.Stamp?
+    @ObservationIgnored private var watcher: FolderWatcher?
 
-    init(context: ModelContext, storage: TaskStorage = .standard) {
+    init(context: ModelContext, storage: TaskStorage = .standard, planFiles: PlanFiles? = nil) {
         self.context = context
         self.storage = storage
+        self.planFiles = planFiles ?? PlanFiles(folder: storage.folder)
         let defaults = UserDefaults.standard
         lastReviewDay = defaults.string(forKey: Self.lastReviewKey)
         carryOver = defaults.data(forKey: Self.carryOverKey).flatMap { try? JSONDecoder().decode(CarryOver.self, from: $0) }
         resumeNotes = defaults.data(forKey: Self.resumeNotesKey).flatMap { try? JSONDecoder().decode(ResumeNotes.self, from: $0) } ?? ResumeNotes()
         do {
             store = try storage.load() ?? TaskStore()
+            fileStamp = storage.stamp()
         } catch {
             if let moved = storage.setAsideUnreadable() {
                 errorMessage = "Le fichier des tâches était illisible. Il a été mis de côté ici : \(moved.path)"
@@ -51,6 +59,8 @@ final class AppModel {
         commit { $0.pruneMeetings(endedBefore: Stats.week(containing: .now).start) }
         updateResumeNotes { $0.keepOnly(Set(store.openTasks.map(\.id))) }
         loadPlan()
+        applyPlanRequest()
+        publishPlan()
     }
 
     var rules: Rules { Rules.current }
@@ -85,9 +95,7 @@ final class AppModel {
 
     /// Nom du projet (« Projet › Sous-projet » pour un sous-projet), ou « Inbox » sans projet.
     func projectName(_ id: String?) -> String {
-        guard let project = project(id) else { return "Inbox" }
-        guard let parent = self.project(project.parentID) else { return project.name }
-        return "\(parent.name) › \(project.name)"
+        store.projectPath(id) ?? "Inbox"
     }
 
     func subprojects(of id: String) -> [Project] { store.subprojects(of: id) }
@@ -412,24 +420,91 @@ final class AppModel {
         }
     }
 
+    // MARK: Connecteur Claude
+
+    /// Au lancement : reprend ce que le connecteur Claude écrit dans le dossier de Done pendant que
+    /// l'app est ouverte.
+    func startWatching() {
+        guard watcher == nil else { return }
+        watcher = FolderWatcher(folder: storage.folder) { [weak self] in self?.syncFromDisk() }
+        watcher?.start()
+    }
+
+    /// Relit les tâches si le connecteur les a changées, et applique le plan du jour qu'il demande.
+    func syncFromDisk() {
+        reloadIfChanged()
+        applyPlanRequest()
+    }
+
+    /// Le plan du jour demandé par le connecteur, appliqué puis effacé. Seules les tâches encore
+    /// ouvertes sont retenues.
+    func applyPlanRequest() {
+        guard let request = planFiles.takeRequest() else { return }
+        let open = Set(index.all.map(\.id))
+        guard let ids = SharedPlan.accepted(request, openIDs: open, today: Format.dayKey(.now)) else { return }
+        guard ids != planIDs else { return }
+        savePlan(ids)
+    }
+
+    /// Relit tasks.json s'il a changé hors de Done, pour partir de la version du connecteur.
+    private func reloadIfChanged() {
+        guard canSave, let stamp = storage.stamp(), stamp != fileStamp else { return }
+        guard let loaded = try? storage.load() else { return }
+        fileStamp = stamp
+        guard loaded != store else { return }
+        adopt(loaded)
+    }
+
+    /// Prend les tâches relues sur le disque, comme si les changements avaient été faits dans Done :
+    /// rappels de réunion, notes de reprise et plan du jour suivent.
+    private func adopt(_ loaded: TaskStore) {
+        let meetingsChanged = loaded.meetings != store.meetings
+        store = loaded
+        index = TaskIndex(store.openTasks)
+        if meetingsChanged { updateMeetingReminders() }
+        let open = Set(store.openTasks.map(\.id))
+        updateResumeNotes { $0.keepOnly(open) }
+        // Une tâche du plan cochée par Claude en sort, et compte parmi les tâches faites du jour.
+        if let plan = todayPlan, plan.taskIDs.contains(where: { !open.contains($0) }) {
+            let closed = plan.taskIDs.filter { !open.contains($0) }
+            plan.taskIDs.removeAll { !open.contains($0) }
+            for id in closed where store[id] != nil && !plan.doneIDs.contains(id) {
+                plan.doneIDs.append(id)
+            }
+            save()
+        }
+    }
+
+    /// Publie le plan du jour (plan.json) pour le connecteur, qui n'ouvre pas la base locale.
+    private func publishPlan() {
+        guard let plan = todayPlan else { return }
+        // En cas d'échec, Claude voit seulement un plan moins à jour : rien à signaler.
+        try? planFiles.publish(PlanSnapshot(day: Format.dayKey(plan.day), taskIDs: plan.taskIDs, doneIDs: plan.doneIDs))
+    }
+
     // MARK: Enregistrement
 
     /// Applique un changement aux tâches, met l'index à jour et réécrit le fichier.
     private func commit(_ change: (inout TaskStore) -> Void) {
-        var next = store
-        change(&next)
-        guard next != store else { return }
-        let meetingsChanged = next.meetings != store.meetings
-        store = next
-        index = TaskIndex(store.openTasks)
-        persist()
-        if meetingsChanged { updateMeetingReminders() }
+        // Sous verrou : le connecteur Claude n'écrit pas entre la relecture et l'écriture.
+        storage.withLock {
+            reloadIfChanged()
+            var next = store
+            change(&next)
+            guard next != store else { return }
+            let meetingsChanged = next.meetings != store.meetings
+            store = next
+            index = TaskIndex(store.openTasks)
+            persist()
+            if meetingsChanged { updateMeetingReminders() }
+        }
     }
 
     private func persist() {
         guard canSave else { return }
         do {
             try storage.save(store)
+            fileStamp = storage.stamp()
         } catch {
             errorMessage = "Les tâches n'ont pas pu être enregistrées : \(error.localizedDescription)"
         }
@@ -441,5 +516,6 @@ final class AppModel {
         } catch {
             errorMessage = "Enregistrement local impossible : \(error.localizedDescription)"
         }
+        publishPlan()
     }
 }

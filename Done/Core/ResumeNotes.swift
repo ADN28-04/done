@@ -9,6 +9,9 @@ struct ResumeNote: Codable, Equatable {
 /// Notes de reprise par identifiant de tâche. Gardées dans UserDefaults (`resume.notes`),
 /// effacées quand la tâche est cochée ou supprimée.
 struct ResumeNotes: Codable, Equatable {
+    /// Clé dans UserDefaults.
+    static let defaultsKey = "resume.notes"
+
     /// Une ligne : au-delà, la note est coupée.
     static let maxLength = 280
 

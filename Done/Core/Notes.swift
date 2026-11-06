@@ -201,12 +201,46 @@ enum NoteLinks {
         return notes.first { key($0.title) == wanted }
     }
 
+    /// Un titre libre parmi `notes` : « Titre », sinon « Titre 2 », « Titre 3 »…, pour que [[Titre]]
+    /// désigne une seule note.
+    static func uniqueTitle(_ title: String, among notes: [Note], excluding id: String? = nil) -> String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let base = trimmed.isEmpty ? "Sans titre" : trimmed
+        let others = Set(notes.filter { $0.id != id }.map { key($0.title) })
+        var candidate = base
+        var counter = 2
+        while others.contains(key(candidate)) {
+            candidate = "\(base) \(counter)"
+            counter += 1
+        }
+        return candidate
+    }
+
     /// Les notes qui citent celle-ci par [[Titre]].
     static func backlinks(to note: Note, in notes: [Note]) -> [Note] {
         let wanted = key(note.title)
         return notes
             .filter { $0.id != note.id && titles(in: $0.body).contains { key($0) == wanted } }
             .sorted { $0.updatedAt > $1.updatedAt }
+    }
+}
+
+// MARK: Modèles
+
+/// Le texte de départ des notes créées par Done : page de projet, note de réunion, note du jour.
+enum NoteTemplates {
+    static let projectPage = "## Objectif\n\n## Contexte\n\n## Liens utiles\n"
+
+    static func meetingTitle(_ meeting: Meeting) -> String {
+        "\(meeting.title), \(Format.dayAndMonth(meeting.start))"
+    }
+
+    static func meetingBody(_ meeting: Meeting) -> String {
+        "\(Format.time(meeting.start))–\(Format.time(meeting.end))\n\n## Ordre du jour\n\n## Notes\n\n## Décisions\n\n## Actions\n\n- [ ] "
+    }
+
+    static func journalTitle(_ day: Date) -> String {
+        "Journal du \(Format.fullDay(day))"
     }
 }
 

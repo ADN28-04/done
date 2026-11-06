@@ -49,6 +49,26 @@ Done lit une liste de l'app Rappels, remplie depuis l'iPhone, et en fait des tâ
 
 Un rappel au titre d'une tâche ouverte met cette tâche à jour (échéance, priorité, notes), ou la coche s'il est coché ; sinon il devient une tâche de l'Inbox. Le rappel est ensuite supprimé de Rappels. Si l'accès a été refusé, le bouton Réglages de cette section ouvre Confidentialité › Rappels.
 
+### Brancher Claude (facultatif)
+
+Claude sur ce Mac peut lire Done et y écrire : tâches, projets, étiquettes, notes, réunions, absences et plan du jour. Il ne supprime rien. Done n'a pas besoin d'être ouvert : Claude lance l'exécutable de l'app en mode connecteur (`Done --mcp`), sans fenêtre. Si Done est ouvert, il reprend les changements aussitôt.
+
+- **Claude, l'app de bureau** (projets compris) : Réglages › Claude › Ajouter, puis quitter et relancer Claude. Done s'inscrit dans `~/Library/Application Support/Claude/claude_desktop_config.json`, sans toucher aux autres réglages (l'ancien fichier est gardé en `.bak`). À la main, l'entrée à ajouter dans `mcpServers` est :
+
+  ```json
+  "done": { "command": "/Applications/Done.app/Contents/MacOS/Done", "args": ["--mcp"] }
+  ```
+
+- **Claude Code** : Réglages › Claude › Copier la commande, puis la coller dans le Terminal. Elle vaut :
+
+  ```bash
+  claude mcp add --scope user done -- '/Applications/Done.app/Contents/MacOS/Done' --mcp
+  ```
+
+Inscrire Done depuis la version installée dans Applications (`./scripts/install.sh`), pas depuis Xcode : le chemin enregistré est celui de l'app qui fait l'inscription. Après une mise à jour, relancer Claude pour qu'il lance le nouveau connecteur.
+
+Pour commencer, demander par exemple à Claude : « Fais le point sur ma journée dans Done », « Range les tâches de l'Inbox », « Crée la page du projet X à partir de ces notes », « Prépare mon plan de demain ».
+
 ### Si les notifications n'arrivent pas
 
 Dans Done, Réglages › Notifications indique ce que macOS autorise, avec un bouton Tester.
@@ -70,16 +90,16 @@ Dans un seul fichier, `~/Library/Application Support/com.adnan.done/tasks.json`,
 
 Pour revenir à une sauvegarde : quitter Done, remplacer `tasks.json` par la copie voulue (renommée `tasks.json`), relancer Done. Si le fichier devient illisible, Done le met de côté (`tasks-illisible-…json`), repart d'une liste vide et le signale.
 
-L'historique des sessions et le plan du jour restent dans la base SwiftData de l'app, comme avant.
+L'historique des sessions et le plan du jour restent dans la base SwiftData de l'app, comme avant. Pour le connecteur Claude, Done publie le plan du jour dans `plan.json`, à côté ; un plan demandé par Claude arrive dans `plan-request.json`, que Done applique puis efface. `.tasks.lock` sert de verrou quand Done et Claude écrivent dans `tasks.json`.
 
 ## Organisation du code
 
 ```
 Done/
-  App/        point d'entrée, fenêtre et barre de menus
-  Core/       logique pure, sans SwiftUI : tâches et projets (TaskStore), règles, choix de la tâche, stats
+  App/        point d'entrée (Launcher : l'app, ou le connecteur Claude avec --mcp), fenêtre et barre de menus
+  Core/       logique pure, sans SwiftUI : tâches et projets (TaskStore), règles, choix de la tâche, stats, notes, protocole MCP et outils du connecteur
   Data/       modèles SwiftData (plan du jour, sessions, interruptions)
-  Services/   fichier des tâches, notifications, « Ne pas déranger », appels AppKit
+  Services/   fichiers des tâches et des notes, connecteur Claude, notifications, « Ne pas déranger », Rappels, appels AppKit
   State/      AppModel (tâches, réunions, plan) et FocusEngine (minuteur)
   Views/      écrans SwiftUI, et Theme.swift pour les tokens et composants du design system v5
   Fonts/      Archivo (licence OFL dans docs/fonts/)
@@ -92,6 +112,7 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 
 - **Tâches** : un titre, des notes, une liste (Inbox ou projet), des étiquettes, une priorité de P1 à P4, un type (normale, rapide, Deepwork), une échéance facultative, des étapes (sous-tâches). Tout se choisit dès la saisie. Une tâche peut être marquée bloquée.
 - **Projets et étiquettes** : un projet pour chaque chantier qui a une fin, avec des sous-projets sur un niveau (la vue du projet les regroupe) ; une étiquette pour le reste (le run, « Plus tard », une personne). Chaque étiquette a sa vue dans la barre latérale ; les sections Projets et Étiquettes se replient. L'Inbox ne garde que ce qui n'a ni projet ni étiquette.
+- **Claude** : par le connecteur local, Claude sur ce Mac lit tout Done, crée et modifie tâches, projets, étiquettes, notes, réunions, absences et plan du jour. Il ne supprime rien.
 - **Notes** (⌘7) : des pages Markdown typées (Note, Réunion, Décision, Personne, Référence), rattachées à un projet, des étiquettes ou des tâches, et liées entre elles par [[Titre]]. Chaque projet a sa page de documentation, chaque réunion sa note préremplie, chaque jour sa note du jour (depuis Aujourd'hui).
 - **Aujourd'hui** (⌘6) : la journée d'un coup d'œil, avec les réunions et le focus fait sur une ligne de temps, le plan du jour, les échéances et retards, et ce qui est déjà coché.
 - **Saisie hors de Done** : le raccourci global ouvre une fenêtre flottante par-dessus l'app en cours, sans la quitter. Entrée dans le titre ajoute, Échap annule, un clic ailleurs masque la fenêtre en gardant la saisie.

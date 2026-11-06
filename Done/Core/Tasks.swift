@@ -215,6 +215,13 @@ struct TaskStore: Codable, Equatable {
         return projects.first { $0.id == id }
     }
 
+    /// « Projet › Sous-projet » pour un sous-projet, le nom pour un projet, `nil` sans projet.
+    func projectPath(_ id: String?) -> String? {
+        guard let project = project(id) else { return nil }
+        guard let parent = self.project(project.parentID) else { return project.name }
+        return "\(parent.name) › \(project.name)"
+    }
+
     /// Un projet et ses sous-projets : ce que montre sa vue.
     func projectFamily(_ id: String) -> Set<String> {
         Set([id] + subprojects(of: id).map(\.id))

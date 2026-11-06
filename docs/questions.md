@@ -6,6 +6,7 @@ Points à trancher à l'usage.
 
 - **Plateforme** : Mac uniquement. Pas de compte Apple Developer payant, pas de synchro iCloud, données locales.
 - **Todoist** : abandonné. Done gère les tâches lui-même. Les tâches ouvertes ont été reprises une fois, par un fichier généré hors de l'app ; aucune fonction d'import n'est prévue. L'idée d'un serveur avec un connecteur pour Claude (« Done v2 ») a été écartée pour garder l'outil simple.
+- **Claude** : connecteur local plutôt que serveur. Claude sur ce Mac (app de bureau, Claude Code) lance `Done --mcp` ; il lit tout, crée et modifie tâches, notes, projets, étiquettes, réunions et plan du jour, et ne supprime rien. Claude sur le web ou l'iPhone n'y a pas accès.
 - **IA intégrée** : retirée. Le découpage se fait à la main, étape par étape.
 - **Découpage** : une seule prochaine action ne suffisait pas, la tâche paraissait abandonnée après la première étape. Done ajoute toutes les étapes d'un coup, dans l'ordre, et les propose l'une après l'autre.
 
@@ -32,10 +33,13 @@ Points à trancher à l'usage.
 ## Méthode et usage
 
 7. **Données professionnelles.**
-   Les tâches mentionnent des projets et des collègues. Elles restent sur le Mac, dans un fichier et une base locale, sauvegardés par Time Machine si elle est active. Rien ne part ailleurs. Exception : ce qui est noté sur l'iPhone dans la liste Rappels « Done » passe par iCloud, le temps que Done le récupère et supprime le rappel.
+   Les tâches mentionnent des projets et des collègues. Elles restent sur le Mac, dans un fichier et une base locale, sauvegardés par Time Machine si elle est active. Rien ne part ailleurs. Exception : ce qui est noté sur l'iPhone dans la liste Rappels « Done » passe par iCloud, le temps que Done le récupère et supprime le rappel. Autre exception : ce que Claude lit par le connecteur entre dans la conversation avec Claude, comme un texte qu'on lui colle.
 
 8. **« Ne pas déranger » pendant une pause manuelle ?**
    Aujourd'hui, le mode est coupé dès que le minuteur est en pause ou interrompu. Si les pauses sont très courtes, on pourrait le garder actif pour éviter les allers-retours.
+
+9. **Jusqu'où laisser écrire Claude ?**
+   Claude crée, modifie, coche et fixe le plan du jour directement, sans validation dans Done. Si un changement surprend, deux pistes : faire du plan une proposition à valider dans Done, ou marquer d'un signe ce que Claude a créé. Il ne supprime jamais rien : c'est voulu.
 
 9. **Faut-il bloquer les distractions ?**
    Exclu pour l'instant. À réévaluer après un mois si la concentration reste le principal frein malgré le minuteur.

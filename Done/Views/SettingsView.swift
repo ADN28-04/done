@@ -26,6 +26,10 @@ struct SettingsView: View {
     @State private var notificationStatus: Notifier.Permission?
     @State private var notificationTestError: String?
     @State private var shortcutTaken = false
+    @State private var claudeStatus: ClaudeSetup.Status = .missing
+    @State private var claudeError: String?
+    @State private var claudeJustAdded = false
+    @State private var claudeCommandCopied = false
 
     /// Résultat de la vérification des raccourcis « Ne pas déranger ».
     private enum CheckStatus: Equatable {
@@ -164,6 +168,45 @@ struct SettingsView: View {
                 }
                 .onChange(of: remindersEnabled) { Task { await RemindersBridge.shared.sync() } }
 
+                SettingsSection("Claude", footer: "Claude, sur ce Mac, lit tes tâches, projets, notes, réunions et ton plan du jour, et peut en créer ou en modifier. Il ne supprime rien. Claude lance Done en arrière-plan quand il en a besoin, même app fermée ; si Done est ouverte, elle reprend aussitôt ses changements.") {
+                    SettingsRow {
+                        VStack(alignment: .leading, spacing: DoneSpace.s2) {
+                            Text("Claude, l'app de bureau")
+                            claudeStatusLabel
+                                .doneText(.caption)
+                        }
+                    } trailing: {
+                        switch claudeStatus {
+                        case .missing, .outdated:
+                            Button(claudeStatus == .missing ? "Ajouter" : "Mettre à jour") { addToClaude() }
+                                .buttonStyle(DoneButtonStyle(compact: true))
+                        case .unreadable:
+                            Button("Afficher dans le Finder") { SystemBridge.revealInFinder(ClaudeConfigFile.url) }
+                                .buttonStyle(DoneButtonStyle(compact: true))
+                        case .installed:
+                            EmptyView()
+                        }
+                    }
+                    .padding(.vertical, DoneSpace.s4)
+                    RowDivider()
+                    SettingsRow {
+                        VStack(alignment: .leading, spacing: DoneSpace.s2) {
+                            Text("Claude Code")
+                            Text(claudeCommandCopied ? "Commande copiée : colle-la dans le Terminal" : "Une commande à lancer une fois dans le Terminal")
+                                .doneText(.caption)
+                                .foregroundStyle(DoneColor.textSecondary)
+                        }
+                    } trailing: {
+                        Button("Copier la commande") {
+                            SystemBridge.copyToClipboard(ClaudeSetup.claudeCodeCommand(executable: ClaudeConfigFile.executable))
+                            claudeCommandCopied = true
+                        }
+                        .buttonStyle(DoneButtonStyle(compact: true))
+                    }
+                    .padding(.vertical, DoneSpace.s4)
+                }
+                .onAppear { claudeStatus = ClaudeConfigFile.status() }
+
                 SettingsSection("Données", footer: "Tes tâches, projets et réunions restent sur ce Mac, dans un seul fichier. Done en garde une copie par jour, sur 30 jours, dans le dossier Sauvegardes à côté.") {
                     SettingsRow {
                         VStack(alignment: .leading, spacing: DoneSpace.s2) {
@@ -222,6 +265,41 @@ struct SettingsView: View {
                 .labelsHidden()
                 .tint(DoneColor.stateActive)
         }
+    }
+
+    @ViewBuilder
+    private var claudeStatusLabel: some View {
+        if let claudeError {
+            Text(claudeError)
+                .foregroundStyle(DoneColor.stateRiskText)
+                .lineLimit(2)
+        } else {
+            switch claudeStatus {
+            case .missing:
+                Text("Pas encore ajouté")
+                    .foregroundStyle(DoneColor.textSecondary)
+            case .installed:
+                Label(claudeJustAdded ? "Ajouté : quitte et relance Claude" : "Ajouté", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(DoneColor.stateActiveText)
+            case .outdated:
+                Label("Inscrit avec un autre emplacement de Done", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(DoneColor.stateRiskText)
+            case .unreadable:
+                Label("Configuration de Claude illisible : Done n'y touche pas", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(DoneColor.stateRiskText)
+            }
+        }
+    }
+
+    private func addToClaude() {
+        do {
+            try ClaudeConfigFile.install()
+            claudeError = nil
+            claudeJustAdded = true
+        } catch {
+            claudeError = "Ajout impossible : \(error.localizedDescription)"
+        }
+        claudeStatus = ClaudeConfigFile.status()
     }
 
     @ViewBuilder

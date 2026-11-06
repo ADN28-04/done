@@ -54,6 +54,12 @@ enum SystemBridge {
         }
     }
 
+    /// Met le texte dans le presse-papiers.
+    static func copyToClipboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
     /// Ouvre une fenêtre du Finder sur le fichier, sélectionné.
     static func revealInFinder(_ url: URL) {
         NSWorkspace.shared.activateFileViewerSelecting([url])

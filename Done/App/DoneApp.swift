@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-@main
+/// L'app. Le point d'entrée est `Launcher`, qui lance aussi le connecteur Claude.
 struct DoneApp: App {
     private let container: ModelContainer
     @State private var model: AppModel
@@ -30,6 +30,8 @@ struct DoneApp: App {
         RemindersBridge.shared.start(model: model)
         // Notes : fichiers Markdown du dossier Notes, relus dès qu'il change.
         NoteBook.shared.start()
+        // Connecteur Claude : tâches et plan du jour relus dès qu'il les change.
+        model.startWatching()
     }
 
     var body: some Scene {

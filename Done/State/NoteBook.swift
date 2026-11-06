@@ -1,4 +1,3 @@
-import Dispatch
 import Foundation
 import Observation
 
@@ -17,11 +16,8 @@ final class NoteBook {
     @ObservationIgnored let storage: NoteStorage
     /// Identifiant de note vers nom de fichier.
     @ObservationIgnored private var files: [String: String] = [:]
-    #if canImport(Darwin)
-    @ObservationIgnored private var watcher: DispatchSourceFileSystemObject?
-    #endif
+    @ObservationIgnored private var watcher: FolderWatcher?
     @ObservationIgnored private var timer: Timer?
-    @ObservationIgnored private var reloadPending = false
 
     init(storage: NoteStorage) {
         self.storage = storage
@@ -32,7 +28,10 @@ final class NoteBook {
     /// réécrit un fichier sur place sans que le dossier le signale.
     func start() {
         reload()
-        watch()
+        if watcher == nil {
+            watcher = FolderWatcher(folder: storage.folder) { [weak self] in self?.reload() }
+            watcher?.start()
+        }
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.reload() }
         }
@@ -89,15 +88,7 @@ final class NoteBook {
 
     /// Un titre libre : les liens [[Titre]] doivent désigner une seule note.
     func uniqueTitle(_ title: String, excluding id: String? = nil) -> String {
-        let base = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Sans titre" : title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let others = notes.filter { $0.id != id }.map { NoteLinks.key($0.title) }
-        var candidate = base
-        var counter = 2
-        while others.contains(NoteLinks.key(candidate)) {
-            candidate = "\(base) \(counter)"
-            counter += 1
-        }
-        return candidate
+        NoteLinks.uniqueTitle(title, among: notes, excluding: id)
     }
 
     // MARK: Écriture
@@ -135,14 +126,14 @@ final class NoteBook {
     /// La page de documentation du projet, créée au premier besoin.
     func ensureProjectPage(for project: Project, name: String) -> Note {
         if let page = projectPage(for: project.id) { return page }
-        return create(Note(kind: .project, title: name, body: "## Objectif\n\n## Contexte\n\n## Liens utiles\n", projectID: project.id))
+        return create(Note(kind: .project, title: name, body: NoteTemplates.projectPage, projectID: project.id))
     }
 
     /// La note du jour, créée au premier besoin.
     func ensureJournal(for day: Date) -> Note {
         if let note = journal(for: day) { return note }
         let start = Calendar.current.startOfDay(for: day)
-        return create(Note(kind: .journal, title: "Journal du \(Format.fullDay(start))", date: start))
+        return create(Note(kind: .journal, title: NoteTemplates.journalTitle(start), date: start))
     }
 
     /// La note d'une réunion, préremplie, créée au premier besoin.
@@ -150,8 +141,8 @@ final class NoteBook {
         if let note = meetingNote(for: meeting) { return note }
         return create(Note(
             kind: .meeting,
-            title: "\(meeting.title), \(Format.dayAndMonth(meeting.start))",
-            body: "\(Format.time(meeting.start))–\(Format.time(meeting.end))\n\n## Ordre du jour\n\n## Notes\n\n## Décisions\n\n## Actions\n\n- [ ] ",
+            title: NoteTemplates.meetingTitle(meeting),
+            body: NoteTemplates.meetingBody(meeting),
             date: meeting.start,
             meetingID: meeting.id
         ))
@@ -166,35 +157,6 @@ final class NoteBook {
             notes = list.sorted { $0.updatedAt > $1.updatedAt }
         } catch {
             errorMessage = "Note non enregistrée : \(error.localizedDescription)"
-        }
-    }
-
-    // MARK: Surveillance du dossier
-
-    private func watch() {
-        #if canImport(Darwin)
-        guard watcher == nil else { return }
-        try? FileManager.default.createDirectory(at: storage.folder, withIntermediateDirectories: true)
-        let descriptor = open(storage.folder.path, O_EVTONLY)
-        guard descriptor >= 0 else { return }
-        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .rename, .delete], queue: .main)
-        source.setEventHandler { [weak self] in
-            Task { @MainActor in self?.scheduleReload() }
-        }
-        source.setCancelHandler { close(descriptor) }
-        source.resume()
-        watcher = source
-        #endif
-    }
-
-    /// Plusieurs changements rapprochés ne déclenchent qu'une lecture.
-    private func scheduleReload() {
-        guard !reloadPending else { return }
-        reloadPending = true
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(300))
-            reloadPending = false
-            reload()
         }
     }
 }

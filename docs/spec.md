@@ -30,6 +30,9 @@ Je passe dans une autre app pendant une session. Le temps restant reste visible 
 ### S8. Faire le point
 Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et ce qui reste du plan, à reporter à demain ou plus tard. Le vendredi, l'onglet Stats montre la semaine.
 
+### S9. Travailler avec Claude
+Dans Claude, sur le Mac, je demande où en est un projet, de préparer le plan de demain, de transformer un compte rendu en tâches ou de compléter la page d'un projet. Claude lit Done et y écrit par le connecteur ; Done, s'il est ouvert, montre aussitôt le résultat. Claude ne supprime rien.
+
 ## 2. Fonctionnalités
 
 ### Actuelles
@@ -47,6 +50,7 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 | Calendrier | La semaine de travail, du lundi au vendredi (⌘5). En haut de chaque jour, les tâches à échéance ; aujourd'hui reprend aussi les retards. Glisser une tâche sur un autre jour, aujourd'hui ou plus tard, change son échéance ; un clic ouvre sa fiche. Dessous, une grille de 8 h à 19 h : les réunions hachurées (un clic les modifie ou les supprime), le focus déjà fait, l'heure courante. Un clic sur un créneau libre ajoute une réunion d'une heure. Le week-end, il montre la semaine qui vient. |
 | Aujourd'hui | La journée d'un coup d'œil (⌘6). À gauche, les réunions et le focus déjà fait sur une ligne de temps de 8 h à 19 h (un clic sur un créneau libre ajoute une réunion). À droite, le plan du jour dans l'ordre, avec « Lancer le focus » et « Modifier le plan » ; les échéances du jour et les retards qui ne sont pas dans le plan ; puis les tâches cochées dans la journée, repliées. Un jour d'absence est signalé. Le Plan du jour reste l'écran où l'on choisit ses tâches. |
 | Notes | Pour documenter projets et tâches, en plus simple que Capacities. Une note est une page Markdown avec un type : Note, Réunion, Décision, Personne, Référence ; Done crée aussi la page de projet et le journal. Elle se rattache à un projet, des étiquettes, des tâches et, pour une réunion ou le journal, une date. [[Titre]] lie une autre note (un lien vers une note qui n'existe pas la crée) ; chaque note montre ses liens et les notes qui la citent. Aperçu mis en forme, cases à cocher cliquables, édition au double-clic ou avec ⌘E, enregistrement automatique. Écran Notes (⌘7) : recherche, filtre par type. La vue d'un projet montre sa page de documentation et ses notes ; une réunion (fiche ouverte depuis le calendrier ou Aujourd'hui) propose sa note préremplie ; Aujourd'hui ouvre la note du jour ; la fiche d'une tâche liste ses notes. |
+| Connecteur Claude | Claude sur ce Mac (l'app de bureau, projets compris, et Claude Code) lit et écrit dans Done par un connecteur MCP local : l'exécutable de Done lancé avec `--mcp`, sans fenêtre, même app fermée. Lecture : point de la journée, tâches (filtres par projet, étiquette, Inbox, texte, échéance, état), fiche d'une tâche avec sa note de reprise, projets et étiquettes, calendrier jour par jour, notes et leurs liens. Écriture : créer et modifier des tâches et leurs étapes, cocher, rouvrir ; créer, renommer et ranger des projets ; renommer une étiquette ; créer et compléter des notes ; ajouter et déplacer des réunions ; poser une absence ; fixer le plan du jour. Aucune suppression. Done ouvert reprend les changements en moins d'une seconde ; le plan du jour demandé par Claude est appliqué dès que Done le voit. Inscription en un clic dans Réglages › Claude (app de bureau), ou par une commande copiée (Claude Code). |
 | Jours d'absence | Congé, férié ou autre libellé, posés depuis le menu d'un jour du calendrier. Ce jour-là, l'écran Focus le signale et ne propose rien, sauf « Travailler quand même ». |
 | Prochaine action | La première étape faisable de la tâche en cours : ni bloquée, ni datée au-delà de l'horizon. Si plus rien n'est faisable, l'écran Focus indique la date de reprise. |
 | Durée adaptée | Rapide : 15 min. Par défaut : 25 min. Deepwork : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
@@ -73,8 +77,10 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 ### Hors périmètre
 
 - Todoist, ou toute synchronisation avec un autre gestionnaire de tâches. Les tâches ouvertes ont été reprises une seule fois, hors de l'app, au passage à Done : chantiers en projets, run et « Plus tard » en étiquettes, agenda en réunions. Done n'a pas de fonction d'import.
-- Serveur, compte, synchronisation entre appareils, accès par Claude ou par une autre app. La liste Rappels de capture est une boîte d'arrivée dans un seul sens, pas une synchronisation : Done ne publie rien vers Rappels.
-- IA intégrée (le découpage par l'API Claude a été retiré).
+- Serveur, compte, synchronisation entre appareils, accès par une autre app que Claude sur ce Mac. La liste Rappels de capture est une boîte d'arrivée dans un seul sens, pas une synchronisation : Done ne publie rien vers Rappels.
+- Claude ailleurs que sur ce Mac (claude.ai dans le navigateur, l'iPhone) : il faudrait un serveur en ligne.
+- Suppression par Claude : il propose, je supprime dans Done.
+- IA intégrée (le découpage par l'API Claude a été retiré). Claude reste une app à part, qui passe par le connecteur.
 - Chantiers actifs limités, attentes, dépendances, calcul de charge : la liste reste simple. Les étiquettes restent de simples noms, sans couleur ni règle attachée.
 - Lecture du calendrier : les réunions se saisissent à la main.
 - Publication sur l'App Store, multi-utilisateur, partage.
@@ -101,7 +107,7 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 11. **Notes** : à gauche, la liste (recherche, filtre par type, bouton +) ; à droite, la note : type, titre, rattachements, contenu, liens et « Citée dans ».
 12. **Calendrier** : le titre de la semaine, le nombre de réunions et d'échéances et le focus fait, les flèches et « Cette semaine ». Une colonne par jour : en-tête (jour, absence ou focus du jour, menu « … » pour ajouter une réunion ou marquer une absence), échéances, puis la grille horaire.
 13. **Stats** : la semaine, avec le temps de focus par jour et par projet.
-14. **Réglages** : durées, tâches par jour, horizon des candidates, bilan du soir, Ne pas déranger, notifications, emplacement du fichier des tâches.
+14. **Réglages** : durées, tâches par jour, horizon des candidates, bilan du soir, Ne pas déranger, notifications, saisie rapide, Rappels de l'iPhone, Claude (inscription du connecteur), emplacement du fichier des tâches.
 
 ### Parcours principal
 
@@ -137,7 +143,7 @@ Une fenêtre avec une barre latérale à gauche : Focus (⌘1), Aujourd'hui (⌘
 |---|---|
 | Tâches (ouvertes et terminées), projets, réunions | Fichier JSON local : `~/Library/Application Support/com.adnan.done/tasks.json`, réécrit en entier, de façon atomique, à chaque changement. Une copie par jour dans `Sauvegardes`, 30 jours gardés. |
 | Notes | Un fichier Markdown par note dans `~/Library/Application Support/com.adnan.done/Notes/`, nommé d'après le titre. En tête du fichier, entre deux lignes `---` : identifiant, type, titre, projet, étiquettes, tâches, date, création et mise à jour. Un fichier sans en-tête est lu comme une note simple. Done relit le dossier dès qu'il change ; une note supprimée part à la corbeille. |
-| Plan du jour (date, identifiants ordonnés, identifiants terminés) | SwiftData, local |
+| Plan du jour (date, identifiants ordonnés, identifiants terminés) | SwiftData, local. Done en publie une copie dans `plan.json` pour le connecteur Claude ; le plan voulu par Claude arrive dans `plan-request.json`, que Done applique puis efface. |
 | Sessions (tâche, tâche du plan, projet, type, début, fin, durée prévue, durée réelle, issue) | SwiftData, local |
 | Interruptions (raison, début, fin, session) | SwiftData, local |
 | Notes de reprise (texte, date, par tâche) | UserDefaults (`resume.notes`) |
@@ -149,7 +155,8 @@ Remarques :
 - Le fichier des tâches porte un numéro de version (`version`). Un champ absent prend sa valeur par défaut à la lecture : un fichier plus ancien reste lisible.
 - Une échéance est enregistrée comme un jour (« 2026-10-31 »), sans heure ni fuseau.
 - Les sessions gardent une copie du titre et du projet de la tâche, pour que les stats restent lisibles une fois la tâche cochée ou supprimée.
-- Rien ne quitte le Mac.
+- Done et Claude écrivent dans le même `tasks.json` : chacun le relit et le réécrit sous un verrou (`.tasks.lock`), et Done relit le fichier dès qu'il change. Aucune écriture de l'un n'efface celle de l'autre.
+- Done ne fait aucun appel réseau. Ce que Claude lit par le connecteur entre dans la conversation avec Claude, comme tout ce qu'on lui confie.
 
 ## 5. Choix techniques
 
@@ -159,5 +166,6 @@ Remarques :
 - **EventKit** pour la boîte Rappels (accès complet aux rappels demandé à la première lecture ; phrase d'autorisation dans `Done-Info.plist`, droit Calendrier du Hardened Runtime dans `Done.entitlements`, tous deux hors du dossier synchronisé).
 - **App Raccourcis** (`/usr/bin/shortcuts run`) pour « Ne pas déranger », macOS n'ayant pas d'API publique pour les modes de concentration.
 - **UserNotifications** pour les fins de session et de pause, les rappels du bilan et des réunions, **MenuBarExtra** pour le minuteur et la capture dans la barre de menus, **RegisterEventHotKey** (Carbon) pour le raccourci global, sans autorisation d'accessibilité à demander.
+- **Connecteur MCP** (Model Context Protocol) écrit à la main : JSON-RPC sur l'entrée et la sortie standard, un message par ligne. Le même exécutable sert d'app et de connecteur (`Done --mcp`, point d'entrée `Launcher`), pour n'avoir ni seconde cible ni outil à installer. Le protocole et les outils sont de la logique pure (`Done/Core`), testée hors de l'app.
 - App non sandboxée et signée localement : elle n'est pas distribuée.
 - Aucune dépendance externe, aucun appel réseau.

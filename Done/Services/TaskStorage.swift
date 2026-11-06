@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Glibc)
+import Glibc
+#endif
 
 /// Fichier des tâches : `tasks.json` dans le dossier de Done (Application Support), écrit en entier
 /// et de façon atomique à chaque changement. Une copie par jour est gardée dans « Sauvegardes ».
@@ -16,6 +19,43 @@ struct TaskStorage {
 
     var fileURL: URL { folder.appendingPathComponent("tasks.json") }
     var backupFolder: URL { folder.appendingPathComponent("Sauvegardes", isDirectory: true) }
+
+    /// Verrou partagé avec le connecteur Claude (`Done --mcp`), qui écrit dans le même fichier.
+    var lockURL: URL { folder.appendingPathComponent(".tasks.lock") }
+
+    /// Version du fichier sur le disque. Chaque écriture atomique crée un nouveau fichier : le numéro
+    /// change même si deux écritures tombent dans la même seconde.
+    struct Stamp: Equatable {
+        let fileNumber: UInt64?
+        let modified: Date?
+        let size: UInt64?
+    }
+
+    /// `nil` si le fichier n'existe pas. Change dès que le connecteur Claude a réécrit le fichier.
+    func stamp() -> Stamp? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path) else { return nil }
+        return Stamp(
+            fileNumber: (attributes[.systemFileNumber] as? NSNumber)?.uint64Value,
+            modified: attributes[.modificationDate] as? Date,
+            size: (attributes[.size] as? NSNumber)?.uint64Value
+        )
+    }
+
+    /// Réserve le fichier le temps de le relire, le modifier et le réécrire : Done et le connecteur
+    /// Claude ne s'écrasent pas l'un l'autre. Pas d'appel imbriqué : le second attendrait le premier.
+    /// Si le verrou ne peut pas être pris, `body` s'exécute quand même.
+    func withLock<T>(_ body: () throws -> T) rethrows -> T {
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let descriptor = open(lockURL.path, O_CREAT | O_RDWR, 0o644)
+        if descriptor >= 0 { _ = flock(descriptor, LOCK_EX) }
+        defer {
+            if descriptor >= 0 {
+                _ = flock(descriptor, LOCK_UN)
+                close(descriptor)
+            }
+        }
+        return try body()
+    }
 
     /// `nil` au premier lancement, quand le fichier n'existe pas encore.
     func load() throws -> TaskStore? {

@@ -29,7 +29,7 @@ Une liste de tâches sans fioritures, un rituel du matin de deux minutes, puis u
 4. Quand une réunion ou une urgence arrive, je le signale. Done garde ma place et me repropose quelque chose qui tient dans le temps restant.
 5. Quand je finis, Done coche la tâche et passe à la suite.
 
-Tout reste sur mon Mac. Pas de compte, pas de serveur, pas d'IA : un outil simple et prévisible.
+Tout reste sur mon Mac. Pas de compte, pas de serveur, pas d'IA dans l'app : un outil simple et prévisible. Quand je veux l'aide de Claude, il passe par un connecteur local : il lit et écrit dans Done, sans jamais rien supprimer.
 
 ## À quoi ressemble le succès
 

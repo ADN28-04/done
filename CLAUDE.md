@@ -1,6 +1,6 @@
 # Done
 
-App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui gère simplement une liste de tâches et un minuteur Pomodoro. Tout reste sur le Mac : pas de Todoist, pas de serveur, pas d'IA intégrée. Lire `docs/vision.md` et `docs/spec.md` avant de proposer une fonctionnalité : la spec classe ce qui est actuel, plus tard ou hors périmètre, et l'objectif est de garder l'app simple. Pour toute modification d'interface, suivre `docs/design-system.md` (design system v5, référence dans `docs/design/Done-Design-System-v5.html`).
+App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui gère simplement une liste de tâches et un minuteur Pomodoro. Tout reste sur le Mac : pas de Todoist, pas de serveur, pas d'IA intégrée. Claude sur ce Mac y accède par un connecteur MCP local (`Done --mcp`), sans jamais rien supprimer. Lire `docs/vision.md` et `docs/spec.md` avant de proposer une fonctionnalité : la spec classe ce qui est actuel, plus tard ou hors périmètre, et l'objectif est de garder l'app simple. Pour toute modification d'interface, suivre `docs/design-system.md` (design system v5, référence dans `docs/design/Done-Design-System-v5.html`).
 
 ## Langue
 
@@ -20,6 +20,9 @@ App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui gère simplement une l
 - Polices embarquées dans `Done/Fonts` (une seule famille, Archivo : SemiCondensed SemiBold pour les titres d'affichage, Regular, Medium et SemiBold pour le texte, Light pour le minuteur ; licence OFL dans `docs/fonts/`), chargées au lancement par `FontLoader`. Les nombres prennent les chiffres tabulaires (`monospacedDigit`, appliqué par les styles `numeric…`), jamais une police à chasse fixe. Étiquettes en casse normale, pas de capitales espacées.
 - Saisie d'une tâche : `TaskDraft` (`Tasks.swift`) porte tous les détails, `TaskStore.addTask(_ draft:)` crée la tâche et ses étapes en une fois. Le formulaire `CaptureForm` (`TaskSheets.swift`) sert à la feuille ⌘N et à la fenêtre flottante `QuickCapturePanel` (`Done/Views/QuickCapturePanel.swift`, `NSPanel` non activant ouvert par le raccourci global). La fiche d'une tâche partage avec lui `TaskDetailsCard`, `DetailRow`, `NotesEditor` et `DueControl`.
 - Notes : `Done/Core/Notes.swift` (types `NoteKind`, `Note`, format `NoteFormat` en-tête + Markdown, liens `NoteLinks`, découpage `MarkdownBlocks`), `NoteStorage` (un `.md` par note dans le dossier `Notes`, nom d'après le titre, corbeille), `NoteBook` (`Done/State/NoteBook.swift`, `NoteBook.shared`, relit le dossier quand il change ; titres rendus uniques pour que [[Titre]] désigne une seule note). Écrans dans `NoteViews.swift` et `MarkdownView.swift`.
+- Connecteur Claude : `Done/App/Launcher.swift` est le point d'entrée (`@main`) ; avec `--mcp`, il lance `ConnectorProcess.run()` (`Done/Services/ConnectorFiles.swift`) au lieu de l'app, sans toucher à SwiftUI ni AppKit. Le protocole (`MCPServer`, JSON-RPC un message par ligne, `Done/Core/MCP.swift`), la valeur JSON (`JSONValue`), les outils (`ConnectorTools`, catalogue et mode d'emploi dans `ConnectorCatalog.swift`) et les règles d'échange du plan (`SharedPlan`, `Connector.swift`) sont de la logique pure, qui passe par le protocole `ConnectorWorkspace`. Aucun outil ne supprime : n'en ajouter aucun qui le fasse. Une erreur à montrer à Claude est une `ToolFailure`. Tout nouvel outil va dans le `switch` de `ConnectorTools.call` et dans `catalog`.
+- Concurrence avec le connecteur : `tasks.json` se relit et se réécrit sous `TaskStorage.withLock` (verrou `flock` sur `.tasks.lock`, jamais imbriqué). `AppModel.commit` relit le fichier si son `TaskStorage.Stamp` a changé avant d'appliquer un changement ; `AppModel.startWatching` (`FolderWatcher`) relit tâches et plan dès que le dossier change. Le plan du jour reste en SwiftData : Done le publie dans `plan.json` (`PlanFiles`) à chaque `save()`, et applique `plan-request.json` déposé par le connecteur. Les notes passent par `NoteStorage`, que `NoteBook` relit déjà.
+- Inscription dans Claude : `ClaudeSetup` (Core, fusion de `claude_desktop_config.json` et commande `claude mcp add`) et `ClaudeConfigFile` (Services), utilisés par Réglages › Claude.
 - Les réglages passent par `UserDefaults` (`SettingsKey`), lus dans `Rules.current` et modifiés via `@AppStorage` dans `SettingsView`.
 
 ## Tâches
@@ -32,7 +35,7 @@ App macOS personnelle (SwiftUI, SwiftData, macOS 14+) qui gère simplement une l
 
 ## Conventions
 
-- Swift 5 (réglage du projet), pas de dépendance externe, aucun appel réseau.
+- Swift 5 (réglage du projet), pas de dépendance externe, aucun appel réseau. Le connecteur parle à Claude par l'entrée et la sortie standard, pas par le réseau ; la sortie standard du mode `--mcp` est réservée au protocole (messages humains sur la sortie d'erreur).
 - Le projet Xcode utilise un dossier synchronisé : ajouter un fichier dans `Done/` suffit.
 - Pas de donnée de travail réelle (tâches, noms de collègues) dans le code ou les commits.
 
