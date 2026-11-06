@@ -14,6 +14,7 @@ struct TodayView: View {
     @State private var meetingRequest: MeetingRequest?
     @State private var showDone = false
     @State private var hovered: String?
+    @State private var openedNote: NoteRef?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
@@ -54,6 +55,10 @@ struct TodayView: View {
             MeetingSheet(meeting: request.meeting, start: request.start, end: request.end)
                 .environment(model)
         }
+        .sheet(item: $openedNote) { ref in
+            NoteSheet(noteID: ref.id)
+                .environment(model)
+        }
     }
 
     // MARK: En-tête
@@ -64,9 +69,19 @@ struct TodayView: View {
         var parts = [Format.longDay(now).capitalizedFirst, plural(meetings, "réunion")]
         if focus > 0 { parts.append("\(Format.minutes(focus)) de focus") }
         return VStack(alignment: .leading, spacing: DoneSpace.s4) {
-            Text("Aujourd'hui")
-                .doneText(.displayL)
-                .foregroundStyle(DoneColor.textPrimary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Aujourd'hui")
+                    .doneText(.displayL)
+                    .foregroundStyle(DoneColor.textPrimary)
+                Spacer()
+                Button {
+                    openedNote = NoteRef(id: NoteBook.shared.ensureJournal(for: now).id)
+                } label: {
+                    Label("Note du jour", systemImage: "sun.max")
+                }
+                .buttonStyle(DoneButtonStyle(compact: true))
+                .help("Journal du jour : idées, comptes rendus, en vrac")
+            }
             Text(parts.joined(separator: " · "))
                 .doneText(.body)
                 .foregroundStyle(DoneColor.textSecondary)

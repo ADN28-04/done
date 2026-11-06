@@ -81,6 +81,9 @@ struct TaskEditorSheet: View {
         stepsSection(task.wrappedValue)
             .padding(.top, DoneSpace.s20)
 
+        TaskNotesList(taskID: taskID)
+            .padding(.top, DoneSpace.s20)
+
         HStack(spacing: DoneSpace.s8) {
             Button("Supprimer…") { confirmDelete = true }
                 .buttonStyle(DoneButtonStyle(kind: .plain))

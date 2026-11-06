@@ -117,6 +117,14 @@ Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date co
 - **Ligne de temps** : 320 de large, dans une carte (`doneCard`, rayon 14), la même `DayTimeline` que le calendrier avec ses heures, étirée sur la hauteur.
 - **Listes** : « Plan du jour » (tuiles numérotées, « Lancer le focus » en bouton principal compact, « Modifier le plan » en secondaire), « Échéances et retards », puis « Fait aujourd'hui », replié, sur `stateDone`. Lignes de 48 : case à cocher, titre et puces, survol en `surfaceHover`.
 
+## Notes
+
+- **Écran** : liste de 300 à gauche (titre « Notes » en `displayL`, bouton +, champ de recherche `doneField`, filtre « Type : … » en `callout`), trait `borderSubtle`, puis la note sur 760 au plus.
+- **Ligne de note** (`NoteRow`) : icône du type (13, secondaire), titre en `bodyStrong`, détails en `caption` (type, projet, moment). Choisie en `surfaceSelected`, survol en `surfaceHover`.
+- **Note** : puce du type sur teinte active, « Modifiée … » en `caption`, titre en `displayM` sans contour, carte des rattachements (`DetailRow`), puis « Contenu ». Aperçu (`MarkdownView`) : titres en `displayM`, `title` et `bodyStrong` ; texte en `body` ; puces « • » secondaires ; cases `TaskCheckbox` ; citations avec un filet de 3 en `borderDefault` ; code sur `bgSunken` ; liens [[Titre]] en texte actif. Édition : `TextEditor` en `body`, contour `focusRing` de 2. Note vide : cadre pointillé `stateWaiting`.
+- **Liens** : « Liens » et « Citée dans », en lignes de note.
+- **Ailleurs** : carte « Documentation » en haut de la vue d'un projet (début de la page, notes rattachées) ; bouton « Note du jour » dans l'en-tête d'Aujourd'hui ; « Prendre des notes » dans la fiche d'une réunion ; liste « Notes » dans la fiche d'une tâche. Une note ouverte ailleurs que dans l'écran Notes s'affiche dans une feuille (`NoteSheet`, 760 × 680) avec « Retour » quand on suit un lien.
+
 ## Projet et sous-projets
 
 La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-projet : titre en `title` avec l'icône `folder` et le nombre de tâches (un clic ouvre le sous-projet), puis la carte de ses lignes, ou « Aucune tâche ouverte. » en `callout` secondaire.
@@ -132,7 +140,7 @@ La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-p
 
 Barre latérale de 228, sur `bgSunken`, avec un trait `borderSubtle` à droite :
 
-- en haut, Focus (⌘1), Aujourd'hui (⌘6, icône `sun.max`), Plan du jour (⌘2, avec le nombre de tâches du plan), Calendrier (⌘5, icône `calendar.day.timeline.left`) et Inbox (⌘3) ;
+- en haut, Focus (⌘1), Aujourd'hui (⌘6, icône `sun.max`), Plan du jour (⌘2, avec le nombre de tâches du plan), Calendrier (⌘5, icône `calendar.day.timeline.left`), Inbox (⌘3) et Notes (⌘7, icône `doc.text`) ;
 - au milieu, deux sections repliables, leur titre (`Eyebrow`) suivi d'un chevron de 9 à droite : « Projets », chaque projet suivi de ses sous-projets en retrait de 16 (un chevron dans le `NavItem` du projet les replie), puis « Nouveau projet » ; « Étiquettes », une entrée par étiquette (icône `tag`). Chaque entrée porte son nombre de tâches ouvertes, celui d'un projet comptant ses sous-projets ;
 - en bas, Stats (⌘4) et Réglages (⌘,).
 

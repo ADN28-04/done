@@ -6,6 +6,7 @@ struct RootView: View {
         case today
         case plan
         case calendar
+        case notes
         /// Une liste de tâches : l'Inbox, un projet ou une étiquette.
         case list(TaskList)
         case stats
@@ -105,6 +106,8 @@ struct RootView: View {
             PlanView(onValidate: { screen = .focus })
         case .calendar:
             CalendarView()
+        case .notes:
+            NotesView()
         case .list(let list):
             TaskListView(list: list) { screen = .list($0) }
                 .id(list)
@@ -135,6 +138,8 @@ private struct ShortcutKeys: View {
                 .keyboardShortcut("5")
             Button("Aujourd'hui") { screen = .today }
                 .keyboardShortcut("6")
+            Button("Notes") { screen = .notes }
+                .keyboardShortcut("7")
             Button("Réglages") { screen = .settings }
                 .keyboardShortcut(",")
             Button("Nouvelle tâche", action: onCapture)
@@ -220,6 +225,8 @@ private struct Sidebar: View {
                 .help("Calendrier (⌘5)")
             listItem(.inbox, name: "Inbox", symbol: "tray")
                 .help("Inbox (⌘3)")
+            NavItem(title: "Notes", icon: Image(systemName: "doc.text"), isSelected: screen == .notes) { screen = .notes }
+                .help("Notes (⌘7)")
 
             ScrollView {
                 VStack(alignment: .leading, spacing: DoneSpace.s2) {

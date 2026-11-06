@@ -60,6 +60,10 @@ Dans Done, Réglages › Notifications indique ce que macOS autorise, avec un bo
 
 Dans tous les cas, Done joue un son à la fin des sessions et des pauses, et son icône rebondit dans le Dock jusqu'à ce que tu reviennes dans l'app.
 
+### Où sont les notes
+
+Un fichier Markdown par note, dans `~/Library/Application Support/com.adnan.done/Notes/`, nommé d'après son titre. Ils s'ouvrent dans n'importe quel éditeur : Done relit le dossier dès qu'il change. L'en-tête entre deux lignes `---` porte le type et les rattachements ; un fichier ajouté sans en-tête devient une note simple. Une note supprimée depuis Done part à la corbeille.
+
 ### Où sont les tâches
 
 Dans un seul fichier, `~/Library/Application Support/com.adnan.done/tasks.json`, réécrit à chaque changement. Done en garde une copie par jour, sur 30 jours, dans le dossier `Sauvegardes` à côté. Réglages › Données › « Afficher dans le Finder » ouvre le dossier.
@@ -88,6 +92,7 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 
 - **Tâches** : un titre, des notes, une liste (Inbox ou projet), des étiquettes, une priorité de P1 à P4, un type (normale, rapide, Deepwork), une échéance facultative, des étapes (sous-tâches). Tout se choisit dès la saisie. Une tâche peut être marquée bloquée.
 - **Projets et étiquettes** : un projet pour chaque chantier qui a une fin, avec des sous-projets sur un niveau (la vue du projet les regroupe) ; une étiquette pour le reste (le run, « Plus tard », une personne). Chaque étiquette a sa vue dans la barre latérale ; les sections Projets et Étiquettes se replient. L'Inbox ne garde que ce qui n'a ni projet ni étiquette.
+- **Notes** (⌘7) : des pages Markdown typées (Note, Réunion, Décision, Personne, Référence), rattachées à un projet, des étiquettes ou des tâches, et liées entre elles par [[Titre]]. Chaque projet a sa page de documentation, chaque réunion sa note préremplie, chaque jour sa note du jour (depuis Aujourd'hui).
 - **Aujourd'hui** (⌘6) : la journée d'un coup d'œil, avec les réunions et le focus fait sur une ligne de temps, le plan du jour, les échéances et retards, et ce qui est déjà coché.
 - **Saisie hors de Done** : le raccourci global ouvre une fenêtre flottante par-dessus l'app en cours, sans la quitter. Entrée dans le titre ajoute, Échap annule, un clic ailleurs masque la fenêtre en gardant la saisie.
 - **Candidates du matin** : les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin.

@@ -57,6 +57,14 @@ enum Format {
     /// « jeudi 6 novembre ».
     static func longDay(_ date: Date) -> String { weekdayDayMonth.string(from: date) }
 
+    private static let dayMonthYear = french("d MMMM yyyy")
+
+    /// « 6 novembre ».
+    static func dayAndMonth(_ date: Date) -> String { dayMonth.string(from: date) }
+
+    /// « 6 novembre 2026 ».
+    static func fullDay(_ date: Date) -> String { dayMonthYear.string(from: date) }
+
     private static let dayMonth = french("d MMMM")
     private static let dayShortMonth = french("d MMM")
 

@@ -46,6 +46,7 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 | Réunions | Saisies à la main dans le Plan du jour ou le calendrier : titre, jour, début, fin. Affichées dans la pastille du haut et dans le calendrier, prises en compte pour proposer une tâche qui tient avant la prochaine. Gardées jusqu'à la fin de la semaine, puis oubliées. |
 | Calendrier | La semaine de travail, du lundi au vendredi (⌘5). En haut de chaque jour, les tâches à échéance ; aujourd'hui reprend aussi les retards. Glisser une tâche sur un autre jour, aujourd'hui ou plus tard, change son échéance ; un clic ouvre sa fiche. Dessous, une grille de 8 h à 19 h : les réunions hachurées (un clic les modifie ou les supprime), le focus déjà fait, l'heure courante. Un clic sur un créneau libre ajoute une réunion d'une heure. Le week-end, il montre la semaine qui vient. |
 | Aujourd'hui | La journée d'un coup d'œil (⌘6). À gauche, les réunions et le focus déjà fait sur une ligne de temps de 8 h à 19 h (un clic sur un créneau libre ajoute une réunion). À droite, le plan du jour dans l'ordre, avec « Lancer le focus » et « Modifier le plan » ; les échéances du jour et les retards qui ne sont pas dans le plan ; puis les tâches cochées dans la journée, repliées. Un jour d'absence est signalé. Le Plan du jour reste l'écran où l'on choisit ses tâches. |
+| Notes | Pour documenter projets et tâches, en plus simple que Capacities. Une note est une page Markdown avec un type : Note, Réunion, Décision, Personne, Référence ; Done crée aussi la page de projet et le journal. Elle se rattache à un projet, des étiquettes, des tâches et, pour une réunion ou le journal, une date. [[Titre]] lie une autre note (un lien vers une note qui n'existe pas la crée) ; chaque note montre ses liens et les notes qui la citent. Aperçu mis en forme, cases à cocher cliquables, édition au double-clic ou avec ⌘E, enregistrement automatique. Écran Notes (⌘7) : recherche, filtre par type. La vue d'un projet montre sa page de documentation et ses notes ; une réunion (fiche ouverte depuis le calendrier ou Aujourd'hui) propose sa note préremplie ; Aujourd'hui ouvre la note du jour ; la fiche d'une tâche liste ses notes. |
 | Jours d'absence | Congé, férié ou autre libellé, posés depuis le menu d'un jour du calendrier. Ce jour-là, l'écran Focus le signale et ne propose rien, sauf « Travailler quand même ». |
 | Prochaine action | La première étape faisable de la tâche en cours : ni bloquée, ni datée au-delà de l'horizon. Si plus rien n'est faisable, l'écran Focus indique la date de reprise. |
 | Durée adaptée | Rapide : 15 min. Par défaut : 25 min. Deepwork : 50 min. Pauses de 5 ou 10 min. Modifiable avant de lancer. |
@@ -97,9 +98,10 @@ Le soir, Done propose le bilan : temps de focus, sessions, tâches cochées, et 
 8. **Interruption** : raison et durée de l'interruption, champ « Où tu en es ? », puis Reprendre, Choisir autre chose, ou Insérer une tâche urgente en tête du plan.
 9. **Pause** : compte à rebours, la prochaine action sous « Ensuite », bouton Passer la pause. Avant une nouvelle tâche principale, la pause est obligatoire : pas de bouton pour la passer.
 10. **Aujourd'hui** : le titre, la date, le nombre de réunions et le focus fait ; la ligne de temps du jour à gauche, le plan, les échéances et ce qui est fait à droite.
-11. **Calendrier** : le titre de la semaine, le nombre de réunions et d'échéances et le focus fait, les flèches et « Cette semaine ». Une colonne par jour : en-tête (jour, absence ou focus du jour, menu « … » pour ajouter une réunion ou marquer une absence), échéances, puis la grille horaire.
-12. **Stats** : la semaine, avec le temps de focus par jour et par projet.
-13. **Réglages** : durées, tâches par jour, horizon des candidates, bilan du soir, Ne pas déranger, notifications, emplacement du fichier des tâches.
+11. **Notes** : à gauche, la liste (recherche, filtre par type, bouton +) ; à droite, la note : type, titre, rattachements, contenu, liens et « Citée dans ».
+12. **Calendrier** : le titre de la semaine, le nombre de réunions et d'échéances et le focus fait, les flèches et « Cette semaine ». Une colonne par jour : en-tête (jour, absence ou focus du jour, menu « … » pour ajouter une réunion ou marquer une absence), échéances, puis la grille horaire.
+13. **Stats** : la semaine, avec le temps de focus par jour et par projet.
+14. **Réglages** : durées, tâches par jour, horizon des candidates, bilan du soir, Ne pas déranger, notifications, emplacement du fichier des tâches.
 
 ### Parcours principal
 
@@ -127,13 +129,14 @@ Focus → Démarrer → Session en cours
 
 ### Navigation
 
-Une fenêtre avec une barre latérale à gauche : Focus (⌘1), Aujourd'hui (⌘6), Plan du jour (⌘2), Calendrier (⌘5) et Inbox (⌘3) en haut ; puis la section Projets (chaque projet suivi de ses sous-projets en retrait, repliables par un chevron) et la section Étiquettes, chacune repliable d'un clic sur son titre, Done s'en souvenant ; enfin Stats (⌘4) et Réglages (⌘,) en bas. On crée, renomme, réordonne, range et supprime les projets depuis la barre (clic droit), et on y glisse une tâche pour la ranger. Pendant une session (minuteur, pause, interruption, fin de session), la barre s'efface pour ne laisser que le minuteur, et revient quand la souris touche le bord gauche de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
+Une fenêtre avec une barre latérale à gauche : Focus (⌘1), Aujourd'hui (⌘6), Plan du jour (⌘2), Calendrier (⌘5), Inbox (⌘3) et Notes (⌘7) en haut ; puis la section Projets (chaque projet suivi de ses sous-projets en retrait, repliables par un chevron) et la section Étiquettes, chacune repliable d'un clic sur son titre, Done s'en souvenant ; enfin Stats (⌘4) et Réglages (⌘,) en bas. On crée, renomme, réordonne, range et supprime les projets depuis la barre (clic droit), et on y glisse une tâche pour la ranger. Pendant une session (minuteur, pause, interruption, fin de session), la barre s'efface pour ne laisser que le minuteur, et revient quand la souris touche le bord gauche de la fenêtre. Le minuteur reste visible dans la barre de menus, même fenêtre fermée. ⌘N ouvre la capture rapide partout.
 
 ## 4. Données
 
 | Donnée | Stockage |
 |---|---|
 | Tâches (ouvertes et terminées), projets, réunions | Fichier JSON local : `~/Library/Application Support/com.adnan.done/tasks.json`, réécrit en entier, de façon atomique, à chaque changement. Une copie par jour dans `Sauvegardes`, 30 jours gardés. |
+| Notes | Un fichier Markdown par note dans `~/Library/Application Support/com.adnan.done/Notes/`, nommé d'après le titre. En tête du fichier, entre deux lignes `---` : identifiant, type, titre, projet, étiquettes, tâches, date, création et mise à jour. Un fichier sans en-tête est lu comme une note simple. Done relit le dossier dès qu'il change ; une note supprimée part à la corbeille. |
 | Plan du jour (date, identifiants ordonnés, identifiants terminés) | SwiftData, local |
 | Sessions (tâche, tâche du plan, projet, type, début, fin, durée prévue, durée réelle, issue) | SwiftData, local |
 | Interruptions (raison, début, fin, session) | SwiftData, local |

@@ -81,6 +81,7 @@ struct MeetingSheet: View {
     @State private var day: Date
     @State private var start: Date
     @State private var end: Date
+    @State private var openedNote: NoteRef?
     @FocusState private var titleFocused: Bool
 
     init(meeting: Meeting? = nil, start: Date? = nil, end: Date? = nil) {
@@ -137,6 +138,13 @@ struct MeetingSheet: View {
                         dismiss()
                     }
                     .buttonStyle(DoneButtonStyle(kind: .plain))
+                    Button {
+                        openedNote = NoteRef(id: NoteBook.shared.ensureMeetingNote(for: meeting).id)
+                    } label: {
+                        Label(NoteBook.shared.meetingNote(for: meeting) == nil ? "Prendre des notes" : "Ouvrir la note", systemImage: "doc.text")
+                    }
+                    .buttonStyle(DoneButtonStyle(kind: .plain))
+                    .help("Note de réunion, préremplie")
                 }
                 Spacer()
                 Button("Annuler") { dismiss() }
@@ -157,9 +165,13 @@ struct MeetingSheet: View {
             .padding(.top, DoneSpace.s20)
         }
         .padding(DoneSpace.s24)
-        .frame(width: 480)
+        .frame(width: 520)
         .background(DoneColor.bgCanvas)
         .onAppear { titleFocused = true }
+        .sheet(item: $openedNote) { ref in
+            NoteSheet(noteID: ref.id)
+                .environment(model)
+        }
     }
 
     private func labeled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

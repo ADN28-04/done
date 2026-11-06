@@ -65,6 +65,10 @@ struct TaskListView: View {
                     .doneText(.body)
                     .foregroundStyle(DoneColor.textSecondary)
             }
+            if case .project(let id) = current, let project = model.project(id) {
+                ProjectNotesCard(project: project)
+                    .padding(.top, DoneSpace.s20)
+            }
             addField
                 .padding(.top, DoneSpace.s20)
             ScrollView {

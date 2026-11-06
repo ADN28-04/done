@@ -28,6 +28,8 @@ struct DoneApp: App {
         QuickCapturePanel.shared.configure(model: model)
         // Boîte d'arrivée Rappels, si elle est activée dans les réglages.
         RemindersBridge.shared.start(model: model)
+        // Notes : fichiers Markdown du dossier Notes, relus dès qu'il change.
+        NoteBook.shared.start()
     }
 
     var body: some Scene {
