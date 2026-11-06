@@ -22,6 +22,10 @@ enum SettingsKey {
     /// Boîte d'arrivée Rappels : activée, et nom de la liste lue.
     static let remindersEnabled = "reminders.enabled"
     static let remindersList = "reminders.list"
+    /// Barre latérale : sections repliées, et projets dont les sous-projets sont repliés (identifiants séparés par des virgules).
+    static let sidebarProjectsCollapsed = "sidebar.projectsCollapsed"
+    static let sidebarTagsCollapsed = "sidebar.tagsCollapsed"
+    static let sidebarFoldedProjects = "sidebar.foldedProjects"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.

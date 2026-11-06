@@ -632,6 +632,7 @@ struct PriorityChip: View {
 // MARK: Navigation
 
 /// Élément de navigation : hauteur 32, rayon 6, icône 16, compteur en chiffres tabulaires à droite.
+/// Un projet qui a des sous-projets porte un chevron pour les replier.
 /// Actif : surface.selected et graisse Semibold.
 struct NavItem: View {
     let title: String
@@ -639,6 +640,9 @@ struct NavItem: View {
     var counter: String?
     let isSelected: Bool
     var isDropTarget = false
+    /// `nil` sans sous-éléments ; sinon, vrai quand ils sont dépliés.
+    var isExpanded: Bool?
+    var onToggle: () -> Void = {}
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
@@ -662,6 +666,16 @@ struct NavItem: View {
                     Text(counter)
                         .font(.done(.numericS))
                         .foregroundStyle(DoneColor.textSecondary)
+                }
+                if let isExpanded {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(DoneColor.textSecondary)
+                        .frame(width: 14, height: 24)
+                        .contentShape(Rectangle())
+                        // Le chevron replie sans ouvrir la liste.
+                        .highPriorityGesture(TapGesture().onEnded { onToggle() })
+                        .help(isExpanded ? "Replier les sous-projets" : "Déplier les sous-projets")
                 }
             }
             .foregroundStyle(isEnabled ? DoneColor.textPrimary : DoneColor.textDisabled)

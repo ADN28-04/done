@@ -195,7 +195,7 @@ struct TaskDetailsCard<Extra: View>: View {
                 Menu {
                     Button("Inbox") { projectID = nil }
                     ForEach(model.projects) { project in
-                        Button(project.name) { projectID = project.id }
+                        Button(model.projectName(project.id)) { projectID = project.id }
                     }
                 } label: {
                     Text(model.projectName(projectID))

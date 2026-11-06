@@ -52,6 +52,11 @@ enum Format {
     }
 
     private static let dayNumber = french("d")
+    private static let weekdayDayMonth = french("EEEE d MMMM")
+
+    /// « jeudi 6 novembre ».
+    static func longDay(_ date: Date) -> String { weekdayDayMonth.string(from: date) }
+
     private static let dayMonth = french("d MMMM")
     private static let dayShortMonth = french("d MMM")
 

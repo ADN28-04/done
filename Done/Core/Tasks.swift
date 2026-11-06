@@ -112,10 +112,14 @@ struct TodoTask: Codable, Identifiable, Hashable {
     }
 }
 
+/// Un projet, ou un sous-projet quand `parentID` est renseigné. Un seul niveau : un sous-projet
+/// n'a pas de sous-projet.
 struct Project: Codable, Identifiable, Hashable {
     let id: String
     var name: String
+    /// Ordre parmi les projets de même niveau.
     var position: Int
+    var parentID: String?
 }
 
 /// Jour d'absence (congé, férié) : Done ne propose rien ce jour-là.
@@ -193,7 +197,28 @@ struct TaskStore: Codable, Equatable {
 
     var openTasks: [TodoTask] { tasks.filter(\.isOpen) }
 
-    var sortedProjects: [Project] { projects.sorted { $0.position < $1.position } }
+    /// Les projets dans l'ordre de la barre latérale : chaque projet, suivi de ses sous-projets.
+    var sortedProjects: [Project] {
+        topLevelProjects.flatMap { [$0] + subprojects(of: $0.id) }
+    }
+
+    var topLevelProjects: [Project] {
+        projects.filter { $0.parentID == nil }.sorted { $0.position < $1.position }
+    }
+
+    func subprojects(of id: String) -> [Project] {
+        projects.filter { $0.parentID == id }.sorted { $0.position < $1.position }
+    }
+
+    func project(_ id: String?) -> Project? {
+        guard let id else { return nil }
+        return projects.first { $0.id == id }
+    }
+
+    /// Un projet et ses sous-projets : ce que montre sa vue.
+    func projectFamily(_ id: String) -> Set<String> {
+        Set([id] + subprojects(of: id).map(\.id))
+    }
 
     /// Étiquettes des tâches ouvertes, par ordre alphabétique. Une étiquette sans tâche ouverte disparaît.
     var tags: [String] {
@@ -203,11 +228,11 @@ struct TaskStore: Codable, Equatable {
             .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
-    /// La tâche appartient-elle à cette liste ?
+    /// La tâche appartient-elle à cette liste ? Un projet couvre aussi ses sous-projets.
     func contains(_ task: TodoTask, in list: TaskList) -> Bool {
         switch list {
         case .inbox: task.projectID == nil && task.tags.isEmpty
-        case .project(let id): task.projectID == id
+        case .project(let id): task.projectID.map { $0 == id || project($0)?.parentID == id } ?? false
         case .tag(let name): task.tags.contains(name)
         }
     }
@@ -263,13 +288,37 @@ struct TaskStore: Codable, Equatable {
 
     // MARK: Projets
 
+    /// Ajoute un projet en fin de liste, ou un sous-projet en fin de son projet. Un parent qui est
+    /// lui-même un sous-projet est refusé : le projet est alors créé au premier niveau.
     @discardableResult
-    mutating func addProject(named name: String, id: String = UUID().uuidString) -> Project? {
+    mutating func addProject(named name: String, parentID: String? = nil, id: String = UUID().uuidString) -> Project? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        let project = Project(id: id, name: trimmed, position: (projects.map(\.position).max() ?? -1) + 1)
+        let parent = canHoldSubprojects(parentID) ? parentID : nil
+        let project = Project(id: id, name: trimmed, position: nextProjectPosition(parentID: parent), parentID: parent)
         projects.append(project)
         return project
+    }
+
+    /// Range un projet sous un autre, ou le remonte au premier niveau (`nil`). Refusé si le projet a
+    /// lui-même des sous-projets, ou si le nouveau parent est un sous-projet.
+    mutating func moveProject(_ id: String, under parentID: String?) {
+        guard let i = projects.firstIndex(where: { $0.id == id }), projects[i].parentID != parentID else { return }
+        if let parentID {
+            guard parentID != id, canHoldSubprojects(parentID), subprojects(of: id).isEmpty else { return }
+        }
+        projects[i].parentID = parentID
+        projects[i].position = nextProjectPosition(parentID: parentID)
+    }
+
+    /// Seul un projet de premier niveau peut contenir des sous-projets.
+    private func canHoldSubprojects(_ id: String?) -> Bool {
+        guard let id, let parent = project(id) else { return false }
+        return parent.parentID == nil
+    }
+
+    private func nextProjectPosition(parentID: String?) -> Int {
+        (projects.filter { $0.parentID == parentID }.map(\.position).max() ?? -1) + 1
     }
 
     mutating func renameProject(_ id: String, to name: String) {
@@ -278,9 +327,15 @@ struct TaskStore: Codable, Equatable {
         projects[i].name = trimmed
     }
 
-    /// Monte ou descend un projet d'un cran dans la liste.
+    /// Monte ou descend un projet d'un cran parmi ceux de même niveau.
     mutating func shiftProject(_ id: String, by offset: Int) {
-        var ordered = sortedProjects
+        guard let moved = project(id) else { return }
+        var ordered: [Project]
+        if let parent = moved.parentID {
+            ordered = subprojects(of: parent)
+        } else {
+            ordered = topLevelProjects
+        }
         guard let from = ordered.firstIndex(where: { $0.id == id }), ordered.indices.contains(from + offset) else { return }
         ordered.swapAt(from, from + offset)
         for (position, project) in ordered.enumerated() {
@@ -288,10 +343,17 @@ struct TaskStore: Codable, Equatable {
         }
     }
 
-    /// Supprime le projet. Ses tâches ne sont pas perdues : elles passent en fin d'Inbox.
+    /// Supprime le projet. Ses tâches ne sont pas perdues : elles passent en fin d'Inbox, et ses
+    /// sous-projets deviennent des projets, en fin de liste.
     mutating func deleteProject(_ id: String) {
         guard projects.contains(where: { $0.id == id }) else { return }
         projects.removeAll { $0.id == id }
+        for child in subprojects(of: id) {
+            if let i = projects.firstIndex(where: { $0.id == child.id }) {
+                projects[i].parentID = nil
+                projects[i].position = nextProjectPosition(parentID: nil)
+            }
+        }
         var next = nextPosition(parentID: nil, projectID: nil)
         for i in tasks.indices where tasks[i].projectID == id {
             tasks[i].projectID = nil

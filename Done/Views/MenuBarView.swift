@@ -112,7 +112,7 @@ struct MenuBarView: View {
                 Menu {
                     Button("Inbox") { projectID = nil }
                     ForEach(model.projects) { project in
-                        Button(project.name) { projectID = project.id }
+                        Button(model.projectName(project.id)) { projectID = project.id }
                     }
                 } label: {
                     Text("Dans : \(model.projectName(projectID))")

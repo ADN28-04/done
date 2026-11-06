@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     enum Screen: Hashable {
         case focus
+        case today
         case plan
         case calendar
         /// Une liste de tâches : l'Inbox, un projet ou une étiquette.
@@ -98,12 +99,14 @@ struct RootView: View {
         switch screen {
         case .focus:
             FocusView(openPlan: { screen = .plan }, openTasks: { screen = .list(.inbox) })
+        case .today:
+            TodayView(openFocus: { screen = .focus }, openPlan: { screen = .plan })
         case .plan:
             PlanView(onValidate: { screen = .focus })
         case .calendar:
             CalendarView()
         case .list(let list):
-            TaskListView(list: list)
+            TaskListView(list: list) { screen = .list($0) }
                 .id(list)
         case .stats:
             StatsView()
@@ -130,6 +133,8 @@ private struct ShortcutKeys: View {
                 .keyboardShortcut("4")
             Button("Calendrier") { screen = .calendar }
                 .keyboardShortcut("5")
+            Button("Aujourd'hui") { screen = .today }
+                .keyboardShortcut("6")
             Button("Réglages") { screen = .settings }
                 .keyboardShortcut(",")
             Button("Nouvelle tâche", action: onCapture)
@@ -145,7 +150,8 @@ private struct ShortcutKeys: View {
 
 // MARK: Barre latérale
 
-/// Navigation à gauche : Focus et Plan du jour, puis l'Inbox et les projets, puis Stats et Réglages.
+/// Navigation à gauche : Focus, Aujourd'hui, Plan du jour, Calendrier et l'Inbox ; puis les projets
+/// (avec leurs sous-projets) et les étiquettes, en sections repliables ; en bas, Stats et Réglages.
 private struct Sidebar: View {
     @Environment(AppModel.self) private var model
     @Binding var screen: RootView.Screen
@@ -157,14 +163,21 @@ private struct Sidebar: View {
 
     @State private var removingTag: String?
 
+    @AppStorage(SettingsKey.sidebarProjectsCollapsed) private var projectsCollapsed = false
+    @AppStorage(SettingsKey.sidebarTagsCollapsed) private var tagsCollapsed = false
+    /// Projets dont les sous-projets sont repliés, séparés par des virgules.
+    @AppStorage(SettingsKey.sidebarFoldedProjects) private var foldedProjects = ""
+
     private enum Naming: Identifiable {
         case new
+        case newSub(Project)
         case rename(Project)
         case renameTag(String)
 
         var id: String {
             switch self {
             case .new: "new"
+            case .newSub(let parent): "sub:" + parent.id
             case .rename(let project): project.id
             case .renameTag(let tag): "tag:" + tag
             }
@@ -173,6 +186,7 @@ private struct Sidebar: View {
         var title: String {
             switch self {
             case .new: "Nouveau projet"
+            case .newSub(let parent): "Nouveau sous-projet dans « \(parent.name) »"
             case .rename: "Renommer le projet"
             case .renameTag: "Renommer l'étiquette"
             }
@@ -180,7 +194,7 @@ private struct Sidebar: View {
 
         var action: String {
             switch self {
-            case .new: "Créer"
+            case .new, .newSub: "Créer"
             case .rename, .renameTag: "Renommer"
             }
         }
@@ -188,6 +202,7 @@ private struct Sidebar: View {
         var placeholder: String {
             switch self {
             case .new, .rename: "Nom du projet"
+            case .newSub: "Nom du sous-projet"
             case .renameTag: "Nom de l'étiquette"
             }
         }
@@ -197,44 +212,61 @@ private struct Sidebar: View {
         VStack(alignment: .leading, spacing: DoneSpace.s2) {
             NavItem(title: "Focus", icon: Image("DoneGlyph"), isSelected: screen == .focus) { screen = .focus }
                 .help("Focus (⌘1)")
+            NavItem(title: "Aujourd'hui", icon: Image(systemName: "sun.max"), isSelected: screen == .today) { screen = .today }
+                .help("Aujourd'hui (⌘6)")
             NavItem(title: "Plan du jour", icon: Image(systemName: "calendar"), counter: planCounter, isSelected: screen == .plan) { screen = .plan }
                 .help("Plan du jour (⌘2)")
             NavItem(title: "Calendrier", icon: Image(systemName: "calendar.day.timeline.left"), isSelected: screen == .calendar) { screen = .calendar }
                 .help("Calendrier (⌘5)")
+            listItem(.inbox, name: "Inbox", symbol: "tray")
+                .help("Inbox (⌘3)")
 
-            Eyebrow(text: "Listes")
-                .padding(.leading, DoneSpace.s8)
-                .padding(.top, DoneSpace.s20)
-                .padding(.bottom, DoneSpace.s6)
             ScrollView {
                 VStack(alignment: .leading, spacing: DoneSpace.s2) {
-                    listItem(.inbox, name: "Inbox", symbol: "tray")
-                        .help("Inbox (⌘3)")
-                    ForEach(model.projects) { project in
-                        listItem(.project(project.id), name: project.name, symbol: "folder")
+                    sectionHeader("Projets", collapsed: $projectsCollapsed)
+                    if !projectsCollapsed {
+                        ForEach(model.topLevelProjects) { project in
+                            let subprojects = model.subprojects(of: project.id)
+                            let folded = isFolded(project.id)
+                            listItem(
+                                .project(project.id),
+                                name: project.name,
+                                symbol: "folder",
+                                isExpanded: subprojects.isEmpty ? nil : !folded
+                            ) {
+                                toggleFold(project.id)
+                            }
                             .contextMenu { projectMenu(project) }
+                            if !folded {
+                                ForEach(subprojects) { subproject in
+                                    listItem(.project(subproject.id), name: subproject.name, symbol: "folder")
+                                        .padding(.leading, DoneSpace.s16)
+                                        .contextMenu { projectMenu(subproject) }
+                                }
+                            }
+                        }
+                        Button {
+                            nameDraft = ""
+                            naming = .new
+                        } label: {
+                            Label("Nouveau projet", systemImage: "plus")
+                        }
+                        .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
+                        .padding(.top, DoneSpace.s4)
                     }
-                    Button {
-                        nameDraft = ""
-                        naming = .new
-                    } label: {
-                        Label("Nouveau projet", systemImage: "plus")
-                    }
-                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
-                    .padding(.top, DoneSpace.s4)
                     if !model.tags.isEmpty {
-                        Eyebrow(text: "Étiquettes")
-                            .padding(.leading, DoneSpace.s8)
-                            .padding(.top, DoneSpace.s16)
-                            .padding(.bottom, DoneSpace.s6)
-                        ForEach(model.tags, id: \.self) { tag in
-                            listItem(.tag(tag), name: tag, symbol: "tag")
-                                .contextMenu { tagMenu(tag) }
+                        sectionHeader("Étiquettes", collapsed: $tagsCollapsed)
+                        if !tagsCollapsed {
+                            ForEach(model.tags, id: \.self) { tag in
+                                listItem(.tag(tag), name: tag, symbol: "tag")
+                                    .contextMenu { tagMenu(tag) }
+                            }
                         }
                     }
                 }
             }
             .scrollIndicators(.never)
+            .padding(.top, DoneSpace.s8)
 
             Spacer(minLength: DoneSpace.s16)
             NavItem(title: "Stats", icon: Image(systemName: "chart.bar"), isSelected: screen == .stats) { screen = .stats }
@@ -268,8 +300,9 @@ private struct Sidebar: View {
                 deletingProject = nil
             }
         } message: { project in
-            let count = model.openCount(in: .project(project.id))
-            Text(count == 0 ? "Il ne contient aucune tâche ouverte." : "Ses \(count) tâche\(count > 1 ? "s" : "") passe\(count > 1 ? "nt" : "") dans l'Inbox.")
+            let count = model.index.all.filter { $0.parentID == nil && $0.projectID == project.id }.count
+            let tasks = count == 0 ? "Il ne contient aucune tâche ouverte." : "Ses \(count) tâche\(count > 1 ? "s" : "") passe\(count > 1 ? "nt" : "") dans l'Inbox."
+            Text(model.subprojects(of: project.id).isEmpty ? tasks : tasks + " Ses sous-projets deviennent des projets.")
         }
         .confirmationDialog(
             "Retirer l'étiquette « \(removingTag ?? "") » ?",
@@ -293,7 +326,38 @@ private struct Sidebar: View {
         return count > 0 ? "\(count)" : nil
     }
 
-    private func listItem(_ list: TaskList, name: String, symbol: String) -> some View {
+    /// Titre de section repliable : « Projets », « Étiquettes ». Done se souvient de l'état.
+    private func sectionHeader(_ title: String, collapsed: Binding<Bool>) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { collapsed.wrappedValue.toggle() }
+        } label: {
+            HStack(spacing: DoneSpace.s6) {
+                Eyebrow(text: title)
+                Spacer()
+                Image(systemName: collapsed.wrappedValue ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(DoneColor.textSecondary)
+            }
+            .padding(.horizontal, DoneSpace.s8)
+            .padding(.top, DoneSpace.s16)
+            .padding(.bottom, DoneSpace.s6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(collapsed.wrappedValue ? "Afficher \(title.lowercased())" : "Masquer \(title.lowercased())")
+    }
+
+    private func isFolded(_ id: String) -> Bool {
+        foldedProjects.split(separator: ",").contains { $0 == id }
+    }
+
+    private func toggleFold(_ id: String) {
+        var ids = foldedProjects.split(separator: ",").map(String.init)
+        if ids.contains(id) { ids.removeAll { $0 == id } } else { ids.append(id) }
+        withAnimation(.easeInOut(duration: 0.15)) { foldedProjects = ids.joined(separator: ",") }
+    }
+
+    private func listItem(_ list: TaskList, name: String, symbol: String, isExpanded: Bool? = nil, onToggle: @escaping () -> Void = {}) -> some View {
         let key = switch list {
         case .inbox: "inbox"
         case .project(let id): "project:" + id
@@ -305,7 +369,9 @@ private struct Sidebar: View {
             icon: Image(systemName: symbol),
             counter: count > 0 ? "\(count)" : nil,
             isSelected: screen == .list(list),
-            isDropTarget: dropTarget == key
+            isDropTarget: dropTarget == key,
+            isExpanded: isExpanded,
+            onToggle: onToggle
         ) {
             screen = .list(list)
         }
@@ -324,14 +390,33 @@ private struct Sidebar: View {
 
     @ViewBuilder
     private func projectMenu(_ project: Project) -> some View {
+        let siblings = project.parentID.map { model.subprojects(of: $0) } ?? model.topLevelProjects
+        let hasSubprojects = !model.subprojects(of: project.id).isEmpty
         Button("Renommer…") {
             nameDraft = project.name
             naming = .rename(project)
         }
+        if project.parentID == nil {
+            Button("Nouveau sous-projet…") {
+                nameDraft = ""
+                naming = .newSub(project)
+            }
+        }
         Button("Monter") { model.shiftProject(project.id, by: -1) }
-            .disabled(project.id == model.projects.first?.id)
+            .disabled(project.id == siblings.first?.id)
         Button("Descendre") { model.shiftProject(project.id, by: 1) }
-            .disabled(project.id == model.projects.last?.id)
+            .disabled(project.id == siblings.last?.id)
+        // Un projet qui a des sous-projets reste au premier niveau.
+        if !hasSubprojects {
+            Menu("Ranger dans") {
+                ForEach(model.topLevelProjects.filter { $0.id != project.id && $0.id != project.parentID }) { parent in
+                    Button(parent.name) { model.moveProject(project.id, under: parent.id) }
+                }
+            }
+        }
+        if project.parentID != nil {
+            Button("Sortir du projet") { model.moveProject(project.id, under: nil) }
+        }
         Divider()
         Button("Supprimer le projet…", role: .destructive) { deletingProject = project }
     }
@@ -350,6 +435,11 @@ private struct Sidebar: View {
         switch naming {
         case .new:
             if let project = model.addProject(named: nameDraft) { screen = .list(.project(project.id)) }
+        case .newSub(let parent):
+            if let project = model.addProject(named: nameDraft, parentID: parent.id) {
+                if isFolded(parent.id) { toggleFold(parent.id) }
+                screen = .list(.project(project.id))
+            }
         case .rename(let project):
             model.renameProject(project.id, to: nameDraft)
         case .renameTag(let old):

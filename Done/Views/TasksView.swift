@@ -1,9 +1,12 @@
 import SwiftUI
 
 /// Une liste de tâches : l'Inbox, un projet ou une étiquette, choisi dans la barre latérale.
+/// Un projet montre ses propres tâches, puis celles de chaque sous-projet, groupées sous leur nom.
 struct TaskListView: View {
     @Environment(AppModel.self) private var model
     let list: TaskList
+    /// Ouvre une autre liste (le titre d'un sous-projet).
+    var open: (TaskList) -> Void = { _ in }
 
     @State private var newTitle = ""
     @FocusState private var addFocused: Bool
@@ -20,6 +23,13 @@ struct TaskListView: View {
         let task: TodoTask
         let depth: Int
         var id: String { task.id }
+    }
+
+    /// Les tâches du projet lui-même (sans titre), puis un groupe par sous-projet.
+    private struct ListSection: Identifiable {
+        let subproject: Project?
+        let rows: [Row]
+        var id: String { subproject?.id ?? "self" }
     }
 
     /// La liste demandée, ou l'Inbox si son projet a été supprimé.
@@ -44,7 +54,7 @@ struct TaskListView: View {
 
     var body: some View {
         let tasks = model.topLevelTasks(in: current)
-        let rows = flattened(tasks)
+        let sections = sections(of: tasks)
         let completed = model.completedTasks(in: current, limit: 30)
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: DoneSpace.s4) {
@@ -59,16 +69,30 @@ struct TaskListView: View {
                 .padding(.top, DoneSpace.s20)
             ScrollView {
                 VStack(alignment: .leading, spacing: DoneSpace.s20) {
-                    if rows.isEmpty {
+                    if tasks.isEmpty && sections.allSatisfy({ $0.subproject == nil }) {
                         emptyState
                     } else {
-                        VStack(spacing: DoneSpace.s2) {
-                            ForEach(rows) { row in
-                                taskRow(row.task, depth: row.depth)
+                        ForEach(sections) { group in
+                            VStack(alignment: .leading, spacing: DoneSpace.s8) {
+                                if let subproject = group.subproject {
+                                    subprojectHeader(subproject, count: group.rows.filter { $0.depth == 0 }.count)
+                                }
+                                if group.rows.isEmpty {
+                                    Text("Aucune tâche ouverte.")
+                                        .doneText(.callout)
+                                        .foregroundStyle(DoneColor.textSecondary)
+                                        .padding(.leading, DoneSpace.s6)
+                                } else {
+                                    VStack(spacing: DoneSpace.s2) {
+                                        ForEach(group.rows) { row in
+                                            taskRow(row.task, depth: row.depth)
+                                        }
+                                    }
+                                    .padding(DoneSpace.s6)
+                                    .doneCard(radius: DoneRadius.lg)
+                                }
                             }
                         }
-                        .padding(DoneSpace.s6)
-                        .doneCard(radius: DoneRadius.lg)
                     }
                     if !completed.isEmpty {
                         completedSection(completed)
@@ -239,7 +263,7 @@ struct TaskListView: View {
                 Button("Inbox") { edit(task.id) { $0.projectID = nil } }
                     .disabled(task.projectID == nil)
                 ForEach(model.projects) { project in
-                    Button(project.name) { edit(task.id) { $0.projectID = project.id } }
+                    Button(model.projectName(project.id)) { edit(task.id) { $0.projectID = project.id } }
                         .disabled(task.projectID == project.id)
                 }
             }
@@ -308,6 +332,45 @@ struct TaskListView: View {
     }
 
     // MARK: Aides
+
+    /// Hors projet, un seul groupe. Pour un projet : ses tâches (s'il en a), puis chaque sous-projet.
+    private func sections(of tasks: [TodoTask]) -> [ListSection] {
+        guard case .project(let id) = current else { return [ListSection(subproject: nil, rows: flattened(tasks))] }
+        let subprojects = model.subprojects(of: id)
+        let own = tasks.filter { $0.projectID == id }
+        var result: [ListSection] = []
+        if !own.isEmpty || subprojects.isEmpty {
+            result.append(ListSection(subproject: nil, rows: flattened(own)))
+        }
+        for subproject in subprojects {
+            result.append(ListSection(subproject: subproject, rows: flattened(tasks.filter { $0.projectID == subproject.id })))
+        }
+        return result
+    }
+
+    /// Titre d'un groupe de sous-projet : un clic ouvre le sous-projet.
+    private func subprojectHeader(_ subproject: Project, count: Int) -> some View {
+        Button {
+            open(.project(subproject.id))
+        } label: {
+            HStack(spacing: DoneSpace.s8) {
+                Image(systemName: "folder")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(DoneColor.textSecondary)
+                Text(subproject.name)
+                    .doneText(.title)
+                    .foregroundStyle(DoneColor.textPrimary)
+                Text("\(count)")
+                    .font(.done(.numericS))
+                    .foregroundStyle(DoneColor.textSecondary)
+                Spacer()
+            }
+            .padding(.leading, DoneSpace.s6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Ouvrir « \(subproject.name) »")
+    }
 
     private func flattened(_ tasks: [TodoTask], depth: Int = 0) -> [Row] {
         tasks.flatMap { task -> [Row] in

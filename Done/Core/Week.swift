@@ -73,3 +73,18 @@ enum WorkWeek {
         return result
     }
 }
+
+/// Ce que l'écran Aujourd'hui montre en plus du plan et des réunions.
+enum DayAgenda {
+    /// Échéances du jour et retards qui ne sont pas dans le plan, les retards d'abord.
+    static func dueOrLate(in tasks: [TodoTask], plan: [String], today: Date) -> [TodoTask] {
+        WorkWeek.dueTasks(on: today, in: tasks, today: today).filter { !plan.contains($0.id) }
+    }
+
+    /// Tâches cochées dans la journée, les plus récentes d'abord.
+    static func doneToday(in tasks: [TodoTask], today: Date, calendar: Calendar = .current) -> [TodoTask] {
+        tasks
+            .filter { $0.completedAt.map { calendar.isDate($0, inSameDayAs: today) } ?? false }
+            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+    }
+}

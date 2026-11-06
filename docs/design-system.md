@@ -111,6 +111,16 @@ Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date co
 - **Sélecteur** (`DoneSegmented`) : piste `bgSunken`, segment choisi sur une surface.
 - **Encadré** (`NoticeBox`) : sans contour ; information en `stateActiveTint`, erreur en `stateRiskTint`.
 
+## Aujourd'hui
+
+- **En-tête** : « Aujourd'hui » en `displayL`, puis la date, le nombre de réunions et le focus fait en `body` secondaire.
+- **Ligne de temps** : 320 de large, dans une carte (`doneCard`, rayon 14), la même `DayTimeline` que le calendrier avec ses heures, étirée sur la hauteur.
+- **Listes** : « Plan du jour » (tuiles numérotées, « Lancer le focus » en bouton principal compact, « Modifier le plan » en secondaire), « Échéances et retards », puis « Fait aujourd'hui », replié, sur `stateDone`. Lignes de 48 : case à cocher, titre et puces, survol en `surfaceHover`.
+
+## Projet et sous-projets
+
+La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-projet : titre en `title` avec l'icône `folder` et le nombre de tâches (un clic ouvre le sous-projet), puis la carte de ses lignes, ou « Aucune tâche ouverte. » en `callout` secondaire.
+
 ## Calendrier
 
 - **Colonnes** : une par jour, du lundi au vendredi, séparées par un trait `borderSubtle`, après une gouttière de 44 pour les heures (`numericS`, texte secondaire).
@@ -122,8 +132,8 @@ Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date co
 
 Barre latérale de 228, sur `bgSunken`, avec un trait `borderSubtle` à droite :
 
-- en haut, Focus (⌘1), Plan du jour (⌘2, avec le nombre de tâches du plan) et Calendrier (⌘5, icône `calendar.day.timeline.left`) ;
-- au milieu, l'étiquette « Listes », puis l'Inbox (⌘3) et les projets, chacun avec son nombre de tâches ouvertes, et « Nouveau projet » ; ensuite, s'il y en a, l'étiquette « Étiquettes » et une entrée par étiquette (icône `tag`), avec son nombre de tâches ouvertes ;
+- en haut, Focus (⌘1), Aujourd'hui (⌘6, icône `sun.max`), Plan du jour (⌘2, avec le nombre de tâches du plan), Calendrier (⌘5, icône `calendar.day.timeline.left`) et Inbox (⌘3) ;
+- au milieu, deux sections repliables, leur titre (`Eyebrow`) suivi d'un chevron de 9 à droite : « Projets », chaque projet suivi de ses sous-projets en retrait de 16 (un chevron dans le `NavItem` du projet les replie), puis « Nouveau projet » ; « Étiquettes », une entrée par étiquette (icône `tag`). Chaque entrée porte son nombre de tâches ouvertes, celui d'un projet comptant ses sous-projets ;
 - en bas, Stats (⌘4) et Réglages (⌘,).
 
 Les feux de la fenêtre sont posés sur le haut de la barre. La barre du haut, de 52, porte au centre la pastille de réunion (Focus et Plan du jour), à droite le bouton « + » de la capture rapide (⌘N).

@@ -83,10 +83,16 @@ final class AppModel {
         return store.projects.first { $0.id == id }
     }
 
-    /// Nom du projet, ou « Inbox » pour une tâche sans projet.
+    /// Nom du projet (« Projet › Sous-projet » pour un sous-projet), ou « Inbox » sans projet.
     func projectName(_ id: String?) -> String {
-        project(id)?.name ?? "Inbox"
+        guard let project = project(id) else { return "Inbox" }
+        guard let parent = self.project(project.parentID) else { return project.name }
+        return "\(parent.name) › \(project.name)"
     }
+
+    func subprojects(of id: String) -> [Project] { store.subprojects(of: id) }
+
+    var topLevelProjects: [Project] { store.topLevelProjects }
 
     func listName(_ list: TaskList) -> String {
         switch list {
@@ -98,7 +104,7 @@ final class AppModel {
 
     /// Où la tâche est rangée : son projet, sinon sa première étiquette, sinon l'Inbox.
     func listName(for task: TodoTask) -> String {
-        if let project = project(task.projectID) { return project.name }
+        if project(task.projectID) != nil { return projectName(task.projectID) }
         return task.tags.first ?? "Inbox"
     }
 
@@ -250,10 +256,15 @@ final class AppModel {
     // MARK: Projets
 
     @discardableResult
-    func addProject(named name: String) -> Project? {
+    func addProject(named name: String, parentID: String? = nil) -> Project? {
         var created: Project?
-        commit { created = $0.addProject(named: name) }
+        commit { created = $0.addProject(named: name, parentID: parentID) }
         return created
+    }
+
+    /// Range un projet sous un autre, ou le remonte au premier niveau (`nil`).
+    func moveProject(_ id: String, under parentID: String?) {
+        commit { $0.moveProject(id, under: parentID) }
     }
 
     func renameProject(_ id: String, to name: String) {
