@@ -3,76 +3,99 @@ import SwiftUI
 
 // MARK: Couleurs
 
-/// Design system Done v6 « Jardin » : couleurs nommées par rôle, en clair et en sombre.
-/// Référence : docs/design/jardin/design-system (README.md et tokens.json).
-/// Le code ne référence jamais une couleur de marque (Crème, Encre, Vert profond, Tournesol, Brique)
-/// directement. En sombre, le vert s'éclaircit et ce qui est posé dessus passe en vert nuit.
+/// Design system Done v7 « Mymind » : couleurs nommées par rôle, en clair et en sombre.
+/// Référence : docs/design/mymind/design-system (README.md et tokens.json).
+/// Le code ne référence jamais une couleur de marque (Toile, Encre, Braise, Cobalt, Rose des halos)
+/// directement. En sombre, la pilule principale s'inverse : fond clair, texte sombre.
 enum DoneColor {
-    // Fonds et surfaces
-    static let bgCanvas = dynamic(0xF7F3E8, 0x161914)
-    static let bgSunken = dynamic(0xEFE9DA, 0x11140F)
-    static let surfaceDefault = dynamic(0xFFFDF7, 0x1E221B)
-    static let surfaceHover = dynamic(0xF3EEE0, 0x272C23)
-    static let surfaceSelected = dynamic(0xE2EDE3, 0x243529)
+    // Fonds et surfaces. La fenêtre se pose sur bgCanvas, réchauffée par deux halos.
+    static let bgCanvas = dynamic(0xF9FAFC, 0x0F1012)
+    static let bgSunken = dynamic(0xF1F3F7, 0x0B0C0E)
+    static let surfaceDefault = dynamic(0xFFFFFF, 0x18191C)
+    static let surfaceHover = dynamic(0xF3F5F9, 0x202226)
+    static let surfaceSelected = dynamic(0xE5EAF2, 0x232A36)
+    static let haloWarm = dynamic(0xFF5924, 0xFF6A3D, lightAlpha: 0.22, darkAlpha: 0.12)
+    static let haloPink = dynamic(0xF078A0, 0xF078A0, lightAlpha: 0.20, darkAlpha: 0.10)
 
     // Bordures
-    static let borderSubtle = dynamic(0xE6DFCD, 0x2E3329)
-    static let borderDefault = dynamic(0xD5CDB8, 0x3E4537)
-    static let borderControl = dynamic(0x8A8473, 0x858C7C)
+    static let borderSubtle = dynamic(0xE6E8EE, 0x2A2C31)
+    static let borderDefault = dynamic(0xD6DAE2, 0x383B42)
+    static let borderControl = dynamic(0x8B91A0, 0x7D8494)
 
     // Textes
-    static let textPrimary = dynamic(0x23281F, 0xECEADF)
-    static let textSecondary = dynamic(0x5C6354, 0xA7AC9C)
-    static let textDisabled = dynamic(0xB4AF9F, 0x585E51)
+    static let textPrimary = dynamic(0x24272D, 0xEEF0F4)
+    static let textSecondary = dynamic(0x5D6575, 0xA3A9B6)
+    static let textDisabled = dynamic(0xAFB5C1, 0x4F5560)
 
-    // Actions
-    static let actionPrimary = dynamic(0x2F6B4F, 0x7CC39C)
-    static let actionPrimaryHover = dynamic(0x285E45, 0x8DCDA9)
-    static let actionPrimaryPressed = dynamic(0x204F3A, 0x6BB38C)
-    static let actionOnPrimary = dynamic(0xFFFFFF, 0x0F2419)
-    static let actionDisabled = dynamic(0xEBE5D6, 0x272C23)
-    static let focusRing = dynamic(0x2F6B4F, 0x8DCDA9)
+    // Actions : une pilule d'encre, inversée en sombre. focusRing en cobalt, aussi l'AccentColor.
+    static let actionPrimary = dynamic(0x24272D, 0xEEF0F4)
+    static let actionPrimaryHover = dynamic(0x3A3E46, 0xFFFFFF)
+    static let actionPrimaryPressed = dynamic(0x111316, 0xD5D8DE)
+    static let actionOnPrimary = dynamic(0xFFFFFF, 0x15171A)
+    static let actionDisabled = dynamic(0xECEEF3, 0x202226)
+    static let focusRing = dynamic(0x1573DD, 0x5AA2F0)
 
-    // États
-    static let stateActive = dynamic(0x3B7A5B, 0x7CC39C)
-    static let stateOnActive = dynamic(0xFFFFFF, 0x0F2419)
-    static let stateActiveText = dynamic(0x1F5138, 0xA6DBBB)
-    static let stateActiveTint = dynamic(0xDCEBDF, 0x21362A)
-    static let stateBlocked = dynamic(0xECE6D7, 0x2A2F25)
-    static let stateOnBlocked = dynamic(0x23281F, 0xECEADF)
-    static let stateWaiting = dynamic(0x8A8473, 0x858C7C)
-    static let stateRisk = dynamic(0xC2463F, 0xE06A63)
-    static let stateRiskTint = dynamic(0xF8E3DE, 0x3A2320)
-    static let stateRiskText = dynamic(0xA3332E, 0xF0A29D)
-    static let stateDone = dynamic(0xEFE9DA, 0x1B1F18)
-    static let stateOnDone = dynamic(0x5C6354, 0xA7AC9C)
+    // Marque et joie : la braise, en plein ou en forme (bouton + du rail, anneau du minuteur, heure
+    // courante, soleil d'« Aujourd'hui », pétales, pastilles de série), jamais en texte ; pour du texte,
+    // accentText sur accentTint.
+    static let accent = dynamic(0xFF5924, 0xFF6A3D)
+    static let onAccent = dynamic(0x2B0F04, 0x2B0F04)
+    static let accentTint = dynamic(0xFFECE4, 0x3A1D14)
+    static let accentText = dynamic(0xB33A0C, 0xFF9B77)
 
-    // Joie : réservée aux réussites (Aujourd'hui, Fait, plan terminé, fin de pomodoro).
-    // `sun` en plein ou en forme, jamais en texte ; `sunText` sur `sunTint` pour les mots.
-    static let sun = dynamic(0xF6C343, 0xF6C343)
-    static let onSun = dynamic(0x3D2A00, 0x3D2A00)
-    static let sunTint = dynamic(0xFBECC2, 0x3A3016)
-    static let sunText = dynamic(0x6B4A05, 0xF2CF6E)
+    // Rôles de joie de la v6, gardés sous leur nom : alias de la braise, le temps que chaque composant
+    // passe à son rôle Mymind (accent, ou success pour « Fait »).
+    static let sun = dynamic(0xFF5924, 0xFF6A3D)
+    static let onSun = dynamic(0x2B0F04, 0x2B0F04)
+    static let sunTint = dynamic(0xFFECE4, 0x3A1D14)
+    static let sunText = dynamic(0xB33A0C, 0xFF9B77)
+
+    // États : le cobalt pour ce qui est actif, le vert pour « Fait », l'alerte toujours avec son triangle.
+    static let stateActive = dynamic(0x1573DD, 0x5AA2F0)
+    static let stateOnActive = dynamic(0xFFFFFF, 0x0B1A2C)
+    static let stateActiveText = dynamic(0x0F5BB5, 0x91C2F7)
+    static let stateActiveTint = dynamic(0xE7F0FC, 0x16243A)
+    static let success = dynamic(0x3D8C4A, 0x6CC07A)
+    static let successTint = dynamic(0xE4EFDC, 0x1B2B1D)
+    static let successText = dynamic(0x2D6B33, 0x9FD6A5)
+    static let stateBlocked = dynamic(0xECEEF3, 0x23262B)
+    static let stateOnBlocked = dynamic(0x24272D, 0xEEF0F4)
+    static let stateWaiting = dynamic(0x8B91A0, 0x7D8494)
+    static let stateRisk = dynamic(0xD2313C, 0xF0646B)
+    static let stateRiskTint = dynamic(0xFDEAEA, 0x3A1B1E)
+    static let stateRiskText = dynamic(0x8F1A24, 0xFCC4C7)
+    static let stateDone = dynamic(0xF1F3F7, 0x141518)
+    static let stateOnDone = dynamic(0x5D6575, 0xA3A9B6)
+
+    // Étiquettes et cartes de note : une teinte par type de note.
+    static let tagPink = dynamic(0xB8336A, 0xF08AB3)
+    static let tagYellow = dynamic(0x8A5D00, 0xF2C25C)
+    static let cardParchment = dynamic(0xF3F0E7, 0x1F1D18)
+    static let cardSage = dynamic(0xDDE9D3, 0x19221A)
+    static let cardSlate = dynamic(0xE5EAF2, 0x1A1F29)
+    static let cardBlush = dynamic(0xFFF1F1, 0x251A1A)
 
     // Réunions
-    static let meetingBg = dynamic(0xEEE8D8, 0x23281F)
-    static let meetingHatch = dynamic(0x2F6B4F, 0x7CC39C, lightAlpha: 0.16, darkAlpha: 0.16)
-    static let meetingNow = dynamic(0x2F6B4F, 0x7CC39C)
-    static let meetingOnNow = dynamic(0xFFFFFF, 0x0F2419)
+    static let meetingBg = dynamic(0xE5EAF2, 0x1C2230)
+    static let meetingHatch = dynamic(0x1573DD, 0x5AA2F0, lightAlpha: 0.14, darkAlpha: 0.16)
+    static let meetingNow = dynamic(0x24272D, 0xEEF0F4)
+    static let meetingOnNow = dynamic(0xFFFFFF, 0x15171A)
 
-    // Pomodoro
-    static let pomodoroFocus = dynamic(0x2F6B4F, 0x8DCDA9)
-    static let pomodoroBreak = dynamic(0xB07A12, 0xF2CF6E)
-    static let pomodoroBreakBg = dynamic(0xFBF1D6, 0x24210F)
-    static let pomodoroTrack = dynamic(0xE6DFCD, 0x2E3329)
-    static let pomodoroPaused = dynamic(0xB4AF9F, 0x585E51)
+    // Pomodoro : la braise en concentration, le cobalt en pause.
+    static let pomodoroFocus = dynamic(0xF4511F, 0xFF6A3D)
+    static let pomodoroBreak = dynamic(0x1573DD, 0x5AA2F0)
+    static let pomodoroBreakBg = dynamic(0xEEF4FC, 0x101A27)
+    static let pomodoroTrack = dynamic(0xE6E8EE, 0x2A2C31)
+    static let pomodoroPaused = dynamic(0xAFB5C1, 0x4F5560)
 
-    // Ombres : teintées de l'encre en clair, noires en sombre. Jamais sur une carte ordinaire :
-    // shadowCard pour le segment choisi, shadowRaised (et sa part proche) pour la carte de fin de
-    // pomodoro et la saisie flottante.
-    static let shadowCard = dynamic(0x23281F, 0x000000, lightAlpha: 0.08, darkAlpha: 0.35)
-    static let shadowRaised = dynamic(0x23281F, 0x000000, lightAlpha: 0.12, darkAlpha: 0.50)
-    static let shadowRaisedNear = dynamic(0x23281F, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
+    // Ombres, en deux couches, teintées de l'encre en clair, noires en sombre. shadowCard (avec sa
+    // part proche) : cartes widget, barre de saisie, boutons du rail. shadowRaised : carte de fin de
+    // pomodoro et saisie flottante. shadowControl : segment choisi.
+    static let shadowCard = dynamic(0x24272D, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
+    static let shadowCardNear = dynamic(0x24272D, 0x000000, lightAlpha: 0.05, darkAlpha: 0.40)
+    static let shadowRaised = dynamic(0x24272D, 0x000000, lightAlpha: 0.14, darkAlpha: 0.55)
+    static let shadowRaisedNear = dynamic(0x24272D, 0x000000, lightAlpha: 0.06, darkAlpha: 0.35)
+    static let shadowControl = dynamic(0x24272D, 0x000000, lightAlpha: 0.10, darkAlpha: 0.45)
 
     static func dynamic(_ light: UInt32, _ dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -137,7 +160,7 @@ enum DoneMotion {
     static let base: Double = 0.26
     /// Cartes, feuilles, fond de la pause, ligne qui part vers « Fait aujourd'hui ».
     static let slow: Double = 0.42
-    /// Éclat de tournesol.
+    /// Éclat des réussites.
     static let celebrate: Double = 0.9
 
     // Animations.
@@ -155,7 +178,7 @@ enum DoneMotion {
     static let travel = Animation.easeInOut(duration: slow)
     /// ease-spring, dur-base : le rebond des réussites (case cochée, puce « Fait », pastille de série).
     static let pop = Animation.spring(response: 0.3, dampingFraction: 0.55)
-    /// ease-out, dur-celebrate : l'éclat de tournesol.
+    /// ease-out, dur-celebrate : l'éclat des réussites.
     static let burst = Animation.easeOut(duration: celebrate)
     /// Ce qui reste d'un mouvement avec « Réduire les animations » : un fondu court.
     static let fade = Animation.easeOut(duration: fast)
@@ -233,7 +256,7 @@ struct CheckMarkShape: Shape {
     }
 }
 
-/// Éclat de tournesol : un halo sunTint et huit pétales sun qui partent du centre puis s'effacent,
+/// Éclat des réussites : un halo sunTint et huit pétales sun (la braise) qui partent du centre puis s'effacent,
 /// une fois chaque fois que `count` augmente. À poser en fond ou en surimpression, centré : il ne
 /// prend pas de place. Rien avec « Réduire les animations ».
 struct SunBurst: View {
@@ -502,7 +525,7 @@ struct Hatching: View {
 /// Boutons : hauteur 32, rayon sm, padding 14. Un seul principal par vue.
 struct DoneButtonStyle: ButtonStyle {
     enum Kind {
-        /// action.primary : vert profond en clair, vert clair en sombre.
+        /// action.primary : pilule d'encre, inversée en sombre.
         case primary
         /// Surface et contour border.default.
         case secondary
@@ -667,7 +690,7 @@ struct DoneSegmented<Value: Hashable>: View {
 /// rien. Avec « Réduire les animations », la case change en fondu.
 struct TaskCheckbox: View {
     let isDone: Bool
-    /// Ligne de tâche : l'éclat de tournesol accompagne la coche.
+    /// Ligne de tâche : l'éclat accompagne la coche.
     var bursts = false
     let action: () -> Void
 
@@ -1056,7 +1079,7 @@ struct NavRailItem: View {
 
 // MARK: Réunions
 
-/// Bloc réunion, rayon sm. Hachuré à venir (temps pris), plein vert en cours, gris une fois passé.
+/// Bloc réunion, rayon sm. Hachuré à venir (temps pris), plein meetingNow (encre) en cours, gris une fois passé.
 struct MeetingBlock: View {
     let meeting: Meeting
     let now: Date
@@ -1148,7 +1171,7 @@ struct DoneAppIcon: View {
 }
 
 /// Anneau du minuteur : la part restante, depuis midi, dans le sens horaire.
-/// Diamètre 280 et trait 8 en session ; vert en concentration, ocre en pause, gris à l'arrêt.
+/// Diamètre 280 et trait 8 en session ; braise en concentration, cobalt en pause, gris à l'arrêt.
 struct ProgressRing: View {
     let fraction: Double
     var color: Color = DoneColor.pomodoroFocus
@@ -1189,7 +1212,7 @@ struct ProgressBar: View {
     }
 }
 
-/// Encadré de message, sans contour : information en vert, réussite en tournesol (plan du jour
+/// Encadré de message, sans contour : information en cobalt, réussite en braise (plan du jour
 /// terminé), erreur en brique. Arrive en fondu (dur-base).
 struct NoticeBox: View {
     enum Tone {
