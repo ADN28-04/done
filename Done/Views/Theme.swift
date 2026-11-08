@@ -747,30 +747,49 @@ struct MeetingBlock: View {
 
 // MARK: Logo et anneaux
 
-/// Icône de l'app : carré arrondi en dégradé Indigo 400 vers Indigo 700, anneau blanc presque refermé.
+/// Icône de l'app : carré arrondi en dégradé vert, anneau crème à 24 % et arc crème de 300° depuis
+/// midi, un minuteur presque refermé ; dans l'ouverture, un soleil tournesol. Mêmes proportions que
+/// docs/design/icon.svg (carré de 824). Couleurs fixes : l'icône ne change pas avec le thème.
 struct DoneAppIcon: View {
     var size: CGFloat = 90
 
+    private static let gradientTop = fixed(0x3B7A5B)
+    private static let gradientBottom = fixed(0x204F3A)
+    private static let cream = fixed(0xF7F3E8)
+    private static let sun = fixed(0xF6C343)
+
     var body: some View {
+        let unit = size / 824
+        let ring = 500 * unit
+        let line = 76 * unit
+        // Milieu de l'ouverture : 330°, depuis midi dans le sens horaire, sur l'anneau.
+        let sunAngle = Angle.degrees(330).radians
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.2245, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [Color(red: 0x5A / 255, green: 0x68 / 255, blue: 0xC0 / 255),
-                             Color(red: 0x31 / 255, green: 0x3B / 255, blue: 0x7C / 255)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ))
-            ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.28), lineWidth: size * 0.092)
-                Circle()
-                    .trim(from: 0, to: 0.917)
-                    .stroke(Color.white, style: StrokeStyle(lineWidth: size * 0.092, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-            }
-            .frame(width: size * 0.607, height: size * 0.607)
+            RoundedRectangle(cornerRadius: 185 * unit, style: .continuous)
+                .fill(LinearGradient(colors: [Self.gradientTop, Self.gradientBottom], startPoint: .top, endPoint: .bottom))
+            Circle()
+                .stroke(Self.cream.opacity(0.24), lineWidth: line)
+                .frame(width: ring, height: ring)
+            Circle()
+                .trim(from: 0, to: 300.0 / 360.0)
+                .stroke(Self.cream, style: StrokeStyle(lineWidth: line, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: ring, height: ring)
+            Circle()
+                .fill(Self.sun)
+                .frame(width: 112 * unit, height: 112 * unit)
+                .offset(x: ring / 2 * sin(sunAngle), y: -ring / 2 * cos(sunAngle))
         }
         .frame(width: size, height: size)
+    }
+
+    private static func fixed(_ hex: UInt32) -> Color {
+        Color(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255
+        )
     }
 }
 

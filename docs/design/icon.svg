@@ -1,14 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5A68C0"/>
-      <stop offset="1" stop-color="#313B7C"/>
+      <stop offset="0" stop-color="#3B7A5B"/>
+      <stop offset="1" stop-color="#204F3A"/>
     </linearGradient>
     <filter id="s" x="-10%" y="-10%" width="120%" height="125%">
       <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.22"/>
     </filter>
   </defs>
   <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#g)" filter="url(#s)"/>
-  <circle cx="512" cy="512" r="250" fill="none" stroke="#FFFFFF" stroke-width="76" opacity=".28"/>
-  <path d="M512 262 A250 250 0 1 1 387 295.5" fill="none" stroke="#FFFFFF" stroke-width="76" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="250" fill="none" stroke="#F7F3E8" stroke-width="76" opacity=".24"/>
+  <path d="M512 262 A250 250 0 1 1 295.5 387" fill="none" stroke="#F7F3E8" stroke-width="76" stroke-linecap="round"/>
+  <circle cx="387" cy="295.5" r="56" fill="#F6C343"/>
 </svg>
