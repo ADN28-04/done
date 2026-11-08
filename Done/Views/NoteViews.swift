@@ -352,7 +352,7 @@ struct NoteDetailView: View {
                 }
             }
         }
-        .doneCard()
+        .doneCard(radius: DoneRadius.md, flat: true)
     }
 
     private func taskToken(_ id: String, note: Binding<Note>) -> some View {
@@ -664,7 +664,7 @@ struct TaskNotesList: View {
                     }
                 }
                 .padding(DoneSpace.s6)
-                .doneCard()
+                .doneCard(radius: DoneRadius.md, flat: true)
             }
             .sheet(item: $opened) { ref in
                 NoteSheet(noteID: ref.id)

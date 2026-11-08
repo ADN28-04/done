@@ -126,12 +126,11 @@ struct RootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             // La lumière change en dur-slow, en même temps que l'anneau de la pause arrive.
-            (isOnBreak ? DoneColor.pomodoroBreakBg : DoneColor.bgCanvas)
-                .animation(DoneMotion.arrive, value: isOnBreak)
+            DoneCanvas(isOnBreak: isOnBreak)
         }
     }
 
-    /// Fond plus chaud pendant la pause : on sait dans quelle phase on est sans lire.
+    /// Fond bleuté pendant la pause, sans halos : on sait dans quelle phase on est sans lire.
     private var isOnBreak: Bool {
         screen == .focus && engine.phase == .onBreak
     }
@@ -207,7 +206,7 @@ private struct SidebarRail: View {
     var body: some View {
         VStack(spacing: DoneSpace.s2) {
             item(.focus, "Focus (⌘1)", Image("DoneGlyph"))
-            item(.today, "Aujourd'hui (⌘6)", Image(systemName: "sun.max"), color: DoneColor.sunText)
+            item(.today, "Aujourd'hui (⌘6)", Image(systemName: "sun.max"), color: DoneColor.accent)
             item(.plan, "Plan du jour (⌘2)", Image(systemName: "calendar"))
             item(.calendar, "Calendrier (⌘5)", Image(systemName: "calendar.day.timeline.left"))
             item(.list(.inbox), "Inbox (⌘3)", Image(systemName: "tray"))
@@ -300,7 +299,7 @@ private struct Sidebar: View {
             NavItem(
                 title: "Aujourd'hui",
                 icon: Image(systemName: "sun.max"),
-                iconColor: DoneColor.sunText,
+                iconColor: DoneColor.accent,
                 burstCount: planCelebrations,
                 isSelected: screen == .today
             ) { screen = .today }

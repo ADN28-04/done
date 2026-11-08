@@ -51,7 +51,7 @@ struct FocusStatsView: View {
                 StatsCard(
                     title: "Par jour",
                     value: finished.isEmpty ? nil : plural(finished.count, "plan bouclé", "plans bouclés"),
-                    valueColor: DoneColor.sunText
+                    valueColor: DoneColor.accentText
                 ) {
                     DailyBars(days: days, best: Stats.bestDay(days), finished: finished, grown: grown)
                 }
@@ -95,7 +95,7 @@ struct FocusStatsView: View {
 }
 
 /// Barres de minutes par jour, du lundi au dimanche. Sous chaque jour, la série de ses pomodoros
-/// (une pastille sun chacun, 5 au plus et le reste en nombre) ; un soleil sur la meilleure journée,
+/// (une pastille braise chacun, 5 au plus et le reste en nombre) ; un soleil sur la meilleure journée,
 /// un petit soleil à côté du jour quand le plan du jour a été bouclé. Les barres poussent l'une après
 /// l'autre ; avec « Réduire les animations », elles arrivent en fondu.
 private struct DailyBars: View {
@@ -114,7 +114,7 @@ private struct DailyBars: View {
                 VStack(spacing: DoneSpace.s8) {
                     Image(systemName: "sun.max")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(DoneColor.sunText)
+                        .foregroundStyle(DoneColor.accent)
                         .scaleEffect(isBest && grown || reduceMotion ? 1 : 0.6)
                         .opacity(isBest && grown ? 1 : 0)
                         .animation(DoneMotion.motion(DoneMotion.pop, reduced: reduceMotion).delay(reduceMotion ? 0 : DoneMotion.slow), value: grown)
@@ -143,7 +143,7 @@ private struct DailyBars: View {
                         if finished.contains(Stats.calendar.startOfDay(for: day.day)) {
                             Image(systemName: "sun.max")
                                 .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(DoneColor.sunText)
+                                .foregroundStyle(DoneColor.accent)
                                 .help("Plan du jour bouclé")
                         }
                     }
@@ -158,7 +158,7 @@ private struct DailyBars: View {
     }
 }
 
-/// Pomodoros d'une journée : une pastille sun de 6 par pomodoro, 5 au plus, puis le reste en nombre.
+/// Pomodoros d'une journée : une pastille braise de 6 par pomodoro, 5 au plus, puis le reste en nombre.
 private struct PomodoroDots: View {
     let count: Int
 
@@ -166,13 +166,13 @@ private struct PomodoroDots: View {
         HStack(spacing: DoneSpace.s2) {
             ForEach(0..<min(count, 5), id: \.self) { _ in
                 Circle()
-                    .fill(DoneColor.sun)
+                    .fill(DoneColor.accent)
                     .frame(width: 6, height: 6)
             }
             if count > 5 {
                 Text("+\(count - 5)")
                     .font(.done(.numericS))
-                    .foregroundStyle(DoneColor.sunText)
+                    .foregroundStyle(DoneColor.accentText)
             }
         }
         .frame(height: 14)

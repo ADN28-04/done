@@ -227,7 +227,7 @@ struct PlanView: View {
         }
         .padding(.horizontal, DoneSpace.s16)
         .frame(minHeight: 60)
-        .doneCard()
+        .doneCard(radius: DoneRadius.md)
         .overlay(
             RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
                 .strokeBorder(DoneColor.focusRing, lineWidth: dropTarget == id ? 2 : 0)
@@ -316,13 +316,13 @@ struct PlanView: View {
     }
 }
 
-/// Tuile numérotée de 24 : la place dans le plan. Pleine pour les tâches retenues, en contour sinon.
+/// Tuile numérotée de 24, rayon xs : la place dans le plan. Pleine pour les tâches retenues, en contour sinon.
 struct NumberTile: View {
     let position: Int
     var isFilled = true
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
         Text("\(position)")
             .font(.sans(13, .semibold).monospacedDigit())
             .foregroundStyle(isFilled ? DoneColor.stateOnActive : DoneColor.textSecondary)

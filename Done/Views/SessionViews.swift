@@ -346,10 +346,10 @@ private struct ClosingRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(DoneColor.pomodoroTrack, lineWidth: 5)
+                .stroke(DoneColor.pomodoroTrack, lineWidth: 6)
             Circle()
                 .trim(from: 0, to: closed ? 1 : 0.85)
-                .stroke(DoneColor.pomodoroFocus, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .stroke(DoneColor.pomodoroFocus, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             CheckMarkShape()
                 .trim(from: 0, to: ticked ? 1 : 0)
@@ -377,9 +377,9 @@ private struct ClosingRing: View {
     }
 }
 
-/// Série du jour : une pastille sun par pomodoro fait (8 au plus), une pastille vide pour le prochain,
-/// et la même chose en mots, en sunText. La pastille du pomodoro qui vient de finir arrive en
-/// rebondissant, après l'éclat.
+/// Série du jour : une pastille braise (accent) par pomodoro fait (8 au plus), une pastille vide pour
+/// le prochain, et la même chose en mots, en accentText. La pastille du pomodoro qui vient de finir
+/// arrive en rebondissant, après l'éclat.
 private struct PomodoroSeries: View {
     let count: Int
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -391,7 +391,7 @@ private struct PomodoroSeries: View {
             ForEach(0..<dots, id: \.self) { index in
                 let isNew = index == dots - 1
                 Circle()
-                    .fill(DoneColor.sun)
+                    .fill(DoneColor.accent)
                     .frame(width: 10, height: 10)
                     .scaleEffect(isNew && !shown ? 0.6 : 1)
                     .opacity(isNew && !shown ? 0 : 1)
@@ -402,8 +402,8 @@ private struct PomodoroSeries: View {
                     .frame(width: 10, height: 10)
             }
             Text("\(Format.ordinal(count)) pomodoro aujourd'hui")
-                .font(.sans(12, .medium))
-                .foregroundStyle(DoneColor.sunText)
+                .font(.sans(12, .semibold))
+                .foregroundStyle(DoneColor.accentText)
                 .padding(.leading, DoneSpace.s4)
         }
         .accessibilityElement(children: .ignore)

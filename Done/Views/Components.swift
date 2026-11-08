@@ -210,7 +210,7 @@ struct TaskPickerView: View {
                 }
                 .padding(6)
             }
-            .doneCard()
+            .doneCard(radius: DoneRadius.md, flat: true)
             HStack {
                 Spacer()
                 Button("Annuler") { dismiss() }
@@ -269,6 +269,6 @@ struct ResumeNoteCard: View {
         .padding(.horizontal, DoneSpace.s16)
         .padding(.vertical, DoneSpace.s12)
         .frame(maxWidth: 520, alignment: .leading)
-        .doneCard()
+        .doneCard(radius: DoneRadius.md)
     }
 }

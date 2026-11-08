@@ -98,7 +98,7 @@ struct BreakdownSheet: View {
             .scrollIndicators(.never)
             // Six lignes visibles, la liste défile au-delà.
             .frame(height: min(CGFloat(steps.count), 6) * (Self.rowHeight + 1) + 8)
-            .doneCard(radius: DoneRadius.lg)
+            .doneCard(flat: true)
             Button {
                 insertStep(after: steps.last?.id)
             } label: {
@@ -197,7 +197,7 @@ struct ReviewSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, DoneSpace.s16)
                             .padding(.vertical, DoneSpace.s12)
-                            .doneCard(radius: DoneRadius.lg)
+                            .doneCard(flat: true)
                         }
                     }
 
@@ -219,7 +219,7 @@ struct ReviewSheet: View {
                                 }
                             }
                             .padding(6)
-                            .doneCard(radius: DoneRadius.lg)
+                            .doneCard(flat: true)
                             Text("« Demain » remet la tâche dans le plan de demain matin. « Plus tard » la laisse dans ta liste, hors du plan.")
                                 .doneText(.caption)
                                 .foregroundStyle(DoneColor.textSecondary)
