@@ -14,7 +14,7 @@ Il faut un Mac sous macOS 14 ou plus récent, et Xcode 16 ou plus récent.
 2. Dans la cible **Done**, onglet **Signing & Capabilities**, choisir son équipe (un Apple ID gratuit, « Personal Team », suffit). Sans équipe, Xcode signe en local, ce qui marche aussi, mais macOS peut bloquer les notifications.
 3. Lancer avec ⌘R.
 4. Accepter les notifications quand macOS les demande.
-5. Ajouter ses tâches dans l'Inbox (barre latérale), avec ⌘N depuis n'importe quel écran, ou avec ⌃⌥N depuis n'importe quelle app, tant que Done tourne (raccourci réglable dans Réglages › Saisie rapide). La saisie porte tous les détails : liste, priorité, type, échéance, notes et étapes.
+5. Ajouter ses tâches dans l'Inbox (barre latérale), avec ⌘N depuis n'importe quel écran, ou avec ⌃⌥N depuis n'importe quelle app, tant que Done tourne (raccourci réglable dans Réglages › Saisie rapide). La saisie porte tous les détails : liste, priorité, type, échéance, répétition, notes et étapes. La fin du titre se lit en français : « Relire la spec demain p1 #Shop », « Reporting chaque lundi ».
 
 ### Installer ou mettre à jour l'app dans Applications
 
@@ -115,6 +115,7 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Claude** : par le connecteur local, Claude sur ce Mac lit tout Done, crée et modifie tâches, projets, étiquettes, notes, réunions, absences et plan du jour. Il ne supprime rien.
 - **Notes** (⌘7) : des pages Markdown typées (Note, Réunion, Décision, Personne, Référence), rattachées à un projet, des étiquettes ou des tâches, et liées entre elles par [[Titre]]. Chaque projet a sa page de documentation, chaque réunion sa note préremplie, chaque jour sa note du jour (depuis Aujourd'hui).
 - **Aujourd'hui** (⌘6) : la journée d'un coup d'œil, avec les réunions et le focus fait sur une ligne de temps, le plan du jour, les échéances et retards, et ce qui est déjà coché.
+- **Clavier** : dans une liste ou sur Aujourd'hui, ↑ ↓ choisissent une tâche, Espace la coche, ↩ ouvre sa fiche, ⌘↑ ⌘↓ la déplacent. ⌃⌘S réduit la barre latérale en rail d'icônes.
 - **Saisie hors de Done** : le raccourci global ouvre une fenêtre flottante par-dessus l'app en cours, sans la quitter. Entrée dans le titre ajoute, Échap annule, un clic ailleurs masque la fenêtre en gardant la saisie.
 - **Candidates du matin** : les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin.
 - **Dates lointaines** : une tâche datée au-delà de ces 3 jours n'est pas proposée (ni candidate, ni prochaine action, ni tâche rapide avant une réunion). Elle reste trouvable avec « Chercher une autre tâche », en fin de liste.

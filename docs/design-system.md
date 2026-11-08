@@ -144,7 +144,7 @@ Les moments animés :
 
 ## Iconographie
 
-- SF Symbols, en graisse Medium ou SemiBold, de 9 à 16 pt, en texte secondaire dans les puces et en texte principal dans les boutons. Symboles en usage : `calendar`, `clock`, `tag`, `checkmark`, `nosign`, `exclamationmark.triangle`, `info.circle`, `sun.max`, `calendar.day.timeline.left`, `doc.text`, `folder`, `chevron.down`, `chevron.right`.
+- SF Symbols, en graisse Medium ou SemiBold, de 9 à 16 pt, en texte secondaire dans les puces et en texte principal dans les boutons. Symboles en usage : `calendar`, `clock`, `tag`, `flag` (priorité lue à la saisie), `arrow.clockwise` (répétition), `checkmark`, `nosign`, `exclamationmark.triangle`, `info.circle`, `sun.max`, `calendar.day.timeline.left`, `doc.text`, `folder`, `tray`, `sidebar.left`, `chevron.down`, `chevron.right`.
 - `sun.max` est le signe de la journée : dans la navigation (« Aujourd'hui », en `sunText`), dans la puce « Aujourd'hui » et dans l'encadré de réussite.
 - La coche animée est un tracé (`CheckMarkShape`), pour pouvoir se dessiner ; la coche des puces reste le symbole `checkmark`.
 
@@ -163,17 +163,20 @@ Les moments animés :
     - `blocked`, « Bloquée » : interdit, sur `stateBlocked` ;
     - `risk` : triangle, sur `stateRiskTint` ;
     - `done` : coche et texte `stateOnDone` sans fond, pour ce qui a été fait un autre jour.
-  - `InfoChip` : date (calendrier) ou durée (horloge), icône et texte secondaires sans fond ; en texte d'alerte une fois l'échéance dépassée.
+  - `InfoChip` : date (calendrier), durée (horloge) ou répétition (`arrow.clockwise`, « Chaque lundi »), icône et texte secondaires sans fond ; en texte d'alerte une fois l'échéance dépassée.
   - `PriorityChip` : P1 SemiBold sur teinte active, marge 8 ; P2 Medium en texte actif seul ; rien pour P3 et P4.
   - `TagChip` : icône `tag` et nom en texte secondaire, sans fond. Dans la vue d'une étiquette, celle-ci n'est pas répétée sur les lignes.
 - **Éditeur d'étiquettes** (`TagEditor`, dans la carte des détails) : jetons sur teinte active, rayon `chip`, avec une croix ; un champ « Ajouter » et le menu des étiquettes existantes. Absent pour une étape.
 - **Ligne de tâche** : hauteur 48, rayon `md`.
   - Au survol, `surfaceHover` et poignée de déplacement.
   - Titre (`TaskTitle`) en `bodyStrong` sur deux lignes au plus, métadonnées en `caption`.
-  - Puces à droite (`TaskChips`), espacées de 12 : priorité, « Aujourd'hui » ou « Bloquée », étiquettes, échéance, durée.
+  - Puces à droite (`TaskChips`), espacées de 12 : priorité, « Aujourd'hui » ou « Bloquée », étiquettes, échéance, répétition, durée.
+  - Au clavier, la ligne choisie passe en `surfaceSelected` (voir Raccourcis).
   - Étapes en retrait de 28 par niveau.
   - Cocher passe par `AppModel.completeSoon` : la tâche reste ouverte une seconde, le temps de l'animation, puis elle est cochée. Recliquer pendant cette seconde annule ; quitter Done enregistre aussitôt les coches en attente. `TaskRowTrailing` remplace les puces par « Fait ».
+- **Raccourcis** (`KeyCap`, `ShortcutHint`, `ListShortcutHints`) : des touches dessinées, comme le « ⌘K » d'une recherche. Touche de 18 de haut, rayon `xs`, contour `borderDefault` sur `surfaceDefault`, Archivo 11 Medium en texte secondaire ; le verbe suit en `caption` secondaire. À droite du titre d'une liste et d'Aujourd'hui : « ↑ ↓ Choisir », « Espace Cocher », « ↩ Ouvrir », « ⌘ ↑ ↓ Déplacer ». Ils ne prennent pas la parole : pas de couleur, pas de fond plein.
 - **Élément de navigation** (`NavItem`) : hauteur 32, rayon `sm`, icône 16, compteur `numericS` à droite. Actif en `surfaceSelected` et SemiBold. `iconColor` donne sa couleur propre à une icône (le soleil d'« Aujourd'hui », en `sunText`), `burstCount` lui fait faire un éclat.
+- **Élément du rail** (`NavRailItem`) : case de 40 × 32, rayon `sm`, icône 16 ; actif en `surfaceSelected`, survol en `surfaceHover`. Le titre et le raccourci passent dans l'aide.
 - **Bloc réunion** (`MeetingBlock`, `Hatching`) : rayon `sm`. Hachuré à venir (traits de 1,5 à 45° tous les 6, le temps est pris), plein `meetingNow` en cours, `stateDone` une fois passé. La pastille du haut (`MeetingPill`) suit les mêmes règles.
 - **Tuile numérotée** (`NumberTile`) : 24, rayon `sm`. Pleine `stateActive` pour une place dans le plan, en contour `borderDefault` pour un emplacement libre.
 - **Sélecteur** (`DoneSegmented`) : piste `bgSunken` de rayon `sm` ; segment de 24, rayon `xs`, sur `surfaceDefault` avec `shadowCard`, qui glisse d'une option à l'autre (`matchedGeometryEffect`).
@@ -212,7 +215,7 @@ La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-p
 
 ## Navigation
 
-Barre latérale de 228, sur `bgSunken`, avec un trait `borderSubtle` à droite :
+Barre latérale de 228, sur `bgSunken`, avec un trait `borderSubtle` à droite. Le bouton `sidebar.left` à gauche de la barre du haut, ou ⌃⌘S, la réduit en un rail de 56 (`NavRailItem` : Focus, Aujourd'hui, Plan du jour, Calendrier, Inbox, Notes, puis Stats et Réglages en bas) ; survolé un instant (150 ms), le rail laisse passer la barre complète par-dessus, avec son ombre, comme en session. La barre complète porte :
 
 - en haut, Focus (⌘1, glyphe de Done), Aujourd'hui (⌘6, soleil `sun.max` toujours en `sunText`), Plan du jour (⌘2, avec le nombre de tâches du plan), Calendrier (⌘5, `calendar.day.timeline.left`), Inbox (⌘3) et Notes (⌘7, `doc.text`) ;
 - au milieu, deux sections repliables, leur titre (`Eyebrow`) suivi d'un chevron de 9 à droite : « Projets », chaque projet suivi de ses sous-projets en retrait de 16 (un chevron dans le `NavItem` du projet les replie), puis « Nouveau projet » ; « Étiquettes », une entrée par étiquette (icône `tag`). Chaque entrée porte son nombre de tâches ouvertes, celui d'un projet comptant ses sous-projets ;
@@ -234,7 +237,7 @@ En session (minuteur, pause, interruption, fin), la barre latérale s'efface en 
   - « Pomodoro terminé » (ou le titre de l'étape cochée en avance) en `displayM`, la durée et la tâche en `callout` secondaire.
   - Pour un pomodoro terminé, la série du jour : une pastille `sun` de 10 par pomodoro fait (8 au plus), une pastille vide pour le prochain, et « 3e pomodoro aujourd'hui » en `sunText`. Un pomodoro est un minuteur mené au bout, rallonges comprises (`Stats.pomodoros`) ; une tâche cochée avant la fin ne compte pas.
   - Les actions de Done : « Cocher la tâche » en principal, « Encore 5 min » et « Pause, puis je reprends » en secondaire, « Bloqué… » et « Arrêter là » en discret.
-- **Barre de menus** : image « template » du système, qui prend la couleur de la barre de menus.
+- **Barre de menus** : image « template » du système, qui prend la couleur de la barre de menus. Au repos, le glyphe de Done, ou `sun.max` une fois le plan du jour bouclé : le soleil reste monochrome, comme toutes les icônes de la barre.
   - Concentration : mini-anneau de 16 rendu à la volée, et temps restant en chiffres tabulaires.
   - Arrêt et pause : icônes pause et tasse.
   - Fin : anneau plein et « Fini ».
@@ -245,6 +248,16 @@ En session (minuteur, pause, interruption, fin), la barre latérale s'efface en 
 - **Formulaire de capture** (`CaptureForm`) : la fiche d'une tâche, vide, sur 560 de large. `Eyebrow` « Nouvelle tâche », titre en `displayM` sans contour, notes (`NotesEditor`, 64 de haut), carte des détails (`TaskDetailsCard` : liste, étiquettes, priorité, type, échéance, en lignes `DetailRow` de 44), puis la carte des étapes (lignes de 36, numéro en `numericS`, croix pour retirer). Annuler et Ajouter (⌘ Entrée) en bas à droite. La fiche d'une tâche existante (`TaskEditorSheet`) reprend les mêmes composants, avec la ligne « Bloquée » en plus ; cocher une étape y suit la même seconde d'attente que dans les listes.
 - **Fenêtre flottante** (`QuickCapturePanel`) : le même formulaire dans une fenêtre sans barre de titre visible, au niveau flottant, sur `bgCanvas`, posée un peu au-dessus du centre de l'écran où se trouve la souris. Elle ne fait pas passer Done au premier plan.
 - **Champ d'ajout des listes** : une ligne `doneField` de 36, avec « Détails… » en bouton discret à droite.
+- **Lecture du titre** (`QuickEntry`, `QuickEntryHint`) : sous chaque champ de saisie, quand la fin du titre dit une échéance, une priorité, une étiquette ou une répétition, une ligne « Compris » en `caption` suivie des puces lues (`InfoChip` et `TagChip`) arrive en fondu. Rien quand il n'y a rien à lire.
+- **Répétition** : ligne « Répétition » de la carte des détails (`RecurrenceMenu`) : Jamais, Chaque jour, Jours ouvrés, Chaque semaine (jours à cocher), Toutes les deux semaines, Chaque mois. Absente pour une étape.
+
+## Stats
+
+- **En-tête** : « Cette semaine » en `displayL`, la période en `body` secondaire, les flèches en `DoneIconButtonStyle`.
+- **Total** : les minutes de focus en `numericXL` (texte actif), puis « de focus · 9 pomodoros · 3 tâches cochées · 1 interruption » en `body` secondaire.
+- **Par jour** : une carte de rayon `lg`. Barres de 40 en `stateActive` (piste `pomodoroTrack` pour un jour vide), la durée au-dessus en `caption`, le jour en dessous. Sous le jour, ses pomodoros en pastilles `sun` de 6 (5 au plus, puis « +2 » en `sunText`). Un soleil `sunText` au-dessus de la meilleure journée ; un petit soleil à côté des jours où le plan a été bouclé, et leur nombre en tête de la carte, en `sunText`.
+- **Par projet** : jauges `ProgressBar` de 8.
+- **Mouvement** : à l'arrivée sur l'écran et à chaque changement de semaine, les barres poussent l'une après l'autre (`arrive`, 40 ms d'écart), puis le soleil de la meilleure journée rebondit (`pop`). Avec « Réduire les animations », tout arrive en fondu.
 
 ## Logo
 
