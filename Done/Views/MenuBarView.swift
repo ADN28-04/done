@@ -3,13 +3,20 @@ import SwiftUI
 
 /// Libellé de la barre de menus : une image « template » du système, qui prend la couleur de la
 /// barre de menus, jamais celle de Done. Mini-anneau de 16 et temps restant en chiffres tabulaires.
+/// Au repos, une fois le plan du jour bouclé, un soleil remplace le glyphe de Done.
 struct MenuBarLabel: View {
     let engine: FocusEngine
+    let model: AppModel
 
     var body: some View {
         switch engine.phase {
         case .idle:
-            Image("DoneGlyph")
+            if model.isPlanFinished {
+                Image(systemName: "sun.max")
+                    .accessibilityLabel("Done, plan du jour terminé")
+            } else {
+                Image("DoneGlyph")
+            }
         case .focusing:
             Text("\(MiniRing.image(fraction: engine.remainingFraction)) \(engine.menuBarText)")
                 .monospacedDigit()

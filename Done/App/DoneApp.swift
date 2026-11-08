@@ -59,7 +59,7 @@ struct DoneApp: App {
                 .foregroundStyle(DoneColor.textPrimary)
                 .tint(DoneColor.stateActive)
         } label: {
-            MenuBarLabel(engine: engine)
+            MenuBarLabel(engine: engine, model: model)
         }
         .menuBarExtraStyle(.window)
     }
