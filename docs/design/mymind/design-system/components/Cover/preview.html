@@ -1,0 +1,52 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Done</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--bgCanvas); color:var(--textPrimary); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; width:960px; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; }
+  .art svg { display:block; }
+  .ember { fill:var(--accent); }
+  .cobalt { fill:var(--stateActive); }
+  .ink { fill:var(--textPrimary); }
+  .pink { fill:var(--tagPink); }
+  .r-lg { rx:var(--lg); }
+  .r-md { rx:var(--md); }
+  .track { fill:none; stroke:var(--bgCanvas); stroke-opacity:.25; stroke-width:var(--border-ring); }
+  .arc { fill:none; stroke:var(--bgCanvas); stroke-width:var(--border-ring); stroke-linecap:round; }
+  .words { position:absolute; left:var(--s40); bottom:var(--s40); max-width:440px; }
+  .name { margin:0; font-family:var(--font-display); font-weight:500; font-size:120px; line-height:.92; letter-spacing:-0.03em; color:var(--textPrimary); font-variation-settings:'opsz' 72; }
+  .tag { margin:var(--s12) 0 0 4px; font-size:14px; line-height:20px; color:var(--textSecondary); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      accent 176×262 bled off the top (braise, la marque) · stateActive 120×64 (cobalt) · tagPink 64×64 (rose des halos) · textPrimary 280×144 bleeding off the right (encre) ≈ 30% of 960×288
+  arrangement one tall ember slab with satellites, bottoms on one line s40 above the edge, s16 gutters
+  pattern     literal motif, the thin timer ring of the logo: four rings at border-ring (6) cut from the ground into the ink block, emptying 25 → 50 → 75 → 92% clockwise from noon, chosen because the system went thin and precise
+  scales      sides in s8 multiples; gutters s16; ring pitch s48 + s8; corners lg (slab), md (blocks); stroke border-ring
+-->
+<rect class="ember r-lg" x="0" y="-14" width="176" height="262" rx="24"/>
+<rect class="cobalt r-md" x="192" y="24" width="120" height="64" rx="18"/>
+<rect class="pink r-md" x="328" y="24" width="64" height="64" rx="18"/>
+<rect class="ink r-md" x="192" y="104" width="304" height="144" rx="18"/>
+<g transform="translate(248 176)"><circle class="track" r="20"/><path class="arc" d="M0 -20 A20 20 0 0 1 20 0"/></g>
+<g transform="translate(304 176)"><circle class="track" r="20"/><path class="arc" d="M0 -20 A20 20 0 0 1 0 20"/></g>
+<g transform="translate(360 176)"><circle class="track" r="20"/><path class="arc" d="M0 -20 A20 20 0 1 1 -20 0"/></g>
+<g transform="translate(416 176)"><circle class="track" r="20"/><path class="arc" d="M0 -20 A20 20 0 1 1 -10 -17.32"/></g>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Done</h1>
+<p class="tag">Ta journée sur un seul écran. Une chose à la fois.</p>
+</div>
+</div>
+</body>
+</html>

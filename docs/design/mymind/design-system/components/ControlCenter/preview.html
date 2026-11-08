@@ -1,0 +1,137 @@
+<!-- @dsCard group="Ma journée" height=852 width=1376 page subtitle="L'écran d'accueil : Focus, Aujourd'hui et Plan du jour réunis" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Ma journée</title>
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bgCanvas); font-family: var(--font-sans); color: var(--textPrimary); -webkit-font-smoothing: antialiased; }
+  .cc { width: 1376px; height: 852px; }
+  .cc main { flex: 1; min-width: 0; padding: 30px 36px 24px; display: flex; flex-direction: column; gap: 20px; }
+  .cc header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+  .cc .acts { display: flex; gap: 10px; padding-top: 4px; }
+  .cc .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.25fr 1fr 1fr; grid-template-rows: 1.1fr 1fr; gap: 16px; }
+  .cc .d-card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .focus { position: relative; }
+  .focus h2 { margin: 14px 0 6px; max-width: calc(100% - 110px); font: 500 32px/38px var(--font-display); font-variation-settings: "opsz" 48; letter-spacing: -0.015em; }
+  .focus .sub { font: 400 13px/18px var(--font-sans); color: var(--textSecondary); }
+  .focus .chips { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+  .focus .row { margin-top: auto; display: flex; align-items: center; gap: 10px; }
+  .focus .hint { margin-left: auto; text-align: right; white-space: nowrap; font: 400 12px/16px var(--font-sans); color: var(--textSecondary); }
+  .focus .hint b { color: var(--textPrimary); font-weight: 700; }
+  .focus .d-ring { position: absolute; right: 22px; top: 20px; }
+  .plan .d-task { min-height: 0; padding: 8px; }
+  .big { font: 300 44px/48px var(--font-sans); letter-spacing: -0.02em; }
+  .big small { font: 400 14px/20px var(--font-sans); color: var(--textSecondary); letter-spacing: 0; margin-left: 6px; }
+  .dots { display: flex; align-items: center; gap: 6px; margin: 8px 0 12px; } .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); display: block; } .dots i.o { background: transparent; border: 1.5px solid var(--borderDefault); box-sizing: border-box; } .dots span { font: 700 12px/16px var(--font-sans); color: var(--accentText); margin-left: 4px; }
+  .kv { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--borderSubtle); font: 400 13px/18px var(--font-sans); color: var(--textSecondary); } .kv b { color: var(--textPrimary); font-weight: 700; }
+  .week { display: flex; align-items: flex-end; gap: 8px; height: 52px; margin-top: auto; } .week div { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; } .week i { width: 100%; border-radius: 6px; background: var(--stateActiveTint); display: block; } .week i.t { background: var(--stateActive); } .week span { font: 600 11px/14px var(--font-sans); color: var(--textSecondary); }
+</style>
+</head>
+<body>
+<div class="cc d-window">
+  <nav class="d-rail">
+    <div class="d-rail__lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+    <button class="d-rail__btn d-rail__btn--add" aria-label="Capturer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></button>
+    <button class="d-rail__btn is-selected" aria-label="Ma journée"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg></button>
+    <button class="d-rail__btn" aria-label="Calendrier"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg></button>
+    <button class="d-rail__btn" aria-label="Notes"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3.5 1.8h6l3 3v9.4h-9z"/><path d="M5.8 8h4.4M5.8 10.6h4.4" stroke-linecap="round"/></svg></button>
+    <button class="d-rail__btn" aria-label="Listes"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 4h8M6 8h8M6 12h8"/><circle cx="2.8" cy="4" r=".9" fill="currentColor"/><circle cx="2.8" cy="8" r=".9" fill="currentColor"/><circle cx="2.8" cy="12" r=".9" fill="currentColor"/></svg><span class="d-rail__badge">7</span></button>
+    <button class="d-rail__btn" aria-label="Stats"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 13V8M8 13V3M13 13V6"/></svg></button>
+    <span class="d-rail__spacer"></span>
+    <button class="d-rail__btn" aria-label="Réglages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.6v2M8 12.4v2M1.6 8h2M12.4 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4" stroke-linecap="round"/></svg></button>
+    <svg width="40" height="40" viewBox="100 100 824 824" aria-hidden="true" style="margin-top:6px"><defs><radialGradient id="lw" cx="0.85" cy="0.1" r="0.9"><stop offset="0" stop-color="#FFD9C9"/><stop offset="0.45" stop-color="#FFF4EF"/><stop offset="1" stop-color="#FFFFFF"/></radialGradient></defs><rect x="100" y="100" width="824" height="824" rx="185" fill="url(#lw)"/><circle cx="512" cy="512" r="240" fill="none" stroke="#24272D" stroke-width="30" opacity=".12"/><path d="M512 272 A240 240 0 1 1 304.2 392" fill="none" stroke="#24272D" stroke-width="30" stroke-linecap="round"/><circle cx="392" cy="304.2" r="40" fill="#FF5924"/></svg>
+  </nav>
+
+  <main>
+    <header>
+      <div>
+        <div class="d-greet__date"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="6" cy="6" r="2.3" fill="currentColor" stroke="none"/><path d="M6 .9v1.3M6 9.8v1.3M.9 6h1.3M9.8 6h1.3M2.4 2.4l.9.9M8.7 8.7l.9.9M2.4 9.6l.9-.9M8.7 3.3l.9-.9"/></svg>Lundi 9 novembre · semaine 46</div>
+        <h1 class="d-greet__title"><em>Bonjour Adnan,</em> trois tâches et deux réunions aujourd'hui.</h1>
+      </div>
+      <div class="acts">
+        <span class="d-search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Rechercher<span class="d-kbd">⌘K</span></span>
+        <button class="d-btn" style="height:38px"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Capturer <span class="d-kbd">⌘N</span></button>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="d-card focus">
+        <span class="d-eyebrow">Prochaine action <span class="d-chip d-chip--today"><svg viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="2.6"/></svg>Tâche 1 sur 3</span></span>
+        <div class="d-ring" style="width:86px;height:86px"><svg width="86" height="86" viewBox="0 0 86 86"><circle class="d-ring__track" cx="43" cy="43" r="38" stroke-width="6"/><circle class="d-ring__fill" cx="43" cy="43" r="38" stroke-width="6" stroke-dasharray="238.8 238.8"/></svg><div class="d-ring__center"><span style="font:600 17px/20px var(--font-sans)">50:00</span><span style="font:400 11px/14px var(--font-sans);color:var(--textSecondary)">Deepwork</span></div></div>
+        <h2>Créer l'étiquette Saison hiver sur les 9 fiches</h2>
+        <div class="sub">Mettre en ligne la LP Luminothérapie · étape 2 sur 5</div>
+        <div class="chips"><span class="d-prio d-prio--p1">P1</span><span class="d-info"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5"/><path d="M1.5 5h9"/></svg>Auj.</span><span class="d-tagpill d-tagpill--neutral">Run Shop</span></div>
+        <div class="row">
+          <button class="d-btn d-btn--primary"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6L12.8 8z"/></svg>Lancer le focus</button>
+          <button class="d-btn">Découper…</button>
+          <div class="hint">Avant 14:00<br><b>1 h 20</b> de libre</div>
+        </div>
+      </article>
+
+      <article class="d-card">
+        <div class="d-widget__head"><span class="d-eyebrow">Ma journée</span><span class="d-widget__link">Calendrier</span></div>
+        <div class="d-timeline" style="height:232px">
+          <div class="d-timeline__hour" style="top:0"><span>9:00</span></div>
+          <div class="d-timeline__hour" style="top:40px"><span>10:00</span></div>
+          <div class="d-timeline__hour" style="top:80px"><span>11:00</span></div>
+          <div class="d-timeline__hour" style="top:120px"><span>12:00</span></div>
+          <div class="d-timeline__hour" style="top:160px"><span>13:00</span></div>
+          <div class="d-timeline__hour" style="top:200px"><span>14:00</span></div>
+          <div class="d-meeting d-meeting--focus d-meeting--one" style="top:4px;height:26px"><span class="d-meeting__title">Focus · Trier l'Inbox</span><span class="d-meeting__time">9:05</span></div>
+          <div class="d-meeting d-meeting--now d-meeting--one" style="top:42px;height:28px"><span class="d-meeting__title">Point hebdo</span><span class="d-meeting__time">fin 10:45</span></div>
+          <div class="d-timeline__now" style="top:64px"><span>10:35</span></div>
+          <div class="d-meeting d-meeting--slot" style="top:84px;height:72px"><span class="d-meeting__title">Libre · 2 h</span><span class="d-meeting__time">11:00–13:00 · 2 pomodoros possibles</span></div>
+          <div class="d-meeting d-meeting--upcoming d-meeting--one" style="top:202px;height:28px"><span class="d-meeting__title">Revue du devis</span><span class="d-meeting__time">14:00–14:45</span></div>
+        </div>
+      </article>
+
+      <article class="d-card plan">
+        <div class="d-widget__head"><span class="d-eyebrow">Plan du jour</span><span class="d-widget__link">Modifier</span></div>
+        <div class="d-bar" style="margin:2px 0 10px"><div class="d-bar__fill" style="width:25%"></div></div>
+        <div class="d-task d-task--done"><button class="d-check" role="checkbox" aria-checked="true" aria-label="Rouvrir"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button><div class="d-task__text"><span class="d-task__title">Trier l'Inbox</span></div><span class="d-chip d-chip--done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg>Fait</span></div>
+        <div class="d-task is-hover"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button><span class="d-tile">1</span><div class="d-task__text"><span class="d-task__title">Mettre en ligne la LP Luminothérapie</span><span class="d-task__meta">Shop › Saison hiver · 5 étapes</span></div></div>
+        <div class="d-task"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button><span class="d-tile">2</span><div class="d-task__text"><span class="d-task__title">Préparer le bilan de la semaine</span><span class="d-task__meta">Inbox</span></div></div>
+        <div class="d-task"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button><span class="d-tile">3</span><div class="d-task__text"><span class="d-task__title">Relancer le devis transporteur</span><span class="d-task__meta">Run Shop</span></div></div>
+      </article>
+
+      <article class="d-card">
+        <div class="d-widget__head"><span class="d-eyebrow">Échéances et retards</span><span class="d-widget__link">Tout voir</span></div>
+        <div class="d-task"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"></button><div class="d-task__text"><span class="d-task__title">Envoyer les visuels de la LP</span><span class="d-task__meta">Shop › Campagnes</span></div><span class="d-info d-info--alert"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5"/><path d="M1.5 5h9"/></svg>Hier</span></div>
+        <div class="d-task"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"></button><div class="d-task__text"><span class="d-task__title">Valider les fiches du catalogue</span><span class="d-task__meta">Catalogue</span></div><span class="d-info"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5"/><path d="M1.5 5h9"/></svg>Auj.</span></div>
+        <div class="d-task"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"></button><div class="d-task__text"><span class="d-task__title">Réserver la salle pour l'atelier</span><span class="d-task__meta">Inbox</span></div><span class="d-info"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5"/><path d="M1.5 5h9"/></svg>Demain</span></div>
+        <div class="d-task"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"></button><div class="d-task__text"><span class="d-task__title">Relire la spec du connecteur</span><span class="d-task__meta">Done</span></div><span class="d-chip d-chip--blocked">Bloquée</span></div>
+      </article>
+
+      <article class="d-card">
+        <div class="d-widget__head"><span class="d-eyebrow">Notes</span><span class="d-widget__link">Toutes les notes</span></div>
+        <div class="d-masonry">
+          <div class="d-note d-note--blush"><span class="d-tagpill d-tagpill--journal">Journal</span><h4 class="d-note__title">Lundi 9 novembre</h4><p class="d-note__body d-note__body--mono">Reprendre la LP après le point hebdo.</p><div class="d-note__todo"><span class="d-check" role="checkbox" aria-checked="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></span>Trier l'Inbox</div></div>
+          <div class="d-note d-note--slate"><span class="d-tagpill d-tagpill--meeting">Réunion</span><h4 class="d-note__title">Point hebdo</h4><p class="d-note__body">10:00 · 3 décisions</p></div>
+          <div class="d-note"><span class="d-tagpill d-tagpill--decision">Décision</span><h4 class="d-note__title">Newsreader pour les titres</h4></div>
+        </div>
+      </article>
+
+      <article class="d-card">
+        <div class="d-widget__head"><span class="d-eyebrow">Focus aujourd'hui</span><span class="d-widget__link">Stats</span></div>
+        <div class="big">1 h 15<small>sur 3 h visées</small></div>
+        <div class="dots"><i></i><i></i><i></i><i class="o"></i><span>3e pomodoro</span></div>
+        <div class="kv"><span>Tâches cochées</span><b>4</b></div>
+        <div class="kv"><span>Inbox à trier</span><b>7</b></div>
+        <div class="week"><div><i style="height:62%"></i><span>L</span></div><div><i style="height:80%"></i><span>M</span></div><div><i style="height:45%"></i><span>M</span></div><div><i style="height:90%"></i><span>J</span></div><div><i style="height:55%"></i><span>V</span></div><div><i class="t" style="height:28%"></i><span>L</span></div></div>
+      </article>
+    </section>
+
+    <div class="d-capture">
+      <span style="color:var(--textSecondary);display:flex"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></span>
+      <input class="d-capture__input" placeholder="Noter une tâche, une note ou une réunion… « Appeler le transporteur demain P2 »">
+      <button class="d-capture__kind" aria-pressed="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="11" height="11" rx="3"/><path d="M5.5 8.2l1.8 1.8 3.4-3.6" stroke-linecap="round"/></svg>Tâche</button>
+      <button class="d-capture__kind" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3.5 1.8h6l3 3v9.4h-9z"/></svg>Note</button>
+      <button class="d-capture__kind" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2.5"/><path d="M2 6.5h12"/></svg>Réunion</button>
+      <button class="d-capture__send" aria-label="Ajouter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"/></svg></button>
+    </div>
+  </main>
+</div>
+</body>
+</html>

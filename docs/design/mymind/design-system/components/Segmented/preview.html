@@ -1,0 +1,29 @@
+<!-- @dsCard group="Actions" height=64 -->
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>Segmented</title></head>
+<body class="d-preview">
+<div class="d-row">
+  <div class="d-seg has-thumb" role="group"><span class="d-seg__thumb"></span>
+    <button class="d-seg__opt" aria-pressed="true">Semaine</button>
+    <button class="d-seg__opt" aria-pressed="false">Mois</button>
+    <button class="d-seg__opt" aria-pressed="false">Année</button>
+  </div>
+  <div class="d-seg has-thumb" role="group"><span class="d-seg__thumb"></span>
+    <button class="d-seg__opt" aria-pressed="false">Normale</button>
+    <button class="d-seg__opt" aria-pressed="true">Rapide</button>
+    <button class="d-seg__opt" aria-pressed="false">Deepwork</button>
+  </div>
+</div>
+<script>
+document.querySelectorAll('.d-seg.has-thumb').forEach(function (seg) {
+  var thumb = seg.querySelector('.d-seg__thumb'), opts = seg.querySelectorAll('.d-seg__opt');
+  function place(o) { thumb.style.width = o.offsetWidth + 'px'; thumb.style.transform = 'translateX(' + o.offsetLeft + 'px)'; }
+  opts.forEach(function (o) {
+    if (o.getAttribute('aria-pressed') === 'true') { thumb.style.transition = 'none'; place(o); void thumb.offsetWidth; thumb.style.transition = ''; }
+    o.addEventListener('click', function () { opts.forEach(function (x) { x.setAttribute('aria-pressed', x === o ? 'true' : 'false'); }); place(o); });
+  });
+});
+</script>
+</body>
+</html>

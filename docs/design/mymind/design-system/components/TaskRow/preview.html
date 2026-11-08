@@ -1,0 +1,53 @@
+<!-- @dsCard group="Tâches" height=280 -->
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>TaskRow</title></head>
+<body class="d-preview">
+<div class="d-card" style="padding:4px;max-width:660px">
+  <div class="d-task is-hover" id="demo">
+    <span style="position:relative;display:inline-flex"><button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button><span class="d-burst" aria-hidden="true"><i style="--a:0deg"></i><i style="--a:45deg"></i><i style="--a:90deg"></i><i style="--a:135deg"></i><i style="--a:180deg"></i><i style="--a:225deg"></i><i style="--a:270deg"></i><i style="--a:315deg"></i></span></span>
+    <span class="d-tile">1</span>
+    <div class="d-task__text"><span class="d-task__title">Préparer le bilan de la semaine</span><span class="d-task__meta">Maison › Travaux · 3 étapes</span></div>
+    <div class="d-task__chips"><span class="d-prio d-prio--p1">P1</span><span class="d-chip d-chip--today"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="6" cy="6" r="2.3" fill="currentColor" stroke="none"/><path d="M6 .9v1.3M6 9.8v1.3M.9 6h1.3M9.8 6h1.3M2.4 2.4l.9.9M8.7 8.7l.9.9M2.4 9.6l.9-.9M8.7 3.3l.9-.9"/></svg>Aujourd'hui</span><span class="d-info"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="6" cy="6" r="4.6"/><path d="M6 3.4V6l1.8 1.2" stroke-linecap="round"/></svg>50 min</span></div>
+  </div>
+  <div class="d-task d-task--step">
+    <button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button>
+    <div class="d-task__text"><span class="d-task__title">Rassembler les notes de reprise</span></div>
+  </div>
+  <div class="d-task">
+    <button class="d-check" role="checkbox" aria-checked="false" aria-label="Cocher"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button>
+    <span class="d-tile d-tile--empty">2</span>
+    <div class="d-task__text"><span class="d-task__title">Relancer le devis</span><span class="d-task__meta">Inbox</span></div>
+    <div class="d-task__chips"><span class="d-chip d-chip--blocked"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4.4"/><path d="M2.9 9.1l6.2-6.2"/></svg>Bloquée</span><span class="d-tag"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 1.5h4.2l4.8 4.8-4.2 4.2-4.8-4.8z" stroke-linejoin="round"/><circle cx="4" cy="4" r=".8" fill="currentColor" stroke="none"/></svg>appels</span><span class="d-info d-info--alert"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5"/><path d="M1.5 5h9M4 1.2v2.4M8 1.2v2.4"/></svg>Hier</span></div>
+  </div>
+  <div class="d-task d-task--done">
+    <button class="d-check" role="checkbox" aria-checked="true" aria-label="Rouvrir"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg></button>
+    <div class="d-task__text"><span class="d-task__title">Trier l'Inbox</span></div>
+    <div class="d-task__chips"><span class="d-chip d-chip--done"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg>Fait</span></div>
+  </div>
+</div>
+<p style="margin:12px 0 0;font:400 12px/16px var(--font-sans);color:var(--textSecondary)">Coche la première tâche : la case rebondit, le titre se barre, un éclat part, la puce « Fait » arrive.</p>
+<script>
+(function () {
+  var DONE = '<span class="d-chip d-chip--done is-popping"><svg class="d-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6"/></svg>Fait</span>';
+  document.querySelectorAll('.d-task').forEach(function (row) {
+    var box = row.querySelector('.d-check'); var chips = row.querySelector('.d-task__chips');
+    var keep = chips ? chips.innerHTML : '';
+    box.addEventListener('click', function () {
+      var on = box.getAttribute('aria-checked') !== 'true';
+      box.setAttribute('aria-checked', on ? 'true' : 'false');
+      box.setAttribute('aria-label', on ? 'Rouvrir' : 'Cocher');
+      box.classList.remove('is-popping'); row.classList.remove('is-finishing'); void box.offsetWidth;
+      row.classList.toggle('d-task--done', on);
+      if (on) {
+        box.classList.add('is-popping'); row.classList.add('is-finishing');
+        var burst = row.querySelector('.d-burst');
+        if (burst) { burst.classList.remove('is-on'); void burst.offsetWidth; burst.classList.add('is-on'); }
+        if (chips) setTimeout(function () { chips.innerHTML = DONE; }, 260);
+      } else if (chips) { chips.innerHTML = keep; }
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!-- @dsCard group="Saisie" height=90 -->
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>CaptureBar</title></head>
+<body class="d-preview">
+<div class="d-capture" style="max-width:980px">
+  <span style="color:var(--textSecondary);display:flex"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></span>
+  <input class="d-capture__input" placeholder="Noter une tâche, une note ou une réunion… « Appeler le transporteur demain P2 »">
+  <button class="d-capture__kind" aria-pressed="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="11" height="11" rx="3"/><path d="M5.5 8.2l1.8 1.8 3.4-3.6" stroke-linecap="round"/></svg>Tâche</button>
+  <button class="d-capture__kind" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3.5 1.8h6l3 3v9.4h-9z"/><path d="M5.8 8h4.4M5.8 10.6h4.4" stroke-linecap="round"/></svg>Note</button>
+  <button class="d-capture__kind" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>Réunion</button>
+  <button class="d-capture__send" aria-label="Ajouter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"/></svg></button>
+</div>
+<script>
+document.querySelectorAll('.d-capture__kind').forEach(function (b, _, all) {
+  b.addEventListener('click', function () { all.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); });
+});
+</script>
+</body>
+</html>

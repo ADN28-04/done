@@ -1,0 +1,26 @@
+<!-- @dsCard group="Pomodoro" height=320 -->
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>ProgressRing</title></head>
+<body class="d-preview">
+<div class="d-row" style="gap:32px;align-items:center"><div class="d-ring " style="width:280px;height:280px">
+  <svg width="280" height="280" viewBox="0 0 280 280" aria-hidden="true">
+    <circle class="d-ring__track" cx="140.0" cy="140.0" r="134.00" stroke-width="6"/>
+    <circle class="d-ring__fill" cx="140.0" cy="140.0" r="134.00" stroke-width="6" stroke-dasharray="522.01 841.95"/>
+  </svg>
+  <div class="d-ring__center"><span class="d-tnum" style="font:300 60px/64px var(--font-sans);letter-spacing:-0.02em">18:42</span><span style="font:400 13px/18px var(--font-sans);color:var(--textSecondary);margin-top:2px">Concentration</span></div>
+</div><div class="d-col" style="gap:20px;align-items:center"><div class="d-ring d-ring--break" style="width:96px;height:96px">
+  <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
+    <circle class="d-ring__track" cx="48.0" cy="48.0" r="43.00" stroke-width="5"/>
+    <circle class="d-ring__fill" cx="48.0" cy="48.0" r="43.00" stroke-width="5" stroke-dasharray="108.07 270.18"/>
+  </svg>
+  <div class="d-ring__center"><span style="font:600 14px/20px var(--font-sans)">04:10</span></div>
+</div><div class="d-ring d-ring--paused" style="width:96px;height:96px">
+  <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
+    <circle class="d-ring__track" cx="48.0" cy="48.0" r="43.00" stroke-width="5"/>
+    <circle class="d-ring__fill" cx="48.0" cy="48.0" r="43.00" stroke-width="5" stroke-dasharray="202.63 270.18"/>
+  </svg>
+  <div class="d-ring__center"><span style="font:400 12px/16px var(--font-sans);color:var(--textSecondary)">En pause</span></div>
+</div></div></div>
+</body>
+</html>
