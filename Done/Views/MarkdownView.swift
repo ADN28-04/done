@@ -62,7 +62,8 @@ struct MarkdownView: View {
         case .task(let checked, let indent, let text, let line):
             HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s8) {
                 TaskCheckbox(isDone: checked) { onToggle(line) }
-                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
+                    // Case de 18 centrée sur la hauteur des capitales du texte.
+                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 4 }
                 Text(Self.inline(text))
                     .doneText(.body)
                     .strikethrough(checked, color: DoneColor.stateOnDone)

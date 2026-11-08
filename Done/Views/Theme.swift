@@ -67,10 +67,12 @@ enum DoneColor {
     static let pomodoroTrack = dynamic(0xE6DFCD, 0x2E3329)
     static let pomodoroPaused = dynamic(0xB4AF9F, 0x585E51)
 
-    // Ombres : réservées aux éléments surélevés. En sombre, les contours font le travail.
-    static let shadowCard = dynamic(0x1C1E26, 0x000000, lightAlpha: 0.06, darkAlpha: 0.35)
-    static let shadowRaised = dynamic(0x1C1E26, 0x000000, lightAlpha: 0.10, darkAlpha: 0.45)
-    static let shadowRaisedNear = dynamic(0x1C1E26, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
+    // Ombres : teintées de l'encre en clair, noires en sombre. Jamais sur une carte ordinaire :
+    // shadowCard pour le segment choisi, shadowRaised (et sa part proche) pour la carte de fin de
+    // pomodoro et la saisie flottante.
+    static let shadowCard = dynamic(0x23281F, 0x000000, lightAlpha: 0.08, darkAlpha: 0.35)
+    static let shadowRaised = dynamic(0x23281F, 0x000000, lightAlpha: 0.12, darkAlpha: 0.50)
+    static let shadowRaisedNear = dynamic(0x23281F, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
 
     static func dynamic(_ light: UInt32, _ dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -275,11 +277,11 @@ extension View {
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
     }
 
-    /// Carte surélevée (shadow.raised) : carte de fin de pomodoro, carte survolée.
+    /// Carte surélevée (shadow.raised : 0 14 32 et 0 2 6) : carte de fin de pomodoro, saisie flottante.
     func doneRaised(radius: CGFloat = DoneRadius.lg) -> some View {
         background(DoneColor.surfaceDefault, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
-            .shadow(color: DoneColor.shadowRaised, radius: 14, y: 12)
+            .shadow(color: DoneColor.shadowRaised, radius: 16, y: 14)
             .shadow(color: DoneColor.shadowRaisedNear, radius: 3, y: 2)
     }
 
@@ -482,7 +484,7 @@ struct DoneSegmented<Value: Hashable>: View {
 
 // MARK: Tâches
 
-/// Case à cocher de tâche : carré de 16, rayon xs, contour 1,5. La coche apparaît en filigrane
+/// Case à cocher de tâche : carré de 18, rayon xs, contour 1,5. La coche apparaît en filigrane
 /// au survol ; cochée, plein action.primary.
 struct TaskCheckbox: View {
     let isDone: Bool
@@ -504,11 +506,11 @@ struct TaskCheckbox: View {
                 .overlay {
                     if isDone || (hovered && isEnabled) {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(isDone ? DoneColor.actionOnPrimary : DoneColor.borderControl)
                     }
                 }
-                .frame(width: 16, height: 16)
+                .frame(width: 18, height: 18)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -517,7 +519,7 @@ struct TaskCheckbox: View {
     }
 }
 
-/// Puce d'état : hauteur 20, rayon chip, texte 12 Medium. Une forme en plus de la couleur ; fond léger,
+/// Puce d'état : hauteur 22, rayon chip, marge 8, icône 10, texte 12 Medium. Une forme en plus de la couleur ; fond léger,
 /// jamais de plein ni de contour, pour que la ligne reste calme.
 struct StateChip: View {
     enum Kind {
@@ -541,8 +543,8 @@ struct StateChip: View {
         }
         .font(.sans(12, .medium))
         .foregroundStyle(foreground)
-        .padding(.horizontal, kind == .done ? 0 : 7)
-        .frame(height: 20)
+        .padding(.horizontal, kind == .done ? 0 : DoneSpace.s8)
+        .frame(height: 22)
         .background(background, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
         .fixedSize()
     }
@@ -553,11 +555,11 @@ struct StateChip: View {
         case .active:
             Circle().fill(DoneColor.stateActive).frame(width: 5, height: 5)
         case .blocked:
-            Image(systemName: "nosign").font(.system(size: 9, weight: .semibold))
+            Image(systemName: "nosign").font(.system(size: 10, weight: .semibold))
         case .risk:
-            Image(systemName: "exclamationmark.triangle").font(.system(size: 9, weight: .semibold))
+            Image(systemName: "exclamationmark.triangle").font(.system(size: 10, weight: .semibold))
         case .done:
-            Image(systemName: "checkmark").font(.system(size: 9, weight: .semibold))
+            Image(systemName: "checkmark").font(.system(size: 10, weight: .semibold))
         }
     }
 
@@ -589,14 +591,14 @@ struct InfoChip: View {
     var isAlert = false
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DoneSpace.s4) {
             Image(systemName: symbol)
                 .font(.system(size: 10, weight: .medium))
             Text(text)
         }
         .font(.done(.numericS))
         .foregroundStyle(isAlert ? DoneColor.stateRiskText : DoneColor.textSecondary)
-        .frame(height: 20)
+        .frame(height: 22)
         .fixedSize()
     }
 }
@@ -606,7 +608,7 @@ struct TagChip: View {
     let name: String
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DoneSpace.s4) {
             Image(systemName: "tag")
                 .font(.system(size: 10, weight: .medium))
             Text(name)
@@ -614,7 +616,7 @@ struct TagChip: View {
         }
         .font(.sans(12, .medium))
         .foregroundStyle(DoneColor.textSecondary)
-        .frame(height: 20)
+        .frame(height: 22)
         .fixedSize()
     }
 }
@@ -628,8 +630,8 @@ struct PriorityChip: View {
             Text("P\(priority)")
                 .font(.sans(12, priority == 1 ? .semibold : .medium).monospacedDigit())
                 .foregroundStyle(DoneColor.stateActiveText)
-                .padding(.horizontal, priority == 1 ? DoneSpace.s6 : 0)
-                .frame(height: 20)
+                .padding(.horizontal, priority == 1 ? DoneSpace.s8 : 0)
+                .frame(height: 22)
                 .background(priority == 1 ? DoneColor.stateActiveTint : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
                 .fixedSize()
                 .help(priority == 1 ? "Priorité 1" : "Priorité 2")
