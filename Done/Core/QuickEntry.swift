@@ -1,16 +1,18 @@
 import Foundation
 
 /// Lecture de la fin d'un titre saisi, en français : « Relire la spec demain p1 #Shop » donne le
-/// titre « Relire la spec », une échéance, une priorité et une étiquette.
+/// titre « Relire la spec », une échéance, une priorité et une étiquette ; « chaque lundi » ou
+/// « tous les jours », une répétition.
 ///
 /// Seule la fin du texte est lue, de droite à gauche, tant que les mots y sont compris : « Préparer
 /// la réunion de lundi avec Zoé » garde son « lundi ». Une seule échéance et une seule priorité ;
-/// un second mot de date reste dans le titre. Le titre garde toujours au moins un mot.
+/// un second mot de date reste dans le titre. Une seule répétition. Le titre garde toujours au moins un mot.
 struct QuickEntry: Equatable {
     enum Piece: Equatable {
         case due(Date)
         case priority(Int)
         case tag(String)
+        case recurrence(Recurrence)
     }
 
     var title: String
@@ -27,6 +29,13 @@ struct QuickEntry: Equatable {
     var priority: Int? {
         for piece in pieces {
             if case .priority(let value) = piece { return value }
+        }
+        return nil
+    }
+
+    var recurrence: Recurrence? {
+        for piece in pieces {
+            if case .recurrence(let value) = piece { return value }
         }
         return nil
     }
@@ -52,6 +61,8 @@ struct QuickEntry: Equatable {
                     break reading
                 case .priority where pieces.contains(where: { if case .priority = $0 { return true } else { return false } }):
                     break reading
+                case .recurrence where pieces.contains(where: { if case .recurrence = $0 { return true } else { return false } }):
+                    break reading
                 default:
                     pieces.insert(piece, at: 0)
                     end -= length
@@ -72,7 +83,31 @@ struct QuickEntry: Equatable {
 
         func piece(_ words: [String]) -> Piece? {
             if words.count == 1, let piece = single(words[0]) { return piece }
-            return date(words.map(Self.key)).map(Piece.due)
+            let keys = words.map(Self.key)
+            if let recurrence = recurrence(keys) { return .recurrence(recurrence) }
+            return date(keys).map(Piece.due)
+        }
+
+        /// « chaque jour », « tous les jours ouvrés », « chaque lundi », « tous les lundis »,
+        /// « chaque lundi et jeudi », « toutes les deux semaines », « chaque mois ».
+        private func recurrence(_ words: [String]) -> Recurrence? {
+            func weekday(_ word: String) -> Int? {
+                Self.weekdays[word] ?? (word.hasSuffix("s") ? Self.weekdays[String(word.dropLast())] : nil)
+            }
+            switch words {
+            case ["chaque", "jour"], ["tous", "les", "jours"]: return .daily
+            case ["chaque", "jour", "ouvre"], ["les", "jours", "ouvres"], ["tous", "les", "jours", "ouvres"]: return .weekdays
+            case ["chaque", "semaine"], ["toutes", "les", "semaines"]: return .weekly([])
+            case ["toutes", "les", "deux", "semaines"], ["toutes", "les", "2", "semaines"]: return .biweekly
+            case ["chaque", "mois"], ["tous", "les", "mois"]: return .monthly(0)
+            default: break
+            }
+            if words.count == 2, words[0] == "chaque", let day = weekday(words[1]) { return .weekly([day]) }
+            if words.count == 3, words[0] == "tous", words[1] == "les", let day = weekday(words[2]) { return .weekly([day]) }
+            if words.count == 4, words[0] == "chaque", words[2] == "et", let first = weekday(words[1]), let second = weekday(words[3]) {
+                return .weekly([first, second])
+            }
+            return nil
         }
 
         /// Un mot seul : priorité, étiquette, ou jour.
@@ -247,6 +282,7 @@ extension TaskDraft {
         draft.title = entry.title
         if let due = entry.due { draft.due = due }
         if let priority = entry.priority { draft.priority = priority }
+        if let recurrence = entry.recurrence { draft.recurrence = recurrence }
         for tag in entry.tags where !draft.tags.contains(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) {
             draft.tags.append(tag)
         }

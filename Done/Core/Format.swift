@@ -127,6 +127,11 @@ enum Format {
     }
 
     /// Graduation en heures : 0, « 1 h », « 2 h »…
+    /// Jour du mois : « 1er », puis « 2 », « 15 ».
+    static func ordinalDay(_ day: Int) -> String {
+        day == 1 ? "1er" : "\(day)"
+    }
+
     /// Rang en toutes lettres abrégées : « 1er », « 2e », « 3e ».
     static func ordinal(_ number: Int) -> String {
         number == 1 ? "1er" : "\(number)e"

@@ -58,6 +58,7 @@ struct TaskEditorSheet: View {
             priority: task.priority,
             kind: task.kind,
             due: task.due,
+            recurrence: task.recurrence,
             listLocked: parent != nil
         ) {
             Hairline().padding(.horizontal, DoneSpace.s16)
@@ -176,6 +177,8 @@ struct TaskDetailsCard<Extra: View>: View {
     @Binding var priority: Int
     @Binding var kind: TaskKind
     @Binding var due: Date?
+    /// Répétition : absente pour une étape.
+    var recurrence: Binding<Recurrence?>?
     /// Une étape reste dans la liste de sa tâche et suit ses étiquettes.
     var listLocked = false
     let extra: Extra
@@ -186,6 +189,7 @@ struct TaskDetailsCard<Extra: View>: View {
         priority: Binding<Int>,
         kind: Binding<TaskKind>,
         due: Binding<Date?>,
+        recurrence: Binding<Recurrence?>? = nil,
         listLocked: Bool = false,
         @ViewBuilder extra: () -> Extra
     ) {
@@ -194,6 +198,7 @@ struct TaskDetailsCard<Extra: View>: View {
         _priority = priority
         _kind = kind
         _due = due
+        self.recurrence = recurrence
         self.listLocked = listLocked
         self.extra = extra()
     }
@@ -233,6 +238,12 @@ struct TaskDetailsCard<Extra: View>: View {
             DetailRow("Échéance") {
                 DueControl(due: $due)
             }
+            if let recurrence, !listLocked {
+                Hairline().padding(.horizontal, DoneSpace.s16)
+                DetailRow("Répétition") {
+                    RecurrenceMenu(recurrence: recurrence, due: $due)
+                }
+            }
             extra
         }
         .doneCard()
@@ -240,8 +251,64 @@ struct TaskDetailsCard<Extra: View>: View {
 }
 
 extension TaskDetailsCard where Extra == EmptyView {
-    init(projectID: Binding<String?>, tags: Binding<[String]>, priority: Binding<Int>, kind: Binding<TaskKind>, due: Binding<Date?>) {
-        self.init(projectID: projectID, tags: tags, priority: priority, kind: kind, due: due) { EmptyView() }
+    init(projectID: Binding<String?>, tags: Binding<[String]>, priority: Binding<Int>, kind: Binding<TaskKind>, due: Binding<Date?>, recurrence: Binding<Recurrence?>? = nil) {
+        self.init(projectID: projectID, tags: tags, priority: priority, kind: kind, due: due, recurrence: recurrence) { EmptyView() }
+    }
+}
+
+/// Menu de la répétition : jamais, chaque jour, jours ouvrés, certains jours de la semaine, toutes les
+/// deux semaines, chaque mois. Une tâche qui devient récurrente sans échéance prend la première date.
+struct RecurrenceMenu: View {
+    @Binding var recurrence: Recurrence?
+    @Binding var due: Date?
+
+    var body: some View {
+        Menu {
+            Button("Jamais") { recurrence = nil }
+            Divider()
+            Button("Chaque jour") { set(.daily) }
+            Button("Jours ouvrés") { set(.weekdays) }
+            Menu("Chaque semaine") {
+                ForEach(Recurrence.weekOrder, id: \.self) { day in
+                    Toggle(Recurrence.dayName(day).capitalized, isOn: dayBinding(day))
+                }
+            }
+            Button("Toutes les deux semaines") { set(.biweekly) }
+            Button("Chaque mois") { set(.monthly(0)) }
+        } label: {
+            Text(recurrence?.label ?? "Jamais")
+                .font(.done(.body))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Cochée, la tâche revient à l'échéance suivante")
+    }
+
+    private var weeklyDays: Set<Int> {
+        if case .weekly(let days) = recurrence { return days }
+        return []
+    }
+
+    private func dayBinding(_ day: Int) -> Binding<Bool> {
+        Binding(
+            get: { weeklyDays.contains(day) },
+            set: { on in
+                var days = weeklyDays
+                if on { days.insert(day) } else { days.remove(day) }
+                if days.isEmpty {
+                    recurrence = nil
+                } else {
+                    set(.weekly(days))
+                }
+            }
+        )
+    }
+
+    /// La répétition, rendue précise par l'échéance ; sans échéance, la première date à partir d'aujourd'hui.
+    private func set(_ value: Recurrence) {
+        let day = due ?? value.first(onOrAfter: .now)
+        due = Calendar.current.startOfDay(for: day)
+        recurrence = value.anchored(to: day)
     }
 }
 
@@ -442,7 +509,7 @@ struct CaptureForm: View {
                 .animation(DoneMotion.hover, value: entry.pieces)
             NotesEditor(text: $draft.notes, height: 64)
                 .padding(.top, DoneSpace.s12)
-            TaskDetailsCard(projectID: $draft.projectID, tags: $draft.tags, priority: $draft.priority, kind: $draft.kind, due: $draft.due)
+            TaskDetailsCard(projectID: $draft.projectID, tags: $draft.tags, priority: $draft.priority, kind: $draft.kind, due: $draft.due, recurrence: $draft.recurrence)
                 .padding(.top, DoneSpace.s16)
             stepsSection
                 .padding(.top, DoneSpace.s20)

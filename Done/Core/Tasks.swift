@@ -37,6 +37,10 @@ struct TodoTask: Codable, Identifiable, Hashable {
     /// Étiquettes (« Run Shop », « Reporting »…), sur les tâches de premier niveau seulement :
     /// une étape suit celles de sa tâche.
     var tags: [String]
+    /// Répétition, sur les tâches de premier niveau seulement. Une tâche récurrente a une échéance.
+    var recurrence: Recurrence?
+    /// Tâche récurrente cochée : la suivante, créée à ce moment. Rouvrir la tâche la retire si elle n'a pas bougé.
+    var nextOccurrenceID: String?
     let createdAt: Date
     var completedAt: Date?
 
@@ -52,6 +56,8 @@ struct TodoTask: Codable, Identifiable, Hashable {
         due: Date? = nil,
         isBlocked: Bool = false,
         tags: [String] = [],
+        recurrence: Recurrence? = nil,
+        nextOccurrenceID: String? = nil,
         createdAt: Date = .now,
         completedAt: Date? = nil
     ) {
@@ -66,6 +72,8 @@ struct TodoTask: Codable, Identifiable, Hashable {
         self.due = due
         self.isBlocked = isBlocked
         self.tags = tags
+        self.recurrence = recurrence
+        self.nextOccurrenceID = nextOccurrenceID
         self.createdAt = createdAt
         self.completedAt = completedAt
     }
@@ -73,7 +81,7 @@ struct TodoTask: Codable, Identifiable, Hashable {
     var isOpen: Bool { completedAt == nil }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, notes, projectID, parentID, position, priority, kind, due, isBlocked, tags, createdAt, completedAt
+        case id, title, notes, projectID, parentID, position, priority, kind, due, isBlocked, tags, recurrence, nextOccurrenceID, createdAt, completedAt
     }
 
     // Lecture tolérante : un champ ajouté plus tard prend sa valeur par défaut dans un ancien fichier.
@@ -90,6 +98,8 @@ struct TodoTask: Codable, Identifiable, Hashable {
         due = try c.decodeIfPresent(String.self, forKey: .due).flatMap(Format.date(fromDayKey:))
         isBlocked = try c.decodeIfPresent(Bool.self, forKey: .isBlocked) ?? false
         tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
+        recurrence = try c.decodeIfPresent(String.self, forKey: .recurrence).flatMap(Recurrence.init(raw:))
+        nextOccurrenceID = try c.decodeIfPresent(String.self, forKey: .nextOccurrenceID)
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
         completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
     }
@@ -107,6 +117,8 @@ struct TodoTask: Codable, Identifiable, Hashable {
         try c.encodeIfPresent(due.map(Format.dayKey), forKey: .due)
         try c.encode(isBlocked, forKey: .isBlocked)
         if !tags.isEmpty { try c.encode(tags, forKey: .tags) }
+        try c.encodeIfPresent(recurrence?.raw, forKey: .recurrence)
+        try c.encodeIfPresent(nextOccurrenceID, forKey: .nextOccurrenceID)
         try c.encode(createdAt, forKey: .createdAt)
         try c.encodeIfPresent(completedAt, forKey: .completedAt)
     }
@@ -161,6 +173,7 @@ struct TaskDraft: Equatable {
     var due: Date?
     var tags: [String] = []
     var steps: [String] = []
+    var recurrence: Recurrence?
 
     var hasTitle: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 }
@@ -406,7 +419,8 @@ struct TaskStore: Codable, Equatable {
         task.kind = draft.kind
         task.due = draft.due
         task.tags = draft.tags
-        update(task)
+        task.recurrence = draft.recurrence
+        update(task, now: now)
         for step in draft.steps {
             addTask(title: step, projectID: task.projectID, parentID: task.id, now: now)
         }
@@ -415,7 +429,8 @@ struct TaskStore: Codable, Equatable {
 
     /// Remplace la tâche du même identifiant. Un titre vide garde l'ancien titre.
     /// Changer de projet emmène les sous-tâches ; une sous-tâche reste dans le projet de sa parente.
-    mutating func update(_ task: TodoTask) {
+    /// Une tâche récurrente sans échéance prend la première date de sa répétition, à partir d'aujourd'hui.
+    mutating func update(_ task: TodoTask, now: Date = .now) {
         guard let i = tasks.firstIndex(where: { $0.id == task.id }) else { return }
         var updated = task
         let trimmed = updated.title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -423,6 +438,12 @@ struct TaskStore: Codable, Equatable {
         updated.priority = min(max(updated.priority, 1), 4)
         updated.due = updated.due.map { Calendar.current.startOfDay(for: $0) }
         updated.tags = updated.parentID == nil ? Self.normalizedTags(updated.tags, known: tags) : []
+        updated.recurrence = updated.parentID == nil ? updated.recurrence : nil
+        if let recurrence = updated.recurrence {
+            let due = updated.due ?? recurrence.first(onOrAfter: now)
+            updated.due = Calendar.current.startOfDay(for: due)
+            updated.recurrence = recurrence.anchored(to: due)
+        }
         if let parentID = updated.parentID, let parent = self[parentID] {
             updated.projectID = parent.projectID
         } else if let id = updated.projectID, !projects.contains(where: { $0.id == id }) {
@@ -440,17 +461,67 @@ struct TaskStore: Codable, Equatable {
         }
     }
 
-    /// Coche la tâche et ses sous-tâches encore ouvertes.
+    /// Coche la tâche et ses sous-tâches encore ouvertes. Une tâche récurrente laisse place à la suivante.
     mutating func complete(_ id: String, at date: Date = .now) {
         for target in [id] + descendants(of: id) {
             if let i = tasks.firstIndex(where: { $0.id == target }), tasks[i].completedAt == nil {
                 tasks[i].completedAt = date
             }
         }
+        scheduleNextOccurrence(of: id, now: date)
     }
 
-    /// Rouvre une tâche cochée, et ses parentes si elles l'étaient aussi.
+    /// La suivante d'une tâche récurrente cochée : mêmes titre, notes, liste, priorité, type et
+    /// étiquettes, à la même place, ses étapes rouvertes ; échéance suivante, après l'actuelle et
+    /// après aujourd'hui. Une seule fois par tâche.
+    private mutating func scheduleNextOccurrence(of id: String, now: Date) {
+        guard let i = tasks.firstIndex(where: { $0.id == id }), let recurrence = tasks[i].recurrence,
+              tasks[i].parentID == nil, tasks[i].nextOccurrenceID == nil else { return }
+        let original = tasks[i]
+        let next = TodoTask(
+            title: original.title,
+            notes: original.notes,
+            projectID: original.projectID,
+            position: original.position,
+            priority: original.priority,
+            kind: original.kind,
+            due: recurrence.next(after: original.due ?? now, today: now),
+            tags: original.tags,
+            recurrence: recurrence,
+            createdAt: now
+        )
+        tasks.append(next)
+        tasks[i].nextOccurrenceID = next.id
+        copySteps(from: original.id, to: next.id, projectID: original.projectID, now: now)
+    }
+
+    /// Les étapes d'une tâche, recopiées ouvertes sous une autre, à tous les niveaux.
+    private mutating func copySteps(from sourceID: String, to targetID: String, projectID: String?, now: Date) {
+        for step in tasks.filter({ $0.parentID == sourceID }).sorted(by: { $0.position < $1.position }) {
+            let copy = TodoTask(
+                title: step.title,
+                notes: step.notes,
+                projectID: projectID,
+                parentID: targetID,
+                position: step.position,
+                priority: step.priority,
+                kind: step.kind,
+                createdAt: now
+            )
+            tasks.append(copy)
+            copySteps(from: step.id, to: copy.id, projectID: projectID, now: now)
+        }
+    }
+
+    /// Rouvre une tâche cochée, et ses parentes si elles l'étaient aussi. Une tâche récurrente rouverte
+    /// reprend sa place : la suivante, créée à la coche, disparaît si elle n'a pas bougé.
     mutating func reopen(_ id: String) {
+        if let task = self[id], let nextID = task.nextOccurrenceID, let next = self[nextID],
+           next.isOpen, next.title == task.title, next.notes == task.notes,
+           !descendants(of: nextID).contains(where: { self[$0]?.isOpen == false }) {
+            delete(nextID)
+            if let i = tasks.firstIndex(where: { $0.id == id }) { tasks[i].nextOccurrenceID = nil }
+        }
         var next: String? = id
         var guardCount = 0
         while let current = next, let i = tasks.firstIndex(where: { $0.id == current }), guardCount < 20 {

@@ -105,6 +105,7 @@ extension ConnectorTools {
                 "due": ToolSchema.text("Échéance (AAAA-MM-JJ)."),
                 "tags": ToolSchema.texts("Étiquettes (tâche principale seulement)."),
                 "steps": ToolSchema.texts("Étapes à créer sous la tâche, dans l'ordre."),
+                "repeat": ToolSchema.text("Répétition (tâche principale seulement) : daily, weekdays, weekly (jour de l'échéance) ou weekly:2,5 (1 = dimanche, 2 = lundi… 7 = samedi), biweekly, monthly (jour de l'échéance) ou monthly:15. Cochée, la tâche revient à l'échéance suivante ; sans échéance, elle prend la première date."),
             ], required: ["title"]),
             readOnly: false
         ),
@@ -122,6 +123,7 @@ extension ConnectorTools {
                 "kind": ToolSchema.choice(["normal", "quick", "deepwork"], "Type de travail."),
                 "due": ToolSchema.text("Échéance (AAAA-MM-JJ), chaîne vide pour la retirer."),
                 "tags": ToolSchema.texts("Remplace les étiquettes (liste vide pour les retirer)."),
+                "repeat": ToolSchema.text("Répétition, comme pour create_task ; chaîne vide pour l'arrêter."),
                 "blocked": ToolSchema.flag("Bloquée : Done ne la propose plus tant qu'elle n'est pas débloquée."),
             ], required: ["id"]),
             readOnly: false
@@ -129,7 +131,7 @@ extension ConnectorTools {
         MCPTool(
             name: "complete_task",
             title: "Cocher une tâche",
-            description: "Coche une tâche et ses étapes encore ouvertes. Done la sort du plan du jour.",
+            description: "Coche une tâche et ses étapes encore ouvertes. Done la sort du plan du jour. Une tâche récurrente laisse place à la suivante, à l'échéance suivante.",
             schema: ToolSchema.object(["id": ToolSchema.text("Identifiant de la tâche.")], required: ["id"]),
             readOnly: false
         ),

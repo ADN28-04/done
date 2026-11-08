@@ -19,6 +19,10 @@ struct TaskChips: View {
             if let due = task.due {
                 InfoChip(symbol: "calendar", text: Format.chipDate(due), isAlert: Format.isOverdue(due))
             }
+            if let recurrence = task.recurrence {
+                InfoChip(symbol: "arrow.clockwise", text: recurrence.label)
+                    .help("Revient \(recurrence.label.lowercased()), une fois cochée")
+            }
             if let minutes = sessionMinutes {
                 InfoChip(symbol: "clock", text: Format.minutes(Double(minutes)))
             }
@@ -163,6 +167,8 @@ struct QuickEntryHint: View {
             InfoChip(symbol: "flag", text: "P\(value)")
         case .tag(let name):
             TagChip(name: name)
+        case .recurrence(let recurrence):
+            InfoChip(symbol: "arrow.clockwise", text: recurrence.label)
         }
     }
 }

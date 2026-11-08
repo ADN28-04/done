@@ -252,12 +252,14 @@ struct ConnectorTools {
         let steps = try args.strings("steps") ?? []
         let projectReference = try args.string("project")
         let parentID = try args.string("parent_id").flatMap { $0.isEmpty ? nil : $0 }
+        let recurrence = try Self.recurrence(args.string("repeat")) ?? nil
 
         let (task, store) = try workspace.updateTasks { (store: inout TaskStore) throws -> (TodoTask, TaskStore) in
             if let parentID {
                 guard let parent = store[parentID] else { throw ToolFailure("Tâche parente introuvable : \(parentID).") }
                 guard parent.isOpen else { throw ToolFailure("La tâche parente est cochée : rouvre-la d'abord avec reopen_task.") }
                 guard tags.isEmpty else { throw ToolFailure("Une étape ne porte pas d'étiquette : seules les tâches principales en ont.") }
+                guard recurrence == nil else { throw ToolFailure("Une étape ne se répète pas : seules les tâches principales le peuvent.") }
                 guard var step = store.addTask(title: title, projectID: nil, parentID: parent.id, now: now) else {
                     throw ToolFailure("« title » est obligatoire.")
                 }
@@ -282,6 +284,7 @@ struct ConnectorTools {
             draft.due = due
             draft.tags = tags
             draft.steps = steps
+            draft.recurrence = recurrence
             guard let created = store.addTask(draft, now: now) else { throw ToolFailure("« title » est obligatoire.") }
             return (created, store)
         }
@@ -300,6 +303,7 @@ struct ConnectorTools {
         let dueText = try args.string("due")
         let tags = try args.strings("tags")
         let blocked = try args.bool("blocked")
+        let recurrence = try Self.recurrence(args.string("repeat"))
 
         let (task, store) = try workspace.updateTasks { (store: inout TaskStore) throws -> (TodoTask, TaskStore) in
             guard var task = store[id] else { throw ToolFailure("Tâche introuvable : \(id). Cherche-la avec list_tasks.") }
@@ -332,7 +336,13 @@ struct ConnectorTools {
                 }
                 task.tags = tags
             }
-            store.update(task)
+            if let recurrence {
+                guard task.parentID == nil || recurrence == nil else {
+                    throw ToolFailure("Une étape ne se répète pas : seules les tâches principales le peuvent.")
+                }
+                task.recurrence = recurrence
+            }
+            store.update(task, now: now)
             if let blocked { store.setBlocked(id, blocked) }
             return (store[id] ?? task, store)
         }
@@ -657,6 +667,10 @@ struct ConnectorTools {
             if task.isOpen, due < calendar.startOfDay(for: now) { fields["late"] = true }
         }
         if !task.tags.isEmpty { fields["tags"] = .array(task.tags.map { .string($0) }) }
+        if let recurrence = task.recurrence {
+            fields["repeat"] = .string(recurrence.raw)
+            fields["repeat_label"] = .string(recurrence.label)
+        }
         if task.isBlocked { fields["blocked"] = true }
         if let done = task.completedAt { fields["done_at"] = .string(ConnectorFormat.stamp(done)) }
         return fields
@@ -776,6 +790,17 @@ struct ConnectorTools {
         let backlinks = NoteLinks.backlinks(to: note, in: notes)
         if !backlinks.isEmpty { fields["backlinks"] = .array(backlinks.map(noteRef)) }
         return .object(fields)
+    }
+
+    /// `nil` : rien de demandé ; `.some(nil)` : retirer la répétition (chaîne vide).
+    private static func recurrence(_ text: String?) throws -> Recurrence?? {
+        guard let text else { return nil }
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return .some(nil) }
+        guard let value = Recurrence(raw: trimmed) else {
+            throw ToolFailure("« repeat » vaut daily, weekdays, weekly ou weekly:<jours> (1 = dimanche, 2 = lundi… 7 = samedi, par exemple weekly:2,5), biweekly, monthly ou monthly:<jour du mois>, ou une chaîne vide pour arrêter la répétition.")
+        }
+        return .some(value)
     }
 
     private func searchableText(_ task: TodoTask, in store: TaskStore) -> String {
