@@ -1,284 +1,321 @@
-# Design system : Done v6 « Jardin »
+# Design system : Done v7 « Mymind »
 
-Référence : `docs/design/jardin/design-system/`, avec `README.md`, `tokens.json` et, pour chaque composant, `components/<Nom>/README.md` et un aperçu HTML animé (`preview.html`, classes `d-…` de `components/bundle.css`). Ouvrir un aperçu dans un navigateur depuis le dépôt. Le passage depuis la v5 est décrit dans `docs/design/jardin/HANDOFF.md`. Dans le code, tout passe par `Done/Views/Theme.swift`.
+Référence : `docs/design/mymind/design-system/`, avec `README.md`, `tokens.json` et, pour chaque composant, `components/<Nom>/README.md` et un aperçu HTML animé (`preview.html`, classes `d-…` de `components/bundle.css`). L'écran cible est rendu dans `docs/design/mymind/ma-journee-clair.png` et `ma-journee-sombre.png`. Le passage depuis la v6 est décrit dans `docs/design/mymind/HANDOFF.md`. Dans le code, tout passe par `Done/Views/Theme.swift`, plus `HomeComponents.swift` pour les pièces de l'écran Ma journée.
 
-L'esprit : un outil de travail chaleureux. Du papier crème, une encre vert-brun pour le texte, un vert profond pour ce qui agit, un tournesol pour la joie, une brique pour les seules alertes. L'écran reste calme ; c'est le geste qui fait plaisir : cocher une tâche, finir un pomodoro, boucler le plan du jour.
+L'esprit : un tableau de bord calme et moderne, où la journée tient sur un seul écran. Une toile presque blanche, une encre graphite, des cartes qui flottent, une serif élégante pour les titres, la braise pour la marque et les réussites, le cobalt pour ce qui est actif. L'écran reste posé ; c'est le geste qui fait plaisir : cocher une tâche, finir un pomodoro, boucler le plan du jour.
 
 ## Principes
 
-- Une seule chose forte par écran : `displayXL` (Fraunces) pour l'action proposée, ou `numericXL` (Archivo) pour le minuteur. Le reste est en `body`, `callout` ou `caption`.
-- Calme au repos, joyeux à l'arrivée. Le tournesol (`sun`) et le rebond sont réservés aux réussites : tâche cochée, pomodoro terminé, plan du jour bouclé. Une vue qu'on regarde sans agir ne bouge pas.
-- Pas d'ombre sur les cartes, seulement un liseré `borderSubtle`. L'ombre `shadowRaised` sert à la carte de fin de pomodoro.
-- Pas de fond derrière les dates, les durées et les étiquettes : `InfoChip` et `TagChip` sont du texte secondaire avec une icône.
-- Pas de capitales espacées : les étiquettes de section sont en casse normale.
-- Les nombres restent en Archivo, en chiffres tabulaires, jamais en Fraunces.
-- Un seul bouton principal (`actionPrimary`) par vue.
+- Ma journée est l'écran d'accueil : prochaine action, ligne de temps, plan du jour, échéances, notes et focus du jour, dans six cartes widget. Les autres écrans (Calendrier, Notes, Listes, Stats) s'ouvrent depuis le rail ou le lien en haut à droite de chaque carte.
+- Une seule chose forte par écran : le titre d'accueil en `displayXL`, puis la prochaine action en `displayL` ; en session, le minuteur en `numericXL`. Le reste est en `body`, `callout` ou `caption`.
+- Un seul bouton principal (`actionPrimary`, pilule d'encre) par écran : « Lancer le focus » sur Ma journée.
+- Tout ce qui se clique est une pilule (`DoneRadius.pill`). Les cartes sont de grands rectangles doux (`lg`, 24) avec un liseré et une ombre très légère (`shadowCard`).
+- Calme au repos, joyeux à l'arrivée : la braise (`accent`) et le rebond sont réservés aux réussites et à la marque. Une vue qu'on regarde sans agir ne bouge pas.
+- Pas de fond derrière les dates et les durées d'une ligne : `InfoChip` et `TagChip` restent du texte avec une icône. La pilule colorée (`TagPill`) est pour les cartes.
+- Pas de capitales espacées. Les nombres sont en Nunito Sans, jamais en Newsreader.
 - Le code ne cite jamais une couleur de marque ni une couleur système : seulement les rôles de `DoneColor`, les styles de texte et les composants.
 
 ## Contenu
 
-- Interface en français, textes courts et directs, sans point d'exclamation. Verbes à l'infinitif sur les boutons : « Lancer le focus », « Cocher la tâche », « Ajouter ».
-- La chaleur passe par les faits, pas par les adjectifs : « 3e pomodoro aujourd'hui », « Plan du jour terminé. Tout ce qui était prévu est fait. » Pas de « Bravo », pas de « Super ».
-- Casse de phrase partout : « Plan du jour », « Échéances et retards », « Fait aujourd'hui ».
-- Messages vides et d'état en une phrase : « Aucune tâche ouverte. », « En pause ».
+- Interface en français, textes courts et directs, sans point d'exclamation. Verbes à l'infinitif sur les boutons : « Lancer le focus », « Capturer », « Découper… ».
+- Le titre d'accueil dit la journée en une phrase de faits : « Bonjour Camille, trois tâches et deux réunions aujourd'hui. » Nombres en lettres jusqu'à dix. Pas de « Bravo », pas de « Super ».
+- La salutation suit le moment de la journée, et sa formule change d'un jour à l'autre (« Bon matin », « Rebonjour », « Belle soirée ») : de la chaleur sans adjectif sur le travail.
+- Casse de phrase partout : « Plan du jour », « Échéances et retards », « Toutes les notes ».
+- Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date courte « mar. 3 nov. », dates relatives « Auj. », « Demain », « Hier » (`Format.chipDate`), rang « 1er », « 2e » (`Format.ordinal`).
+- Les textes d'aide donnent un vrai exemple : « Appeler le transporteur demain P2 ».
 - Pas d'emoji : le soleil est une icône, pas un caractère.
 
 ## Couleurs
 
-La marque tient en cinq couleurs, qui n'apparaissent jamais sous leur nom dans le code : Crème #F7F3E8, Encre #23281F, Vert profond #2F6B4F, Tournesol #F6C343, Brique #A3332E. Le code passe par des rôles (`DoneColor`), qui changent de valeur entre clair et sombre. En sombre, le vert s'éclaircit et ce qui est posé dessus passe en vert nuit (#0F2419), pas en blanc.
+La marque tient en cinq couleurs, qui n'apparaissent jamais sous leur nom dans le code : Toile #F9FAFC, Encre #24272D, Braise #FF5924, Cobalt #1573DD, Rose des halos #F078A0. Le code passe par des rôles (`DoneColor`), qui changent de valeur entre clair et sombre. En sombre, la pilule principale s'inverse : fond clair, texte sombre.
 
 | Rôle | Clair | Sombre | Usage |
 |---|---|---|---|
-| `bgCanvas` | #F7F3E8 | #161914 | Fond de fenêtre, du panneau de la barre de menus et de la saisie flottante |
-| `bgSunken` | #EFE9DA | #11140F | Barre latérale, piste des sélecteurs, blocs de code, jour d'absence |
-| `surfaceDefault` | #FFFDF7 | #1E221B | Cartes, champs, boutons secondaires, segment choisi |
-| `surfaceHover` | #F3EEE0 | #272C23 | Survol |
-| `surfaceSelected` | #E2EDE3 | #243529 | Navigation active, note choisie |
-| `borderSubtle` | #E6DFCD | #2E3329 | Liseré des cartes, séparateurs, traits d'heure |
-| `borderDefault` | #D5CDB8 | #3E4537 | Boutons secondaires, tuile vide, pastille de série vide |
-| `borderControl` | #8A8473 | #858C7C | Champs et case à cocher (3:1) |
-| `textPrimary` | #23281F | #ECEADF | Texte principal |
-| `textSecondary` | #5C6354 | #A7AC9C | Métadonnées, légendes, étiquettes, dates et durées |
-| `textDisabled` | #B4AF9F | #585E51 | Désactivé, réunion passée |
-| `actionPrimary` (survol, appui) | #2F6B4F (#285E45, #204F3A) | #7CC39C (#8DCDA9, #6BB38C) | Bouton principal, case cochée |
-| `actionOnPrimary` | #FFFFFF | #0F2419 | Texte et coche sur `actionPrimary` |
-| `actionDisabled` | #EBE5D6 | #272C23 | Bouton principal ou case désactivés |
-| `focusRing` | #2F6B4F | #8DCDA9 | Focus, cible de dépôt, champ actif |
-| `stateActive` / `stateOnActive` | #3B7A5B / #FFFFFF | #7CC39C / #0F2419 | Plein actif : tuile du plan, barres, heure courante |
-| `stateActiveText` | #1F5138 | #A6DBBB | Texte actif : priorités, liens [[Titre]], encadré d'information |
-| `stateActiveTint` | #DCEBDF | #21362A | Teinte active : P1, encadré d'information, jetons d'étiquette, repère d'étapes |
-| `sun` / `onSun` | #F6C343 / #3D2A00 | #F6C343 / #3D2A00 | Tournesol, en plein ou en forme seulement : soleil, pétales, pastilles de série |
-| `sunTint` / `sunText` | #FBECC2 / #6B4A05 | #3A3016 / #F2CF6E | « Aujourd'hui », « Fait », encadré de réussite |
-| `stateBlocked` / `stateOnBlocked` | #ECE6D7 / #23281F | #2A2F25 / #ECEADF | Puce « Bloquée » |
-| `stateWaiting` | #8A8473 | #858C7C | Contour pointillé : emplacement libre, liste ou note vide |
-| `stateRisk`, `stateRiskTint`, `stateRiskText` | #C2463F, #F8E3DE, #A3332E | #E06A63, #3A2320, #F0A29D | Alerte : échéance dépassée, erreur |
-| `stateDone` / `stateOnDone` | #EFE9DA / #5C6354 | #1B1F18 / #A7AC9C | Terminé : « Fait aujourd'hui », réunion passée |
-| `meetingBg`, `meetingHatch` | #EEE8D8, vert profond à 16 % | #23281F, vert clair à 16 % | Réunion à venir, hachurée |
-| `meetingNow` / `meetingOnNow` | #2F6B4F / #FFFFFF | #7CC39C / #0F2419 | Réunion en cours |
-| `pomodoroFocus` | #2F6B4F | #8DCDA9 | Anneau de concentration |
-| `pomodoroBreak` | #B07A12 | #F2CF6E | Anneau de pause, un ocre de tournesol |
-| `pomodoroBreakBg` | #FBF1D6 | #24210F | Fond de l'écran pendant la pause |
-| `pomodoroTrack` | #E6DFCD | #2E3329 | Piste des anneaux et des barres |
-| `pomodoroPaused` | #B4AF9F | #585E51 | Anneau à l'arrêt |
+| `bgCanvas` | #F9FAFC | #0F1012 | Fond de fenêtre, des feuilles, du panneau de la barre de menus |
+| `haloWarm` / `haloPink` | braise à 22 % / rose à 20 % | braise à 12 % / rose à 10 % | Halos de la toile, en haut à droite et en bas à gauche (`DoneCanvas`) |
+| `bgSunken` | #F1F3F7 | #0B0C0E | Rail, colonne des listes, pistes, pilules de genre, blocs de code, jour d'absence |
+| `surfaceDefault` | #FFFFFF | #18191C | Cartes, champs, boutons secondaires, segment choisi |
+| `surfaceHover` | #F3F5F9 | #202226 | Survol |
+| `surfaceSelected` | #E5EAF2 | #232A36 | Navigation active, ligne choisie au clavier, genre choisi |
+| `borderSubtle` | #E6E8EE | #2A2C31 | Liseré des cartes, séparateurs, traits d'heure |
+| `borderDefault` | #D6DAE2 | #383B42 | Boutons secondaires, recherche, tuile vide |
+| `borderControl` | #8B91A0 | #7D8494 | Champs et case à cocher (3:1) |
+| `textPrimary` | #24272D | #EEF0F4 | Texte principal |
+| `textSecondary` | #5D6575 | #A3A9B6 | Métadonnées, salutation en italique, dates et durées |
+| `textDisabled` | #AFB5C1 | #4F5560 | Désactivé, réunion passée |
+| `actionPrimary` (survol, appui) | #24272D (#3A3E46, #111316) | #EEF0F4 (#FFFFFF, #D5D8DE) | Bouton principal, case cochée, bouton du rail choisi, envoi de la barre de saisie |
+| `actionOnPrimary` | #FFFFFF | #15171A | Texte et coche sur `actionPrimary` |
+| `actionDisabled` | #ECEEF3 | #202226 | Bouton principal ou case désactivés |
+| `focusRing` | #1573DD | #5AA2F0 | Focus, cible de dépôt, champ actif ; c'est aussi l'`AccentColor` de macOS |
+| `accent` / `onAccent` | #FF5924 / #2B0F04 | #FF6A3D / #2B0F04 | Braise, en plein ou en forme seulement : « Capturer » du rail, pétales, pastilles de série, heure courante, soleil de Ma journée |
+| `accentTint` / `accentText` | #FFECE4 / #B33A0C | #3A1D14 / #FF9B77 | « Aujourd'hui », encadré de réussite, focus fait, position dans le plan |
+| `stateActive` / `stateOnActive` | #1573DD / #FFFFFF | #5AA2F0 / #0B1A2C | Plein actif : tuile du plan, barres |
+| `stateActiveText` / `stateActiveTint` | #0F5BB5 / #E7F0FC | #91C2F7 / #16243A | P1, liens des cartes, liens [[Titre]], encadré d'information |
+| `success` / `successTint` / `successText` | #3D8C4A / #E4EFDC / #2D6B33 | #6CC07A / #1B2B1D / #9FD6A5 | Puce « Fait » |
+| `stateBlocked` / `stateOnBlocked` | #ECEEF3 / #24272D | #23262B / #EEF0F4 | Puce « Bloquée » |
+| `stateWaiting` | #8B91A0 | #7D8494 | Pointillé : créneau libre, nouvelle note, emplacement libre |
+| `stateRisk`, `stateRiskTint`, `stateRiskText` | #D2313C, #FDEAEA, #8F1A24 | #F0646B, #3A1B1E, #FCC4C7 | Alerte : échéance dépassée, erreur, toujours avec le triangle |
+| `stateDone` / `stateOnDone` | #F1F3F7 / #5D6575 | #141518 / #A3A9B6 | Terminé, réunion passée |
+| `tagPink`, `tagYellow` | #B8336A, #8A5D00 | #F08AB3, #F2C25C | Étiquettes des notes (Décision, Journal) et pétales |
+| `cardBlush`, `cardSlate`, `cardSage`, `cardParchment` | #FFF1F1, #E5EAF2, #DDE9D3, #F3F0E7 | #251A1A, #1A1F29, #19221A, #1F1D18 | Teintes des cartes de note (Journal, Réunion, Personne, Référence et page de projet) |
+| `meetingBg`, `meetingHatch` | #E5EAF2, cobalt à 14 % | #1C2230, cobalt à 16 % | Réunion à venir, hachurée |
+| `meetingNow` / `meetingOnNow` | #24272D / #FFFFFF | #EEF0F4 / #15171A | Réunion en cours, en encre |
+| `pomodoroFocus` | #F4511F | #FF6A3D | Anneau de concentration, en braise |
+| `pomodoroBreak` / `pomodoroBreakBg` | #1573DD / #EEF4FC | #5AA2F0 / #101A27 | Anneau et fond de la pause, en cobalt |
+| `pomodoroTrack` / `pomodoroPaused` | #E6E8EE / #AFB5C1 | #2A2C31 / #4F5560 | Piste des anneaux et des barres ; anneau à l'arrêt |
+
+Les rôles `sun`, `onSun`, `sunTint` et `sunText` de la v6 restent déclarés comme alias de la braise, pour ne renommer aucun rôle ; plus aucun composant ne s'en sert.
 
 Règles :
 
-- La couleur d'alerte n'apparaît que pour une échéance dépassée et pour les erreurs. Jamais pour une réunion, la fin d'un pomodoro ou l'heure courante.
-- `sun` ne porte jamais de texte ni un sens seul : sur le papier clair, il ne fait que 1,5:1. Une icône double toujours la couleur (soleil pour « Aujourd'hui », coche pour « Fait », interdit pour « Bloquée », triangle pour l'alerte).
-- Tournesol et brique ne se confondent pas : clartés très différentes, icônes différentes.
-- Toutes les paires texte et fond passent AA (4,5:1) dans les deux thèmes : `textSecondary` sur `bgCanvas` 5,62:1 en clair et 7,63:1 en sombre, `actionOnPrimary` sur `actionPrimary` 6,29:1 et 7,88:1, `sunText` sur `sunTint` 6,86:1 et 8,63:1. `borderControl`, `focusRing` et les anneaux passent 3:1. Ne pas « corriger » une couleur sans recalculer ces ratios.
+- `accent` ne porte jamais de texte : il ne fait que 3,1:1 sur blanc. Pour du texte, `accentText` sur `accentTint`.
+- La braise et l'alerte sont deux rouges-orangés : l'alerte est nettement plus sombre en clair et plus claire en sombre, n'est jamais sur un bouton, et porte toujours son triangle. Une icône double toujours la couleur (soleil pour « Aujourd'hui », coche pour « Fait », interdit pour « Bloquée », triangle pour l'alerte).
+- Toutes les paires texte et fond passent AA dans les deux thèmes, teintes de cartes comprises : `textSecondary` sur `bgCanvas` 5,61:1 en clair et 8,07:1 en sombre, `actionOnPrimary` sur `actionPrimary` 14,97:1 et 15,74:1, `accentText` sur `accentTint` 5,21:1 et 7,47:1, `stateOnActive` sur `stateActive` 4,64:1 et 6,56:1. `borderControl`, `focusRing`, `accent` et les anneaux passent 3:1. Ne pas « corriger » une couleur sans recalculer ces ratios.
 
 ## Typographie
 
-Deux familles sous licence OFL (licences dans `docs/fonts/`), embarquées dans `Done/Fonts` et chargées au lancement par `FontLoader` :
+Trois familles sous licence OFL (licences dans `docs/fonts/`), embarquées en TTF statiques dans `Done/Fonts` et chargées au lancement par `FontLoader` :
 
-- **Fraunces**, dans sa version douce, en SemiBold (`Fraunces-SoftSemiBold.ttf`, nom PostScript `FrauncesSoft-SemiBold`), pour `displayXL`, `displayL` et `displayM` seulement : l'action proposée, les titres d'écran, de carte et de feuille. Ses courbes rondes donnent sa chaleur à l'app. Elle ne descend jamais sous `displayM` (23).
-- **Archivo** Regular, Medium et SemiBold pour tout le reste : texte, boutons, navigation et nombres.
+- **Newsreader**, Medium, pour les titres : `NewsreaderDisplay-Medium` pour `displayXL` et `displayL`, `NewsreaderText-Medium` pour `displayM` et `noteTitle`. L'italique (`NewsreaderDisplay-MediumItalic`, `Font.doneItalic`) sert à la salutation de Ma journée. Newsreader ne descend jamais sous `noteTitle` (17) et ne sert jamais aux nombres.
+- **Nunito Sans** pour l'interface : Regular pour le texte, SemiBold pour les libellés et les titres de tâche, Bold pour `title`, `label` et la navigation active, Light pour les grands chiffres. Ses chiffres sont à chasse fixe ; les styles `numeric…` ajoutent `monospacedDigit` pour le garantir.
+- **Courier Prime**, pour `noteMono` seulement : le corps du journal et des notes simples dans la mosaïque, comme un brouillon tapé à la machine.
 
-Les nombres prennent les chiffres tabulaires d'Archivo (`monospacedDigit`), appliqués d'office par les styles `numeric…` : les colonnes et le minuteur ne bougent pas en largeur. Un libellé reste dans un style de texte, même dans une puce.
-
-Dans le code, `.doneText(.style)` applique la police, l'interlignage et l'interlettrage. `Font.sans(taille, graisse)` sert hors échelle (boutons, navigation active), avec `.monospacedDigit()` pour un nombre isolé.
+Dans le code, `.doneText(.style)` applique la police, l'interlignage et l'interlettrage. `Font.sans(taille, graisse)` sert hors échelle (boutons, puces, navigation), avec `.monospacedDigit()` pour un nombre isolé. Nunito Sans n'a pas de Medium : `.medium` donne SemiBold.
 
 | Style | Police | Taille / interligne | Usage |
 |---|---|---|---|
-| `displayXL` | Fraunces SemiBold, -0,01 em | 46/52 | L'action proposée sur l'écran Focus |
-| `displayL` | Fraunces SemiBold, -0,005 em | 34/40 | Titres d'écran |
-| `displayM` | Fraunces SemiBold | 23/28 | Titres de feuille et de carte, tâche en session, titre de note |
-| `title` | Archivo SemiBold | 17/24 | Titre de panneau, tâche parente, groupe de sous-projet |
-| `body` / `bodyStrong` | Archivo Regular / Medium | 14/20 | Texte courant / titre de tâche |
-| `callout` | Archivo Regular | 13/18 | Texte d'appoint, encadrés |
-| `caption` | Archivo Regular | 12/16 | Métadonnées |
-| `label` | Archivo SemiBold, casse normale | 12/16 | Étiquettes de section (`Eyebrow`) |
-| `numericXL` | Archivo Regular, -0,02 em, chiffres tabulaires | 60/64 | Minuteur, total de la semaine |
-| `numericL` | Archivo Medium, -0,01 em, chiffres tabulaires | 28/32 | Totaux, minuteur de la barre de menus |
-| `numericM` / `numericS` | Archivo Medium, chiffres tabulaires | 14/20, 12/16 | Valeurs en ligne / dates, durées, compteurs |
-
-Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date courte « mar. 3 nov. », dates relatives « Auj. », « Demain », « Hier » (`Format.chipDate`), rang « 1er », « 2e » (`Format.ordinal`).
+| `displayXL` | Newsreader Display Medium, -0,02 em | 46/50 | Titre d'accueil de Ma journée, action en session |
+| `displayL` | Newsreader Display Medium, -0,015 em | 32/38 | Prochaine action, titres d'écran |
+| `displayM` | Newsreader Text Medium, -0,01 em | 22/28 | Titres de feuille, états de la carte Prochaine action, note ouverte, colonne des listes |
+| `noteTitle` | Newsreader Text Medium | 17/22 | Titre d'une carte de note |
+| `title` | Nunito Sans Bold | 16/22 | Titre de panneau, tâche parente |
+| `body` / `bodyStrong` | Nunito Sans Regular / SemiBold | 14/20 | Texte courant / titre de tâche |
+| `callout` | Nunito Sans Regular | 13/18 | Texte d'appoint, encadrés, extraits de note |
+| `caption` | Nunito Sans Regular | 12/16 | Métadonnées |
+| `label` | Nunito Sans Bold, casse normale | 12/16 | Étiquettes de section et en-têtes de carte (`Eyebrow`) |
+| `numericXL` | Nunito Sans Light, -0,02 em | 60/64 | Minuteur, total de la semaine |
+| `numericL` | Nunito Sans Light, -0,02 em | 44/48 | Grand chiffre d'une carte (focus du jour) |
+| `numericM` / `numericS` | Nunito Sans SemiBold | 14/20, 12/16 | Valeurs en ligne / dates, durées, heures, compteurs |
+| `noteMono` | Courier Prime Regular | 13/19 | Corps du journal et des notes simples, dans la mosaïque |
 
 ## Mesures
 
-- **Espacements** (`DoneSpace`) : grille de 4, avec 2 et 6 pour les détails. 8 entre lignes, 12 dans une ligne et entre les puces, 16 dans une carte, 24 pour les marges de panneau, 32 entre sections, 40 pour les marges d'écran.
-- **Rayons** (`DoneRadius`), doux, jamais en pilule sauf la barre de progression :
-  - `xs` 5 : case à cocher, segment choisi ;
-  - `chip` 8 : puces d'état, de priorité et de réussite, jetons d'étiquette ;
-  - `sm` 10 : boutons, champs, réunions, navigation, tuile numérotée, encadrés ;
-  - `md` 14 : lignes de tâche, cartes ;
-  - `lg` 20 : panneaux, feuilles, carte de fin de pomodoro, carte de la ligne de temps.
-- **Contours** : 1 en `borderSubtle` (cartes), `borderDefault` (boutons secondaires) ou `borderControl` (champs) ; 1,5 pour la case à cocher, le pointillé `stateWaiting` et le trait de l'heure courante ; 2 en `focusRing` (focus, cible de dépôt, champ actif) ; 8 pour l'anneau du minuteur.
-- **Hauteurs fixes** : contrôle 32, contrôle compact 26, puce 22, case à cocher 18, tuile et segment 24, ligne de tâche 48, barre du haut 52. Barre latérale de 228, anneau du minuteur de 280, retrait d'une étape de 28 par niveau.
-- **Ombres**, teintées de l'encre #23281F en clair, noires en sombre :
-  - `shadowCard` (0 1 2, 8 % ; 35 % en sombre) : segment choisi du sélecteur, rien d'autre ;
-  - `shadowRaised` (0 14 32 à 12 %, plus 0 2 6 à 6 % ; 50 % et 30 % en sombre) : `doneRaised`, la carte de fin de pomodoro.
+- **Espacements** (`DoneSpace`) : grille de 4, avec 2 et 6 pour les détails. 12 dans une ligne, 16 entre les cartes, 22 × 20 dans une carte widget, 36 × 30 autour de Ma journée.
+- **Rayons** (`DoneRadius`) :
+  - `xs` 6 : case à cocher, tuile numérotée, barres de la semaine ;
+  - `sm` 12 : champs, réunions et blocs de la ligne de temps, créneaux libres ;
+  - `md` 18 : lignes de tâche, cartes de note, encadrés, cartes à plat des feuilles, résultats de recherche ;
+  - `lg` 24 : cartes widget, feuilles, carte de fin de pomodoro ;
+  - `pill` (et `chip`, son alias) : tout ce qui se clique, puces, étiquettes, recherche, barre de saisie, boutons du rail.
+- **Contours** : 1 en `borderSubtle` (cartes), `borderDefault` (pilules secondaires, recherche) ou `borderControl` (champs) ; 1,5 pour la case à cocher et le pointillé `stateWaiting` ; 2 en `focusRing` (focus, cible de dépôt, champ actif) ; 6 pour les anneaux, fins comme le logo.
+- **Hauteurs fixes** : contrôle 34, contrôle compact 28, puce 22, case à cocher 18, tuile 24, segment 26, recherche 38, ligne de tâche 48, barre de saisie 54. Rail de 84 avec des boutons de 44, colonne des listes de 240, anneau du minuteur de 280, anneau de la carte Prochaine action de 86, retrait d'une étape de 28 par niveau.
+- **Ombres**, teintées de l'encre en clair, noires en sombre :
+  - `shadowCard` et `shadowCardNear` (0 10 30 à 6 %, plus 0 1 2 à 5 % ; 30 % et 40 % en sombre) : cartes widget (`doneCard`), barre de saisie, boutons du rail ;
+  - `shadowRaised` et `shadowRaisedNear` (0 20 50 à 14 %, plus 0 4 10 à 6 % ; 55 % et 35 % en sombre) : `doneRaised`, la carte de fin de pomodoro, et le rail qui passe par-dessus une session ;
+  - `shadowControl` (0 1 2 à 10 % ; 45 % en sombre) : segment choisi du sélecteur.
 
 ## Mouvement
 
 Le mouvement dit « c'est fait » ; il ne décore pas.
 
 - Ce qui arrive ralentit en se posant (ease-out). Ce qui se déplace accélère puis freine (ease-in-out). Seules les réussites rebondissent (ease-spring), et une seule fois.
-- Rien ne bouge sans action de la personne, sauf l'anneau du minuteur.
+- Rien ne bouge sans action de la personne, sauf l'anneau du minuteur et l'heure courante.
 - Avec « Réduire les animations » (macOS), il ne reste que des fondus : pas d'échelle, de rebond ni d'éclat. Chaque vue animée lit `accessibilityReduceMotion` ; `DoneMotion.motion(_:reduced:)` remplace un mouvement par `DoneMotion.fade`.
 
 `DoneMotion` reprend les tokens de durée et de courbe, avec les équivalents SwiftUI de la référence :
 
 | Token | `DoneMotion` | SwiftUI | Usage |
 |---|---|---|---|
-| ease-out, `dur-instant` (90 ms) | `press` | `.easeOut(duration: 0.09)` | Appui : bouton à 0,97, case à 0,88 |
+| ease-out, `dur-instant` (90 ms) | `press` | `.easeOut(duration: 0.09)` | Appui : bouton à 0,97, bouton rond à 0,94, case à 0,88 |
 | ease-out, `dur-fast` (160 ms) | `hover`, `fade` | `.easeOut(duration: 0.16)` | Survol, coche, couleur d'état ; fondu de repli |
-| ease-out, `dur-base` (260 ms) | `appear` | `.easeOut(duration: 0.26)` | Encadré, trait du titre barré |
-| ease-in-out, `dur-base` | `move` | `.easeInOut(duration: 0.26)` | Segment choisi, section repliable, barre latérale |
+| ease-out, `dur-base` (260 ms) | `appear` | `.easeOut(duration: 0.26)` | Encadré, résultats de recherche, confirmation de la barre de saisie, trait du titre barré |
+| ease-in-out, `dur-base` | `move` | `.easeInOut(duration: 0.26)` | Segment choisi, section repliable, rail |
 | ease-spring, `dur-base` | `pop` | `.spring(response: 0.3, dampingFraction: 0.55)` | Case cochée, puce « Fait », pastille de série |
 | ease-out, `dur-slow` (420 ms) | `arrive` | `.smooth(duration: 0.42)` | Carte, feuille, fond de la pause |
 | ease-in-out, `dur-slow` | `travel` | `.easeInOut(duration: 0.42)` | Ligne qui quitte sa liste |
-| ease-out, `dur-celebrate` (900 ms) | `burst` | `.easeOut(duration: 0.9)` | Éclat de tournesol |
+| ease-out, `dur-celebrate` (900 ms) | `burst` | `.easeOut(duration: 0.9)` | Éclat des réussites |
 
-Pièces communes, dans `Theme.swift` : `donePress` (appui, et `DonePressStyle` pour la case), `doneArrive` (fondu à l'apparition, avec une montée de 12 pour une carte), `CheckMarkShape` (coche à tracer avec `.trim`), `SunBurst` (halo `sunTint` et huit pétales `sun` qui partent une fois chaque fois que son compteur augmente).
+Pièces communes, dans `Theme.swift` : `donePress` (appui, et `DonePressStyle` pour la case), `doneArrive` (fondu à l'apparition, avec une montée de 12 pour une carte), `CheckMarkShape` (coche à tracer avec `.trim`), `SunBurst` (halo `accentTint` et huit pétales braise, rose et jaune qui partent une fois chaque fois que son compteur augmente).
 
 Les moments animés :
 
 - **Cocher une tâche** : la case se tasse, rebondit et sa coche se trace ; huit pétales partent ; le titre se barre de gauche à droite ; « Fait » remplace les puces en rebondissant ; une seconde plus tard, la ligne quitte sa liste en glissant vers le bas. Rouvrir ne rejoue rien.
 - **Fin de pomodoro** : la carte monte de 12 et apparaît ; l'anneau se referme ; la coche se trace et l'éclat part ; la pastille du pomodoro qui vient de finir rebondit.
-- **Plan du jour bouclé** : l'encadré de réussite arrive en fondu ; le soleil d'« Aujourd'hui » dans la barre latérale fait un seul éclat.
-- **Pause** : le fond passe à `pomodoroBreakBg` et la vue de pause arrive, ensemble, en `dur-slow`. Le passage à l'arrêt change la couleur de l'anneau au même rythme.
+- **Plan du jour bouclé** : l'encadré de réussite arrive en fondu ; le soleil de Ma journée dans le rail fait un seul éclat.
+- **Pause** : le fond passe à `pomodoroBreakBg`, les halos s'effacent et la vue de pause arrive, ensemble, en `dur-slow`.
 - **Sélecteur** : le segment choisi glisse vers la nouvelle option.
-- **Boutons et cases** : ils se tassent à l'appui ; le survol change le fond en `dur-fast`.
+- **Pilules et boutons du rail** : ils se tassent à l'appui ; le survol change le fond en `dur-fast`.
 
 ## Iconographie
 
-- SF Symbols, en graisse Medium ou SemiBold, de 9 à 16 pt, en texte secondaire dans les puces et en texte principal dans les boutons. Symboles en usage : `calendar`, `clock`, `tag`, `flag` (priorité lue à la saisie), `arrow.clockwise` (répétition), `checkmark`, `nosign`, `exclamationmark.triangle`, `info.circle`, `sun.max`, `calendar.day.timeline.left`, `doc.text`, `folder`, `tray`, `sidebar.left`, `chevron.down`, `chevron.right`.
-- `sun.max` est le signe de la journée : dans la navigation (« Aujourd'hui », en `sunText`), dans la puce « Aujourd'hui » et dans l'encadré de réussite.
+- SF Symbols, au trait, en graisse Regular ou Medium, de 10 à 19 pt : `textSecondary` dans les puces, `textPrimary` dans les pilules, 19 dans le rail. Symboles en usage : `plus`, `sun.max`, `calendar`, `doc.text`, `list.bullet`, `chart.bar`, `gearshape`, `magnifyingglass`, `clock`, `tag`, `checkmark`, `checkmark.square`, `nosign`, `exclamationmark.triangle`, `info.circle`, `folder`, `tray`, `arrow.up`, `arrow.clockwise`, `play.fill`, `ellipsis`, `chevron.down`, `chevron.right`, `chevron.left`.
+- `sun.max` est le signe de la journée : bouton Ma journée du rail, ligne de date de la salutation (en braise), puce « Aujourd'hui », encadré de réussite.
 - La coche animée est un tracé (`CheckMarkShape`), pour pouvoir se dessiner ; la coche des puces reste le symbole `checkmark`.
 
 ## Composants
 
-- **Boutons** (`DoneButtonStyle`) : hauteur 32, rayon `sm`, padding 14 ; texte Archivo 14, SemiBold pour le principal, Medium pour les autres.
-  - Principal en `actionPrimary` (un seul par vue), secondaire sur surface avec contour `borderDefault`, discret en texte seul.
-  - Variante `compact` de 26, texte 13, pour les lignes de réglages et le stepper.
-  - `DoneIconButtonStyle` : bouton carré de 32 (nouvelle tâche, semaines), contour `borderDefault`.
-- **Champ** (`doneField`) : hauteur 32 (36 pour l'ajout des listes), rayon `sm`, contour `borderControl` ; contour `focusRing` de 2 au focus.
-- **Case à cocher** (`TaskCheckbox`) : carré de 18, rayon `xs`, contour 1,5 en `borderControl`. La coche apparaît en filigrane au survol ; cochée, plein `actionPrimary` et coche `actionOnPrimary`. Désactivée : `actionDisabled` et contour `borderSubtle`. Avec `bursts`, l'éclat de tournesol accompagne la coche. Sert aussi aux cases des notes Markdown.
-- **Puces** : hauteur 22, rayon `chip`, jamais de contour.
-  - `StateChip`, marge 8, icône 10, texte 12 Medium :
-    - `active`, « Aujourd'hui » : soleil, `sunText` sur `sunTint`, pour une tâche du plan ;
-    - `doneToday`, « Fait » : coche, `sunText` sur `sunTint`, pour une tâche qu'on vient de cocher ;
-    - `blocked`, « Bloquée » : interdit, sur `stateBlocked` ;
-    - `risk` : triangle, sur `stateRiskTint` ;
-    - `done` : coche et texte `stateOnDone` sans fond, pour ce qui a été fait un autre jour.
-  - `InfoChip` : date (calendrier), durée (horloge) ou répétition (`arrow.clockwise`, « Chaque lundi »), icône et texte secondaires sans fond ; en texte d'alerte une fois l'échéance dépassée.
-  - `PriorityChip` : P1 SemiBold sur teinte active, marge 8 ; P2 Medium en texte actif seul ; rien pour P3 et P4.
-  - `TagChip` : icône `tag` et nom en texte secondaire, sans fond. Dans la vue d'une étiquette, celle-ci n'est pas répétée sur les lignes.
-- **Éditeur d'étiquettes** (`TagEditor`, dans la carte des détails) : jetons sur teinte active, rayon `chip`, avec une croix ; un champ « Ajouter » et le menu des étiquettes existantes. Absent pour une étape.
+### Agir et saisir (`Theme.swift`)
+
+- **Boutons** (`DoneButtonStyle`) : pilule de 34, marge 16, texte 14 SemiBold. Principal en `actionPrimary` (un seul par vue), secondaire sur surface avec contour `borderDefault`, discret en texte seul (marge 10). Variante `compact` de 28, marge 12, texte 13.
+- **Bouton à icône** (`DoneIconButtonStyle`) : rond de 34, icône de 14, contour `borderDefault`, appui à 0,94.
+- **Stepper** (`DoneStepper`) : « − » et « + » en boutons compacts.
+- **Sélecteur** (`DoneSegmented`) : piste `bgSunken` en pilule, marge 3 ; segment de 26 en pilule sur `surfaceDefault` avec `shadowControl`, qui glisse d'une option à l'autre (`matchedGeometryEffect`).
+- **Champ** (`doneField`) : hauteur 34 (36 pour l'ajout des listes), rayon `sm`, marge 12, contour `borderControl` ; contour `focusRing` de 2 au focus.
+- **Case à cocher** (`TaskCheckbox`) : carré de 18, rayon `xs`, contour 1,5 en `borderControl`. La coche apparaît en filigrane au survol ; cochée, plein `actionPrimary` et coche `actionOnPrimary`. Avec `bursts`, l'éclat accompagne la coche. Sert aussi aux cases des notes Markdown.
+
+### Puces et étiquettes
+
+- **`StateChip`** : pilule de 22, marge 8, icône 10, texte 12 SemiBold, jamais de contour.
+  - `active`, « Aujourd'hui » : soleil, `accentText` sur `accentTint` ;
+  - `doneToday`, « Fait » : coche, `successText` sur `successTint`, pour une tâche qu'on vient de cocher ;
+  - `blocked`, « Bloquée » : interdit, sur `stateBlocked` ;
+  - `risk` : triangle, sur `stateRiskTint` ;
+  - `done` : coche et texte `stateOnDone` sans fond, pour ce qui a été fait un autre jour.
+- **`InfoChip`** : date (calendrier), durée (horloge) ou répétition (`arrow.clockwise`, « Chaque lundi »), icône et texte secondaires sans fond ; en texte d'alerte une fois l'échéance dépassée.
+- **`PriorityChip`** : P1 SemiBold sur teinte active ; P2 en texte actif seul ; rien pour P3 et P4.
+- **`TagChip`** : icône `tag` et nom en texte secondaire, sans fond, dans les lignes de tâche. Dans la vue d'une étiquette, celle-ci n'est pas répétée.
+- **`TagPill`** : pilule de 22 à contour coloré, marge 10, 12 SemiBold, texte et contour de la même couleur sur fond transparent. Le type d'une note (`NoteKind.tagColor`), ou une étiquette dans une carte (`textSecondary`).
+- **Éditeur d'étiquettes** (`TagEditor`, dans la carte des détails) : jetons sur teinte active avec une croix, un champ « Ajouter » et le menu des étiquettes existantes. Absent pour une étape.
+
+### Regrouper
+
+- **Cartes** : `doneCard` (surface, liseré `borderSubtle`, rayon `lg`, `shadowCard`) ; `doneCard(flat: true)` sans ombre, dans une feuille ou une autre carte, souvent en rayon `md` ; `doneRaised` (rayon `lg`, `shadowRaised`) pour la carte de fin de pomodoro seulement.
+- **Carte widget** (`WidgetCard`, `HomeView.swift`) : `doneCard` avec des marges de 22 × 20 ; en tête, l'`Eyebrow` à gauche (avec un accessoire éventuel, comme la position dans le plan) et un lien en `stateActiveText` 12 SemiBold à droite, qui ouvre l'écran complet.
+- **Encadré** (`NoticeBox`) : sans contour, rayon `md`, marges 14 × 10, texte `callout`, icône de 11 ; arrive en fondu.
+  - `info` : « i », `stateActiveText` sur `stateActiveTint` ;
+  - `success` : soleil, `accentText` sur `accentTint`, pour le plan du jour terminé ;
+  - `error` : triangle, `stateRiskText` sur `stateRiskTint`.
+- **Carte de note** (`NoteCard`, `NoteViews.swift`) : rayon `md`, marges 16 × 14. `TagPill` du type, titre en `noteTitle`, extrait sur trois lignes (`callout` secondaire, ou `noteMono` en `textPrimary` pour le journal et les notes simples), jusqu'à trois cases cliquables (de 14). Teinte selon le type : Journal `cardBlush` (étiquette `tagYellow`), Réunion `cardSlate` (`stateActiveText`), Personne `cardSage` (`successText`), Référence et page de projet `cardParchment` (`textSecondary`), Note (`accentText`) et Décision (`tagPink`) sur `surfaceDefault` avec un liseré. La tuile « Nouvelle note… » (`NewNoteTile`) est en pointillé `stateWaiting`.
+- **Mosaïque** (`MasonryLayout`) : chaque carte dans la colonne la plus courte, écart de 10 ; quatre colonnes au plus dans l'écran Notes (220 de large au moins), deux dans Ma journée.
+- **Toile** (`DoneCanvas`) : `bgCanvas` et les deux halos en dégradé radial (`haloWarm` centré à 210 du bord droit et 30 sous le haut, `haloPink` à 190 du bord gauche et 110 sous le bas). Pendant la pause, `pomodoroBreakBg`, sans halos.
+
+### Listes et lignes
+
 - **Ligne de tâche** : hauteur 48, rayon `md`.
-  - Au survol, `surfaceHover` et poignée de déplacement.
-  - Titre (`TaskTitle`) en `bodyStrong` sur deux lignes au plus, métadonnées en `caption`.
+  - Au survol, `surfaceHover` ; au clavier, la ligne choisie passe en `surfaceSelected`.
+  - Titre (`TaskTitle`) en `bodyStrong` sur deux lignes au plus, métadonnées en `caption` : liste, puis « N étapes ».
   - Puces à droite (`TaskChips`), espacées de 12 : priorité, « Aujourd'hui » ou « Bloquée », étiquettes, échéance, répétition, durée.
-  - Au clavier, la ligne choisie passe en `surfaceSelected` (voir Raccourcis).
   - Étapes en retrait de 28 par niveau.
   - Cocher passe par `AppModel.completeSoon` : la tâche reste ouverte une seconde, le temps de l'animation, puis elle est cochée. Recliquer pendant cette seconde annule ; quitter Done enregistre aussitôt les coches en attente. `TaskRowTrailing` remplace les puces par « Fait ».
-- **Raccourcis** (`KeyCap`, `ShortcutHint`, `ListShortcutHints`) : des touches dessinées, comme le « ⌘K » d'une recherche. Touche de 18 de haut, rayon `xs`, contour `borderDefault` sur `surfaceDefault`, Archivo 11 Medium en texte secondaire ; le verbe suit en `caption` secondaire. À droite du titre d'une liste et d'Aujourd'hui : « ↑ ↓ Choisir », « Espace Cocher », « ↩ Ouvrir », « ⌘ ↑ ↓ Déplacer ». Ils ne prennent pas la parole : pas de couleur, pas de fond plein.
-- **Élément de navigation** (`NavItem`) : hauteur 32, rayon `sm`, icône 16, compteur `numericS` à droite. Actif en `surfaceSelected` et SemiBold. `iconColor` donne sa couleur propre à une icône (le soleil d'« Aujourd'hui », en `sunText`), `burstCount` lui fait faire un éclat.
-- **Élément du rail** (`NavRailItem`) : case de 40 × 32, rayon `sm`, icône 16 ; actif en `surfaceSelected`, survol en `surfaceHover`. Le titre et le raccourci passent dans l'aide.
-- **Bloc réunion** (`MeetingBlock`, `Hatching`) : rayon `sm`. Hachuré à venir (traits de 1,5 à 45° tous les 6, le temps est pris), plein `meetingNow` en cours, `stateDone` une fois passé. La pastille du haut (`MeetingPill`) suit les mêmes règles.
-- **Tuile numérotée** (`NumberTile`) : 24, rayon `sm`. Pleine `stateActive` pour une place dans le plan, en contour `borderDefault` pour un emplacement libre.
-- **Sélecteur** (`DoneSegmented`) : piste `bgSunken` de rayon `sm` ; segment de 24, rayon `xs`, sur `surfaceDefault` avec `shadowCard`, qui glisse d'une option à l'autre (`matchedGeometryEffect`).
-- **Encadré** (`NoticeBox`) : sans contour, rayon `sm`, texte `callout`, icône de 11 ; arrive en fondu.
-  - `info` : « i », `stateActiveText` sur `stateActiveTint` ;
-  - `success` : soleil, `sunText` sur `sunTint`, pour le plan du jour terminé ;
-  - `error` : triangle, `stateRiskText` sur `stateRiskTint`.
-- **Cartes** : `doneCard` (surface, liseré `borderSubtle`, rayon `md`, ou `lg` pour un panneau) ; `doneRaised` (rayon `lg`, ombre `shadowRaised`) pour la carte de fin de pomodoro seulement.
+- **Tuile numérotée** (`NumberTile`) : 24, rayon `xs`. Pleine `stateActive` pour une place dans le plan, en contour `borderDefault` pour un emplacement libre.
+- **Raccourcis** (`KeyCap`, `ShortcutHint`, `ListShortcutHints`) : les touches en texte seul, 12 SemiBold à 60 % de la couleur qui les entoure, comme le « ⌘K » de la recherche ; le verbe suit en `caption` secondaire. À droite du titre d'une liste : « ↑ ↓ Choisir », « Espace Cocher », « ↩ Ouvrir », « ⌘ ↑ ↓ Déplacer ».
+- **Élément de liste** (`NavItem`) : pilule de 34, marge 12, icône 16, compteur `numericS` à droite. Actif en `surfaceSelected` et en Bold ; cible de dépôt avec un contour `focusRing` de 2. Ne sert plus qu'à la colonne de l'écran Listes.
+
+### Calendrier et pomodoro
+
+- **Bloc réunion** (`MeetingBlock`, `Hatching`) : rayon `sm`. Hachuré à venir (traits de 1,5 à 45° tous les 6), plein `meetingNow` en cours, `stateDone` une fois passé. Moins de 30 min : titre et créneau sur une ligne (`singleLine`). La pastille de réunion de la session (`MeetingPill`) suit les mêmes règles.
+- **Ligne de temps** (`DayTimeline`, `HourLabels`, `DayTimeline.swift`) : plage horaire en paramètre (de 8 h à 19 h par défaut). Focus fait en `accentTint`, titre en `accentText` ; heure courante en braise, un point de 8 et un trait de 2, avec l'heure en `accentText` dans la gouttière (`HourLabels(now:)`). Créneaux libres de 30 min ou plus (`showsFreeSlots`) en pointillé `stateWaiting`, avec « 2 pomodoros possibles » ; cliquables avec `onFreeSlot`.
 - **Anneau et barre** : `ProgressRing` (voir Pomodoro) ; `ProgressBar`, hauteur 6, en capsule, plein `stateActive` sur `pomodoroTrack`.
 
-## Aujourd'hui
+### Écran Ma journée (`HomeComponents.swift`)
 
-- **En-tête** : « Aujourd'hui » en `displayL`, puis la date, le nombre de réunions et le focus fait en `body` secondaire.
-- **Ligne de temps** : 320 de large, dans une carte (`doneCard`, rayon `lg`), la même `DayTimeline` que le calendrier avec ses heures, étirée sur la hauteur.
-- **Listes** : « Plan du jour » (tuiles numérotées, « Lancer le focus » en bouton principal compact, « Modifier le plan » en secondaire), « Échéances et retards », puis « Fait aujourd'hui », replié, sur `stateDone`. Lignes de 48 : case à cocher, titre et puces, survol en `surfaceHover`. Une tâche cochée quitte sa liste en glissant.
-- **Plan bouclé** : quand tout le plan du jour est coché, l'encadré `success` « Plan du jour terminé. Tout ce qui était prévu est fait. » prend la place de la liste, et le bouton devient « Ajouter au plan ».
+- **Salutation** (`Greeting`) : ligne de date (soleil braise, jour, date et semaine en 13 SemiBold secondaire), puis le titre en `displayXL` : la salutation en italique `textSecondary`, le résumé en `textPrimary`. Deux lignes au plus, 820 de large au plus. La formule et la phrase viennent de `DaySummary` (Core).
+- **Recherche** (`SearchField`, `GlobalSearchBox`) : pilule de 38, 260 de large, contour `borderDefault` (`focusRing` de 2 au focus), loupe de 15, « ⌘K » à droite. Les résultats s'ouvrent dessous dans une carte de 380 (rayon `md`), groupés par Tâches, Notes, Réunions, cinq au plus par groupe ; la ligne choisie en `surfaceSelected`. La recherche est `GlobalSearch` (Core).
+- **Barre de saisie** (`CaptureBar`, `HomeCaptureBar`) : pilule de 54 sur `surfaceDefault`, liseré et `shadowCard`. À gauche un + et le texte ; à droite les genres (Tâche, Note, Réunion) en pilules de 38 avec leur icône (`surfaceSelected` pour le genre choisi, `bgSunken` pour les autres) et l'envoi, rond de 38 en `actionPrimary`. Après un ajout, la puce « Ajoutée dans Inbox » reste 2 s au-dessus.
+- **Rail** (`Rail`, `RailDestination`) : 84 de large, sur `bgSunken` à 70 % avec flou (`ultraThinMaterial`), trait `borderSubtle` à droite. Boutons ronds de 44, espacés de 10, icônes de 19 : « Capturer » en braise, puis Ma journée, Calendrier, Notes, Listes et Stats ; en bas, Réglages et le logo. L'écran affiché est plein `actionPrimary`, les autres sur `surfaceDefault` avec `shadowCard`. Listes porte une pastille braise avec le nombre de tâches de l'Inbox. Pendant une session qui tourne ailleurs, le minuteur remplace le logo. Chaque bouton dit son nom et son raccourci au survol.
+
+Le rail, la salutation et la barre de saisie ont des aperçus Xcode (`#Preview`) dans `HomeComponents.swift`.
+
+## Ma journée
+
+`HomeView` (⌘1), l'écran d'arrivée. Sur la toile et ses halos :
+
+- **En-tête** : la salutation à gauche ; la recherche et « Capturer » (pilule secondaire avec « ⌘N ») à droite.
+- **Grille** : six cartes widget en trois colonnes (1,25 / 1 / 1), deux rangées qui se partagent la hauteur, écart de 16. Sous 1 150 de large utile, deux colonnes de 300 de haut qui défilent, la carte Notes en dernier.
+  1. **Prochaine action** : la position dans le plan (« • Tâche 1 sur 3 » en `accentText` sur `accentTint`), l'étape en `displayL`, sa tâche (« étape 2 sur 5 »), ses puces, la note de reprise, un anneau de 86 en braise avec la durée (un clic en propose une autre), « Lancer le focus », « Découper… », un menu « … » (Changer de tâche, Passer) et le temps libre avant la prochaine réunion. Selon la journée : bilan du soir (à l'heure du réglage, avec « Plus tard »), jour de congé avec « Travailler quand même », pas de plan, plan terminé, plan bloqué, pas le temps avant une réunion, pause due.
+  2. **Ma journée** : la ligne de temps, de l'heure courante moins une jusqu'à 19:00, à 40 par heure, avec les créneaux libres ; un clic sur un créneau libre lance la prochaine action, ailleurs il propose une réunion. Lien « Calendrier ».
+  3. **Plan du jour** : barre d'avancement, tâches faites en haut (barrées, « Fait »), puis les tâches ouvertes avec case et tuile numérotée. Une tâche glissée depuis les échéances (ou une liste) rejoint le plan. Lien « Modifier » (ou « Choisir ») vers le Plan du jour, en feuille.
+  4. **Échéances et retards** : ce qui tombe aujourd'hui ou est en retard, hors plan. Lien « Tout voir » vers le Calendrier.
+  5. **Notes** : la mosaïque à deux colonnes, le journal du jour en premier (ou « Journal du jour… »), puis les notes récentes et « Nouvelle note… ». Lien « Toutes les notes ».
+  6. **Focus aujourd'hui** : le temps de focus en `numericL`, les pastilles de série en braise et « 3e pomodoro », les tâches cochées, l'Inbox à trier, les barres de la semaine (aujourd'hui en `stateActive`, les autres en `stateActiveTint`). Lien « Stats ».
+- **Barre de saisie** en bas.
+- **Clavier** : ↑ ↓ parcourent le plan puis les échéances, Espace coche, ↩ ouvre la fiche.
+
+## Listes
+
+`ListsView` (⌘4) : la colonne des listes, 240 sur `bgSunken`, titre « Listes » en `displayM`, puis l'Inbox, la section « Projets » (chaque projet suivi de ses sous-projets en retrait de 16, repliables par un chevron, puis « Nouveau projet ») et la section « Étiquettes ». Chaque section se replie d'un clic sur son titre, et Done s'en souvient. Chaque entrée porte son nombre de tâches ouvertes. Clic droit pour renommer, réordonner, ranger ou supprimer ; on y glisse une tâche pour la ranger. À droite, la liste choisie (`TaskListView`).
+
+La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-projet : titre en `title` avec l'icône `folder` et le nombre de tâches (un clic ouvre le sous-projet), puis la carte de ses lignes.
 
 ## Notes
 
-- **Écran** : liste de 300 à gauche (titre « Notes » en `displayL`, bouton +, champ de recherche `doneField`, filtre « Type : … » en `callout`), trait `borderSubtle`, puis la note sur 760 au plus.
-- **Ligne de note** (`NoteRow`) : icône du type (13, secondaire), titre en `bodyStrong`, détails en `caption` (type, projet, moment). Choisie en `surfaceSelected`, survol en `surfaceHover`.
-- **Note** : puce du type sur teinte active (rayon `chip`), « Modifiée … » en `caption`, titre en `displayM` sans contour, carte des rattachements (`DetailRow`), puis « Contenu ». Aperçu (`MarkdownView`) : titres en `displayM`, `title` et `bodyStrong` ; texte en `body` ; puces « • » secondaires ; cases `TaskCheckbox`, qui rebondissent quand on les coche ; citations avec un filet de 3 en `borderDefault` ; code sur `bgSunken` ; liens [[Titre]] en texte actif. Édition : `TextEditor` en `body`, contour `focusRing` de 2. Note vide : cadre pointillé `stateWaiting`.
-- **Liens** : « Liens » et « Citée dans », en lignes de note.
-- **Ailleurs** : carte « Documentation » en haut de la vue d'un projet ; bouton « Note du jour » dans l'en-tête d'Aujourd'hui ; « Prendre des notes » dans la fiche d'une réunion ; liste « Notes » dans la fiche d'une tâche. Une note ouverte ailleurs que dans l'écran Notes s'affiche dans une feuille (`NoteSheet`, 760 × 680) avec « Retour » quand on suit un lien.
-
-## Projet et sous-projets
-
-La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-projet : titre en `title` avec l'icône `folder` et le nombre de tâches (un clic ouvre le sous-projet), puis la carte de ses lignes, ou « Aucune tâche ouverte. » en `callout` secondaire.
+- **Écran** : titre « Notes » en `displayL`, champ de recherche, filtre « Type : … » et « Nouvelle » en haut ; dessous, la mosaïque des cartes de note, fermée par « Nouvelle note… ». Une note ouverte prend toute la largeur, avec « Toutes les notes » pour revenir.
+- **Note** : puce du type, « Modifiée … » en `caption`, titre en `displayM` sans contour, carte des rattachements (`DetailRow`, à plat), puis le contenu. Aperçu (`MarkdownView`) : titres en `displayM`, `title` et `bodyStrong` ; texte en `body` ; cases `TaskCheckbox` ; citations avec un filet de 3 en `borderDefault` ; code sur `bgSunken` ; liens [[Titre]] en texte actif. Édition : `TextEditor` en `body`, contour `focusRing` de 2.
+- **Ailleurs** : carte « Documentation » en haut de la vue d'un projet ; carte Notes de Ma journée ; « Prendre des notes » dans la fiche d'une réunion ; liste « Notes » dans la fiche d'une tâche. Une note ouverte ailleurs que dans l'écran Notes s'affiche dans une feuille (`NoteSheet`, 760 × 680) avec « Retour » quand on suit un lien.
 
 ## Calendrier
 
-- **Colonnes** : une par jour, du lundi au vendredi, séparées par un trait `borderSubtle`, après une gouttière de 44 pour les heures (`numericS`, texte secondaire).
-- **En-tête de jour** : « Lun 2 » en Archivo SemiBold 15 (texte actif pour aujourd'hui), puis une ligne `caption` : l'absence (icône `sun.max`), sinon le focus du jour, sinon « Aujourd'hui ». Menu « … » discret à droite, et le même menu au clic droit.
-- **Échéances** : 108 de haut, une petite carte par tâche (surface, liseré, rayon `sm`, `PriorityChip` et titre en `callout`), en texte d'alerte quand elle est en retard. Le jour survolé pendant un glisser-déposer prend la teinte active.
-- **Grille** : de 8 h à 19 h, étirée sur toute la hauteur de la fenêtre, avec au moins 44 par heure (en dessous, elle défile), traits d'heure `borderSubtle`. Réunions en `MeetingBlock` qui remplit son créneau ; focus passé sur teinte active avec un filet `stateActive` de 3 à gauche et le titre en 11 Medium ; deux événements qui se chevauchent se partagent la largeur. Heure courante : un point et un trait de 1,5 en `stateActive`, jamais en couleur d'alerte. Jour d'absence : fond `bgSunken`.
+- **Colonnes** : une par jour, du lundi au vendredi, séparées par un trait `borderSubtle`, après une gouttière pour les heures (`numericS`, texte secondaire ; l'heure courante en `accentText` dans la semaine en cours).
+- **En-tête de jour** : le jour (texte actif pour aujourd'hui), puis une ligne `caption` : l'absence (icône `sun.max`), sinon le focus du jour, sinon « Aujourd'hui ». Menu « … » discret à droite, et le même menu au clic droit.
+- **Échéances** : une petite carte par tâche (`PriorityChip` et titre en `callout`), en texte d'alerte quand elle est en retard. Le jour survolé pendant un glisser-déposer prend la teinte active.
+- **Grille** : de 8 h à 19 h, étirée sur toute la hauteur, avec au moins 44 par heure (en dessous, elle défile). Réunions en `MeetingBlock` ; focus passé en `accentTint` ; deux événements qui se chevauchent se partagent la largeur ; heure courante en braise, jamais en couleur d'alerte. Jour d'absence : fond `bgSunken`.
 
 ## Navigation
 
-Barre latérale de 228, sur `bgSunken`, avec un trait `borderSubtle` à droite. Le bouton `sidebar.left` à gauche de la barre du haut, ou ⌃⌘S, la réduit en un rail de 56 (`NavRailItem` : Focus, Aujourd'hui, Plan du jour, Calendrier, Inbox, Notes, puis Stats et Réglages en bas) ; survolé un instant (150 ms), le rail laisse passer la barre complète par-dessus, avec son ombre, comme en session. La barre complète porte :
-
-- en haut, Focus (⌘1, glyphe de Done), Aujourd'hui (⌘6, soleil `sun.max` toujours en `sunText`), Plan du jour (⌘2, avec le nombre de tâches du plan), Calendrier (⌘5, `calendar.day.timeline.left`), Inbox (⌘3) et Notes (⌘7, `doc.text`) ;
-- au milieu, deux sections repliables, leur titre (`Eyebrow`) suivi d'un chevron de 9 à droite : « Projets », chaque projet suivi de ses sous-projets en retrait de 16 (un chevron dans le `NavItem` du projet les replie), puis « Nouveau projet » ; « Étiquettes », une entrée par étiquette (icône `tag`). Chaque entrée porte son nombre de tâches ouvertes, celui d'un projet comptant ses sous-projets ;
-- en bas, Stats (⌘4) et Réglages (⌘,).
-
-Les feux de la fenêtre sont posés sur le haut de la barre. La barre du haut, de 52, porte au centre la pastille de réunion (Focus et Plan du jour), à droite le bouton « + » de la capture rapide (⌘N).
-
-En session (minuteur, pause, interruption, fin), la barre latérale s'efface en glissant et revient par-dessus quand la souris touche le bord gauche. Les raccourcis restent actifs.
+- **Rail** à gauche de la fenêtre, sous les feux. Raccourcis : ⌘1 Ma journée, ⌘2 Calendrier, ⌘3 Notes, ⌘4 Listes (la dernière ouverte), ⌘5 Stats, ⌘, Réglages, ⌘N saisie complète, ⌘K recherche (depuis un autre écran, ⌘K ramène à Ma journée).
+- **Session** : lancer le focus fait passer Ma journée en plein écran (minuteur, interruption, fin de session, pause), sans rail ; le rail revient par-dessus, avec son ombre, quand la souris touche le bord gauche. Si l'on change d'écran pendant une session, elle continue : le minuteur s'affiche en bas du rail, et un clic dessus (ou ⌘1) ramène à la session. Une réunion en cours s'affiche en haut de l'écran de session pendant une interruption.
+- Le minuteur reste aussi dans la barre de menus, même fenêtre fermée.
 
 ## Pomodoro
 
-- **Minuteur** : anneau de 280, trait 8, qui se vide dans le sens horaire depuis midi et glisse d'une seconde à l'autre ; chiffres en `numericXL`.
-  - En concentration : `pomodoroFocus`, vert profond (vert tendre en sombre).
+- **Minuteur** : anneau de 280, trait 6, qui se vide dans le sens horaire depuis midi et glisse d'une seconde à l'autre ; chiffres en `numericXL`.
+  - En concentration : `pomodoroFocus`, en braise.
   - À l'arrêt : `pomodoroPaused`, avec la mention « En pause ».
-  - En pause : l'écran passe sur `pomodoroBreakBg`, une lumière plus chaude, et l'anneau en `pomodoroBreak`, ocre.
+  - En pause : l'écran passe sur `pomodoroBreakBg` et l'anneau en `pomodoroBreak`, cobalt.
   - Aucune couleur d'alerte, même à la fin.
 - **Fin de pomodoro** (`OutcomeView`, composant `PomodoroDone` de la référence) : carte surélevée de 520 (`doneRaised`), le seul élément surélevé de Done.
-  - Anneau de 56 en `pomodoroFocus` qui se referme, puis une coche qui se trace au centre et l'éclat de tournesol.
+  - Anneau de 56 au trait de 6 en `pomodoroFocus` qui se referme, puis une coche qui se trace au centre et l'éclat.
   - « Pomodoro terminé » (ou le titre de l'étape cochée en avance) en `displayM`, la durée et la tâche en `callout` secondaire.
-  - Pour un pomodoro terminé, la série du jour : une pastille `sun` de 10 par pomodoro fait (8 au plus), une pastille vide pour le prochain, et « 3e pomodoro aujourd'hui » en `sunText`. Un pomodoro est un minuteur mené au bout, rallonges comprises (`Stats.pomodoros`) ; une tâche cochée avant la fin ne compte pas.
+  - Pour un pomodoro terminé, la série du jour : une pastille `accent` de 10 par pomodoro fait (8 au plus), une pastille vide pour le prochain, et « 3e pomodoro aujourd'hui » en `accentText`. Un pomodoro est un minuteur mené au bout, rallonges comprises (`Stats.pomodoros`).
   - Les actions de Done : « Cocher la tâche » en principal, « Encore 5 min » et « Pause, puis je reprends » en secondaire, « Bloqué… » et « Arrêter là » en discret.
-- **Barre de menus** : image « template » du système, qui prend la couleur de la barre de menus. Au repos, le glyphe de Done, ou `sun.max` une fois le plan du jour bouclé : le soleil reste monochrome, comme toutes les icônes de la barre.
-  - Concentration : mini-anneau de 16 rendu à la volée, et temps restant en chiffres tabulaires.
-  - Arrêt et pause : icônes pause et tasse.
-  - Fin : anneau plein et « Fini ».
-- **Panneau de la barre de menus** : 300 de large, sur `bgCanvas`. En haut, la capture : `Eyebrow` « Nouvelle tâche », champ `doneField`, menu « Dans : Inbox » en `callout` et, à droite, « Détails… » en bouton discret, remplacé après un ajout par « Ajoutée dans … » en `caption` secondaire. Un `Hairline`, puis la session en cours et les boutons.
+- **Barre de menus** : image « template » du système. Au repos, le glyphe de Done, ou `sun.max` une fois le plan du jour bouclé, monochrome comme toutes les icônes de la barre. En concentration, un mini-anneau de 16 et le temps restant ; à l'arrêt et en pause, les icônes pause et tasse ; à la fin, l'anneau plein et « Fini ».
+- **Panneau de la barre de menus** : 300 de large, sur `bgCanvas`. En haut, la capture (champ, « Dans : Inbox », « Détails… », puis « Ajoutée dans … » après un ajout), un `Hairline`, puis la session en cours et les boutons.
 
 ## Saisie d'une tâche
 
-- **Formulaire de capture** (`CaptureForm`) : la fiche d'une tâche, vide, sur 560 de large. `Eyebrow` « Nouvelle tâche », titre en `displayM` sans contour, notes (`NotesEditor`, 64 de haut), carte des détails (`TaskDetailsCard` : liste, étiquettes, priorité, type, échéance, en lignes `DetailRow` de 44), puis la carte des étapes (lignes de 36, numéro en `numericS`, croix pour retirer). Annuler et Ajouter (⌘ Entrée) en bas à droite. La fiche d'une tâche existante (`TaskEditorSheet`) reprend les mêmes composants, avec la ligne « Bloquée » en plus ; cocher une étape y suit la même seconde d'attente que dans les listes.
-- **Fenêtre flottante** (`QuickCapturePanel`) : le même formulaire dans une fenêtre sans barre de titre visible, au niveau flottant, sur `bgCanvas`, posée un peu au-dessus du centre de l'écran où se trouve la souris. Elle ne fait pas passer Done au premier plan.
-- **Champ d'ajout des listes** : une ligne `doneField` de 36, avec « Détails… » en bouton discret à droite.
-- **Lecture du titre** (`QuickEntry`, `QuickEntryHint`) : sous chaque champ de saisie, quand la fin du titre dit une échéance, une priorité, une étiquette ou une répétition, une ligne « Compris » en `caption` suivie des puces lues (`InfoChip` et `TagChip`) arrive en fondu. Rien quand il n'y a rien à lire.
-- **Répétition** : ligne « Répétition » de la carte des détails (`RecurrenceMenu`) : Jamais, Chaque jour, Jours ouvrés, Chaque semaine (jours à cocher), Toutes les deux semaines, Chaque mois. Absente pour une étape.
+- **Formulaire de capture** (`CaptureForm`) : la fiche d'une tâche, vide, sur 560 de large. `Eyebrow` « Nouvelle tâche », titre en `displayM` sans contour, notes, carte des détails (`TaskDetailsCard`, à plat : liste, étiquettes, priorité, type, échéance, répétition), puis la carte des étapes. Annuler et Ajouter (⌘ Entrée). La fiche d'une tâche existante (`TaskEditorSheet`) reprend les mêmes composants, avec la ligne « Bloquée » en plus.
+- **Fenêtre flottante** (`QuickCapturePanel`) : le même formulaire, au niveau flottant, posé un peu au-dessus du centre de l'écran où se trouve la souris, sans faire passer Done au premier plan.
+- **Barre de saisie de Ma journée** et **champ d'ajout des listes** : Entrée ajoute, la fin du titre est lue par `QuickEntry`.
+- **Lecture du titre** (`QuickEntry`, `QuickEntryHint`) : sous le champ, quand la fin du titre dit une échéance, une priorité, une étiquette ou une répétition, une ligne « Compris » suivie des puces lues arrive en fondu.
 
 ## Stats
 
 - **En-tête** : « Cette semaine » en `displayL`, la période en `body` secondaire, les flèches en `DoneIconButtonStyle`.
-- **Total** : les minutes de focus en `numericXL` (texte actif), puis « de focus · 9 pomodoros · 3 tâches cochées · 1 interruption » en `body` secondaire.
-- **Par jour** : une carte de rayon `lg`. Barres de 40 en `stateActive` (piste `pomodoroTrack` pour un jour vide), la durée au-dessus en `caption`, le jour en dessous. Sous le jour, ses pomodoros en pastilles `sun` de 6 (5 au plus, puis « +2 » en `sunText`). Un soleil `sunText` au-dessus de la meilleure journée ; un petit soleil à côté des jours où le plan a été bouclé, et leur nombre en tête de la carte, en `sunText`.
+- **Total** : les minutes de focus en `numericXL`, puis « de focus · 9 pomodoros · 3 tâches cochées · 1 interruption » en `body` secondaire.
+- **Par jour** : barres de 40 en `stateActive` (piste `pomodoroTrack` pour un jour vide), la durée au-dessus en `caption`, le jour en dessous ; les pomodoros en pastilles braise de 6 (5 au plus, puis « +2 » en `accentText`). Un soleil braise au-dessus de la meilleure journée ; un petit soleil à côté des jours où le plan a été bouclé, et leur nombre en tête de la carte, en `accentText`.
 - **Par projet** : jauges `ProgressBar` de 8.
-- **Mouvement** : à l'arrivée sur l'écran et à chaque changement de semaine, les barres poussent l'une après l'autre (`arrive`, 40 ms d'écart), puis le soleil de la meilleure journée rebondit (`pop`). Avec « Réduire les animations », tout arrive en fondu.
+- **Mouvement** : les barres poussent l'une après l'autre (`arrive`, 40 ms d'écart), puis le soleil de la meilleure journée rebondit (`pop`). Avec « Réduire les animations », tout arrive en fondu.
 
 ## Logo
 
-Carré arrondi en dégradé de vert (#3B7A5B en haut, #204F3A en bas), anneau crème (#F7F3E8) à 24 % et arc crème de 300° partant du haut : un minuteur presque refermé. Dans l'ouverture, à 330°, un soleil tournesol (#F6C343) : la tâche est presque faite, la journée se lève. Le soleil reste un disque plein, sans rayons, pour se lire à 16 px. Ne pas recolorer l'icône ni déplacer le soleil.
+Carré arrondi blanc, réchauffé d'un halo braise en haut à droite et d'un halo rose en bas à gauche, comme la toile de l'app. Dessus, un anneau fin en encre (trait de 30 sur 824, piste à 12 %) ouvert sur 60°, et un point braise au milieu de l'ouverture, à 330°. Le trait reste fin même petit : c'est le point braise qui se lit à 16 px. Ne pas recolorer l'icône ni déplacer le point.
 
 - Sources vectorielles : `docs/design/icon.svg` (icône de l'app) et `docs/design/glyph.svg` (glyphe à une encre).
-- Dans l'app : `DoneAppIcon` (aux proportions du SVG, couleurs fixes), l'asset `AppIcon` (Dock et Finder, de 16 à 1024) et l'asset `DoneGlyph` (18 et 36), image « template » de la navigation et de la barre de menus.
-- La couleur d'accent du système (`AccentColor`) reprend `stateActive` : #3B7A5B, #7CC39C en sombre. Elle teinte l'anneau de focus du clavier.
+- Dans l'app : `DoneAppIcon` (aux proportions du SVG, couleurs fixes, en bas du rail), l'asset `AppIcon` (Dock et Finder) et l'asset `DoneGlyph`, image « template » de la barre de menus.
+- La couleur d'accent du système (`AccentColor`) reprend `focusRing` : #1573DD, #5AA2F0 en sombre.
 
-## Écarts assumés avec la référence Jardin
+## Écarts assumés avec la référence Mymind
 
-- **Cocher laisse une seconde.** La référence montre l'animation ; dans l'app, la tâche reste ouverte une seconde pour qu'on la voie, et recliquer pendant ce temps annule. Les autres façons de cocher (minuteur, Rappels, Claude) restent immédiates.
-- **La ligne descend en s'effaçant.** « Fait aujourd'hui » est souvent replié : au lieu de rejoindre cette section, la ligne cochée glisse de 12 vers le bas en s'effaçant, et les autres se resserrent.
-- **Carte de fin de pomodoro.** Elle garde les actions et les libellés de Done (« Pause, puis je reprends », « Bloqué… », « Arrêter là », la note de reprise) au lieu de « Pause » et « Arrêter ». La série s'arrête à 8 pastilles ; au-delà, seule la phrase compte.
-- **Noms des genres de puce.** La référence parle de `today`, `done` et `past` ; le code garde ses noms : `active` est « Aujourd'hui », `done` est le « fait un autre jour » en texte seul, et `doneToday` est le nouveau « Fait » sur `sunTint`.
-- **Fraunces en TTF statique.** La référence décrit la police variable (`Fraunces-Soft-Variable.woff2`) ; l'app embarque la seule instance utilisée, Soft SemiBold, réduite aux caractères latins (le français est couvert).
-- **Tuile numérotée en rayon `sm`**, comme dans `tokens.json`, alors que la fiche `TaskRow` indique `chip`.
-- **Plan bouclé sur l'écran Focus.** La référence ne le dessine pas : Focus montre l'encadré de réussite et « Ajouter au plan », au lieu de « Pas encore de plan pour aujourd'hui ».
+- **Rôles `sun*` gardés.** La consigne était de ne renommer aucun rôle : ils restent déclarés comme alias de la braise, sans usage.
+- **Cocher laisse une seconde**, et la ligne cochée descend de 12 en s'effaçant, comme en v6.
+- **Puce « Fait » en vert** (`successTint`), comme le handoff et la fiche `StateChip` ; la fiche `TaskRow` la montre sur `accentTint`.
+- **Marge des puces à 8**, au lieu de 9.
+- **Tuile numérotée en rayon `xs`** (6), au lieu de 8.
+- **Touches de raccourci en texte seul**, comme `.d-kbd`, y compris à droite du titre des listes.
+- **Cases des cartes de note** : la case de 18 réduite à 14 par une mise à l'échelle.
+- **Pages de projet** : absentes de la fiche `NoteCard`, elles prennent la teinte des références (`cardParchment`, étiquette `textSecondary`).
+- **Salutation variée** : la référence montre « Bonjour » ; Done choisit la formule selon le moment de la journée et la change d'un jour à l'autre. Le prénom vient de Réglages › Accueil, sinon du compte macOS.
+- **Focus aujourd'hui sans objectif** : pas de « sur 3 h visées », Done n'a pas d'objectif de focus par jour.
+- **« Tout voir » des échéances** ouvre le Calendrier, qui montre les échéances de chaque jour.
+- **Bilan du soir** à l'heure réglée dans Réglages, au lieu de 18:00 fixe.
+- **Barre de saisie** : `#étiquette` est compris à la fin du titre ; `#projet` ne l'est pas, et le texte d'aide n'en parle pas. Une réunion ouvre sa feuille avec le titre déjà saisi, puisque la saisie rapide ne lit pas les heures.
+- **Recherche** dans l'en-tête de Ma journée seulement ; ⌘K y ramène depuis les autres écrans.
+- **Pas de touche Entrée globale** pour lancer le focus : Ma journée a un champ de saisie et des listes au clavier.
+- **Cartes des feuilles à plat** : les cartes posées dans une feuille ou une autre carte n'ont pas d'ombre.
 
 ## Historique
 
-- v6 « Jardin » (novembre 2026) : papier crème, vert profond, tournesol ; Fraunces pour l'affichage ; mouvement des réussites. Référence dans `docs/design/jardin/`.
-- v5 : neutres froids, indigo, une seule famille (Archivo, avec SemiCondensed pour l'affichage et Light pour le minuteur). Gardée pour mémoire dans `docs/design/Done-Design-System-v5.html`.
-- v4 : l'export Claude Design d'octobre 2026, gardé dans `docs/design/Done-Design-System-v4.html`. Ses composants propres aux fonctions retirées de Done (chantiers, file d'attente, capacité) n'ont jamais été repris.
+- v7 « Mymind » (novembre 2026) : toile presque blanche, encre graphite, braise et cobalt ; Newsreader, Nunito Sans et Courier Prime ; écran Ma journée et rail. Référence dans `docs/design/mymind/`.
+- v6 « Jardin » : papier crème, vert profond, tournesol ; Fraunces pour l'affichage ; mouvement des réussites. Gardée pour mémoire dans `docs/design/jardin/`.
+- v5 : neutres froids, indigo, une seule famille (Archivo). Gardée dans `docs/design/Done-Design-System-v5.html`.
+- v4 : l'export Claude Design d'octobre 2026, gardé dans `docs/design/Done-Design-System-v4.html`.

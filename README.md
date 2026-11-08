@@ -1,10 +1,10 @@
 # Done
 
-App macOS personnelle qui réunit une liste de tâches et un minuteur Pomodoro. Le matin, je choisis mes trois tâches les plus importantes. Ensuite, Done ne m'affiche qu'une chose : la prochaine action concrète, avec un minuteur adapté.
+App macOS personnelle qui réunit une liste de tâches et un minuteur Pomodoro. Le matin, je choisis mes trois tâches les plus importantes. Ensuite, Ma journée me montre d'abord une chose : la prochaine action concrète, avec un minuteur adapté, et autour, la journée sur un seul écran.
 
 Tout reste sur le Mac : pas de compte, pas de synchro, pas de service tiers.
 
-Le cadrage est dans `docs/` : `vision.md` (le problème), `spec.md` (fonctionnalités, écrans, données) et `questions.md` (ce qui reste ouvert). Le design est décrit dans `design-system.md` (v6 « Jardin »), avec sa référence dans `docs/design/jardin/` et les versions précédentes dans `docs/design/`.
+Le cadrage est dans `docs/` : `vision.md` (le problème), `spec.md` (fonctionnalités, écrans, données) et `questions.md` (ce qui reste ouvert). Le design est décrit dans `design-system.md` (v7 « Mymind »), avec sa référence dans `docs/design/mymind/` et les versions précédentes dans `docs/design/` (dont la v6 « Jardin » dans `docs/design/jardin/`).
 
 ## Lancer l'app
 
@@ -14,7 +14,7 @@ Il faut un Mac sous macOS 14 ou plus récent, et Xcode 16 ou plus récent.
 2. Dans la cible **Done**, onglet **Signing & Capabilities**, choisir son équipe (un Apple ID gratuit, « Personal Team », suffit). Sans équipe, Xcode signe en local, ce qui marche aussi, mais macOS peut bloquer les notifications.
 3. Lancer avec ⌘R.
 4. Accepter les notifications quand macOS les demande.
-5. Ajouter ses tâches dans l'Inbox (barre latérale), avec ⌘N depuis n'importe quel écran, ou avec ⌃⌥N depuis n'importe quelle app, tant que Done tourne (raccourci réglable dans Réglages › Saisie rapide). La saisie porte tous les détails : liste, priorité, type, échéance, répétition, notes et étapes. La fin du titre se lit en français : « Relire la spec demain p1 #Shop », « Reporting chaque lundi ».
+5. Ajouter ses tâches avec la barre de saisie en bas de Ma journée, avec ⌘N depuis n'importe quel écran, ou avec ⌃⌥N depuis n'importe quelle app, tant que Done tourne (raccourci réglable dans Réglages › Saisie rapide). La saisie porte tous les détails : liste, priorité, type, échéance, répétition, notes et étapes. La fin du titre se lit en français : « Relire la spec demain p1 #Shop », « Reporting chaque lundi ».
 
 ### Installer ou mettre à jour l'app dans Applications
 
@@ -101,8 +101,8 @@ Done/
   Data/       modèles SwiftData (plan du jour, sessions, interruptions)
   Services/   fichiers des tâches et des notes, connecteur Claude, notifications, « Ne pas déranger », Rappels, appels AppKit
   State/      AppModel (tâches, réunions, plan) et FocusEngine (minuteur)
-  Views/      écrans SwiftUI, et Theme.swift pour les tokens, le mouvement et les composants du design system v6 « Jardin »
-  Fonts/      Fraunces pour les titres, Archivo pour le reste (licences OFL dans docs/fonts/)
+  Views/      écrans SwiftUI (Ma journée dans HomeView), Theme.swift pour les tokens, le mouvement et les composants du design system v7 « Mymind », HomeComponents.swift pour le rail, la salutation, la recherche et la barre de saisie
+  Fonts/      Newsreader pour les titres, Nunito Sans pour le reste, Courier Prime pour les notes en mosaïque (licences OFL dans docs/fonts/)
   Assets.xcassets/  icône de l'app et couleur d'accent
 ```
 
@@ -111,11 +111,12 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 ## Règles de l'app
 
 - **Tâches** : un titre, des notes, une liste (Inbox ou projet), des étiquettes, une priorité de P1 à P4, un type (normale, rapide, Deepwork), une échéance facultative, des étapes (sous-tâches). Tout se choisit dès la saisie. Une tâche peut être marquée bloquée.
-- **Projets et étiquettes** : un projet pour chaque chantier qui a une fin, avec des sous-projets sur un niveau (la vue du projet les regroupe) ; une étiquette pour le reste (le run, « Plus tard », une personne). Chaque étiquette a sa vue dans la barre latérale ; les sections Projets et Étiquettes se replient. L'Inbox ne garde que ce qui n'a ni projet ni étiquette.
+- **Projets et étiquettes** : un projet pour chaque chantier qui a une fin, avec des sous-projets sur un niveau (la vue du projet les regroupe) ; une étiquette pour le reste (le run, « Plus tard », une personne). Chaque étiquette a sa vue dans l'écran Listes (⌘4) ; les sections Projets et Étiquettes se replient. L'Inbox ne garde que ce qui n'a ni projet ni étiquette.
 - **Claude** : par le connecteur local, Claude sur ce Mac lit tout Done, crée et modifie tâches, projets, étiquettes, notes, réunions, absences et plan du jour. Il ne supprime rien.
-- **Notes** (⌘7) : des pages Markdown typées (Note, Réunion, Décision, Personne, Référence), rattachées à un projet, des étiquettes ou des tâches, et liées entre elles par [[Titre]]. Chaque projet a sa page de documentation, chaque réunion sa note préremplie, chaque jour sa note du jour (depuis Aujourd'hui).
-- **Aujourd'hui** (⌘6) : la journée d'un coup d'œil, avec les réunions et le focus fait sur une ligne de temps, le plan du jour, les échéances et retards, et ce qui est déjà coché.
-- **Clavier** : dans une liste ou sur Aujourd'hui, ↑ ↓ choisissent une tâche, Espace la coche, ↩ ouvre sa fiche, ⌘↑ ⌘↓ la déplacent. ⌃⌘S réduit la barre latérale en rail d'icônes.
+- **Ma journée** (⌘1) : l'écran d'arrivée. Une salutation qui suit le moment de la journée et une phrase de faits, puis six cartes : la prochaine action avec « Lancer le focus », la ligne de temps avec les réunions, le focus fait et les créneaux libres, le plan du jour, les échéances et retards, les notes, et le focus du jour. La barre de saisie en bas, la recherche (⌘K) en haut. Le Plan du jour s'y ouvre en feuille.
+- **Notes** (⌘3) : des pages Markdown typées (Note, Réunion, Décision, Personne, Référence), en mosaïque de cartes, rattachées à un projet, des étiquettes ou des tâches, et liées entre elles par [[Titre]]. Chaque projet a sa page de documentation, chaque réunion sa note préremplie, chaque jour sa note du jour (depuis Ma journée).
+- **Navigation** : un rail d'icônes à gauche, ⌘1 Ma journée, ⌘2 Calendrier, ⌘3 Notes, ⌘4 Listes, ⌘5 Stats, ⌘, Réglages. Pendant une session, Ma journée passe en plein écran.
+- **Clavier** : dans une liste ou sur Ma journée, ↑ ↓ choisissent une tâche, Espace la coche, ↩ ouvre sa fiche ; dans une liste, ⌘↑ ⌘↓ la déplacent.
 - **Saisie hors de Done** : le raccourci global ouvre une fenêtre flottante par-dessus l'app en cours, sans la quitter. Entrée dans le titre ajoute, Échap annule, un clic ailleurs masque la fenêtre en gardant la saisie.
 - **Candidates du matin** : les tâches P1 et P2, et toutes celles dont l'échéance tombe dans les 3 jours ou est dépassée. Ni bloquées, ni datées plus loin.
 - **Dates lointaines** : une tâche datée au-delà de ces 3 jours n'est pas proposée (ni candidate, ni prochaine action, ni tâche rapide avant une réunion). Elle reste trouvable avec « Chercher une autre tâche », en fin de liste.
@@ -124,14 +125,14 @@ Le projet utilise un dossier synchronisé : tout fichier ajouté dans `Done/` es
 - **Enchaînement** : « C'est fait » coche l'action tout de suite. S'il reste au moins une minute et qu'une étape suit dans la même tâche, Done propose de l'enchaîner dans le même pomodoro ; sinon, pause. Chaque étape garde sa propre session dans les stats.
 - **Rallonge** : « Ajouter 5 min » pendant la session ou « Encore 5 min » à la fin, 10 min au plus par pomodoro. Au-delà, une pause avant de continuer la même étape.
 - **Étape bloquée** : « Bloqué… » marque l'étape bloquée, garde la raison en note de reprise, puis passe à l'étape suivante de la même tâche. On la débloque dans sa liste (clic droit ou fiche de la tâche).
-- **Pause obligatoire** : changer de tâche principale passe par une pause qui ne se passe pas. Après une tâche cochée, elle démarre seule ; après « Arrêter là » ou une pause passée, l'écran Focus propose « Démarrer la pause » avant une autre tâche. Une interruption n'en impose pas, pour laisser passer une urgence.
-- **Réunions** : saisies à la main dans le Plan du jour ou le calendrier (titre, jour, début, fin). Done ne propose pas de session qui déborde sur la prochaine réunion, et prévient 5 minutes avant (réglable). Elles restent visibles jusqu'à la fin de la semaine.
-- **Calendrier** (⌘5) : la semaine du lundi au vendredi, avec les échéances en haut de chaque jour (à glisser d'un jour à l'autre), les réunions et le focus déjà fait dans une grille de 8 h à 19 h. Un clic sur un créneau libre ajoute une réunion.
-- **Jours d'absence** : congé ou férié, posés depuis le menu d'un jour du calendrier. Ce jour-là, l'écran Focus ne propose rien.
+- **Pause obligatoire** : changer de tâche principale passe par une pause qui ne se passe pas. Après une tâche cochée, elle démarre seule ; après « Arrêter là » ou une pause passée, Ma journée propose « Démarrer la pause » avant une autre tâche. Une interruption n'en impose pas, pour laisser passer une urgence.
+- **Réunions** : saisies à la main dans la ligne de temps de Ma journée, le calendrier ou la barre de saisie (titre, jour, début, fin). Done ne propose pas de session qui déborde sur la prochaine réunion, et prévient 5 minutes avant (réglable). Elles restent visibles jusqu'à la fin de la semaine.
+- **Calendrier** (⌘2) : la semaine du lundi au vendredi, avec les échéances en haut de chaque jour (à glisser d'un jour à l'autre), les réunions et le focus déjà fait dans une grille de 8 h à 19 h. Un clic sur un créneau libre ajoute une réunion.
+- **Jours d'absence** : congé ou férié, posés depuis le menu d'un jour du calendrier. Ce jour-là, Ma journée ne propose rien.
 - **Ne pas déranger** (si activé) : seulement pendant que le minuteur de focus tourne.
 - **Note de reprise** : en fin de session ou pendant une interruption, une ligne « Où tu en es ? », réaffichée la prochaine fois que la tâche revient. Effacée quand la tâche est cochée ou supprimée.
-- **Découpage** : « Découper… » sur l'écran Focus ou dans une liste (clic droit) ajoute les étapes qui mènent la tâche au bout, dans l'ordre. Après chaque étape cochée, Done propose la suivante ; une fois toutes faites, la tâche elle-même, pour la clore.
-- **Bilan du soir** : à partir de 17 h, Done propose de clore la journée ; les tâches non finies marquées « Demain » sont reprises dans le plan du lendemain.
+- **Découpage** : « Découper… » sur Ma journée ou dans une liste (clic droit) ajoute les étapes qui mènent la tâche au bout, dans l'ordre. Après chaque étape cochée, Done propose la suivante ; une fois toutes faites, la tâche elle-même, pour la clore.
+- **Bilan du soir** : à partir de 17 h, Ma journée propose de clore la journée ; les tâches non finies marquées « Demain » sont reprises dans le plan du lendemain.
 - **Avant une réunion** : si la tâche prévue ne tient pas, Done propose la suivante du plan qui tient, puis une tâche rapide, puis la préparation de la réunion ou une pause.
 
-Les durées, le nombre de tâches par jour, l'horizon des candidates, le bilan, les notifications et « Ne pas déranger » se règlent dans l'écran Réglages.
+Le prénom de la salutation, les durées, le nombre de tâches par jour, l'horizon des candidates, le bilan, les notifications et « Ne pas déranger » se règlent dans l'écran Réglages.
