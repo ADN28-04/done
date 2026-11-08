@@ -250,15 +250,16 @@ struct NoteCard: View {
     }
 }
 
-/// Dernière tuile de la mosaïque : « Nouvelle note… », en pointillé.
+/// Dernière tuile de la mosaïque : « Nouvelle note… » (ou un autre libellé), en pointillé.
 struct NewNoteTile: View {
+    var title = "Nouvelle note…"
     let action: () -> Void
     @State private var hovered = false
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
         Button(action: action) {
-            Label("Nouvelle note…", systemImage: "plus")
+            Label(title, systemImage: "plus")
                 .font(.sans(13, .semibold))
                 .foregroundStyle(hovered ? DoneColor.textPrimary : DoneColor.textSecondary)
                 .frame(maxWidth: .infinity, minHeight: 64)

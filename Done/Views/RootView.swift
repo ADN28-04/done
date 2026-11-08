@@ -2,13 +2,12 @@ import SwiftUI
 
 struct RootView: View {
     enum Screen: Hashable {
-        case focus
-        case today
-        case plan
+        /// Ma journée : l'écran d'arrivée, et la session de focus en plein écran.
+        case home
         case calendar
         case notes
-        /// Une liste de tâches : l'Inbox, un projet ou une étiquette.
-        case list(TaskList)
+        /// L'écran Listes, sur une liste : l'Inbox, un projet ou une étiquette.
+        case lists(TaskList)
         case stats
         case settings
     }
@@ -16,72 +15,61 @@ struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var screen: Screen = .focus
-    @State private var choseInitialScreen = false
-    @State private var revealSidebar = false
+    @State private var screen: Screen = .home
+    /// La dernière liste ouverte : ⌘4 et le rail y reviennent.
+    @State private var lastList: TaskList = .inbox
+    @State private var revealRail = false
     @State private var showCapture = false
-    /// Augmente à chaque ⌘K : la recherche prend le focus.
-    @State private var searchRequest = 0
-    /// Barre latérale réduite en rail d'icônes.
-    @AppStorage(SettingsKey.sidebarRail) private var sidebarRail = false
-    @State private var railHovered = false
+    /// ⌘K : la recherche de Ma journée prend le focus.
+    @State private var searchRequested = false
+    /// Augmente quand le plan du jour vient d'être bouclé : éclat sur le bouton Ma journée du rail.
+    @State private var planCelebrations = 0
 
     var body: some View {
         ZStack(alignment: .leading) {
             HStack(spacing: 0) {
                 if !inSession {
-                    sidebarColumn
-                        .transition(sidebarTransition)
+                    rail
+                        .transition(railTransition)
                 }
                 content
             }
             if inSession {
-                // Bord gauche : la barre latérale revient au survol, par-dessus la session.
+                // Bord gauche : le rail revient au survol, par-dessus la session.
                 Color.clear
                     .frame(width: 12)
                     .frame(maxHeight: .infinity)
                     .contentShape(Rectangle())
                     .onHover { inside in
-                        if inside { revealSidebar = true }
+                        if inside { revealRail = true }
                     }
-            }
-            // En session ou en rail, la barre complète passe par-dessus tant que la souris y reste.
-            if (inSession || sidebarRail) && revealSidebar {
-                Sidebar(screen: $screen)
-                    .shadow(color: DoneColor.shadowRaised, radius: 14, x: 4)
-                    .onHover { inside in
-                        if !inside { revealSidebar = false }
-                    }
-                    .transition(sidebarTransition)
+                if revealRail {
+                    rail
+                        .shadow(color: DoneColor.shadowRaised, radius: 14, x: 4)
+                        .onHover { inside in
+                            if !inside { revealRail = false }
+                        }
+                        .transition(railTransition)
+                }
             }
         }
         .ignoresSafeArea(.container, edges: .top)
         .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: inSession)
-        .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: revealSidebar)
-        .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: sidebarRail)
+        .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: revealRail)
         .background {
-            ShortcutKeys(screen: $screen, onCapture: { showCapture = true }, onToggleSidebar: toggleSidebar, onSearch: {
-                if !inSession { searchRequest += 1 }
-            })
-        }
-        .onChange(of: inSession) { revealSidebar = false }
-        .onChange(of: sidebarRail) { revealSidebar = false }
-        // Survol du rail : la barre complète s'ouvre après un court instant, pas au simple passage de la souris.
-        .task(id: railHovered) {
-            guard railHovered, sidebarRail, !inSession else { return }
-            try? await Task.sleep(for: .milliseconds(150))
-            guard !Task.isCancelled, railHovered else { return }
-            revealSidebar = true
-        }
-        .onAppear {
-            if !choseInitialScreen {
-                if model.index.all.isEmpty {
-                    screen = .list(.inbox)
-                } else {
-                    screen = model.todayPlan == nil ? .plan : .focus
+            ShortcutKeys(
+                open: open,
+                openLists: { open(.lists(lastList)) },
+                onCapture: { showCapture = true },
+                onSearch: {
+                    screen = .home
+                    if engine.phase == .idle { searchRequested = true }
                 }
-                choseInitialScreen = true
-            }
+            )
+        }
+        .onChange(of: inSession) { revealRail = false }
+        .onChange(of: model.isPlanFinished) { _, finished in
+            if finished { planCelebrations += 1 }
         }
         .sheet(isPresented: $showCapture) {
             CaptureSheet()
@@ -89,41 +77,65 @@ struct RootView: View {
         }
     }
 
-    /// La barre complète, ou le rail d'icônes s'il a été choisi.
-    @ViewBuilder
-    private var sidebarColumn: some View {
-        if sidebarRail {
-            SidebarRail(screen: $screen)
-                .onHover { railHovered = $0 }
-        } else {
-            Sidebar(screen: $screen)
+    /// Le rail : l'écran affiché, l'Inbox à trier, et le minuteur d'une session qui tourne ailleurs.
+    private var rail: some View {
+        // Chaque seconde pendant une session, pour le minuteur ; sinon chaque minute.
+        TimelineView(.periodic(from: .now, by: engine.phase == .idle ? 60 : 1)) { _ in
+            Rail(
+                selection: railSelection,
+                inboxCount: model.openCount(in: .inbox),
+                timer: engine.phase == .idle || inSession ? nil : engine.menuBarText,
+                homeBursts: planCelebrations,
+                onCapture: { showCapture = true },
+                onSelect: { destination in
+                    revealRail = false
+                    switch destination {
+                    case .home: open(.home)
+                    case .calendar: open(.calendar)
+                    case .notes: open(.notes)
+                    case .lists: open(.lists(lastList))
+                    case .stats: open(.stats)
+                    case .settings: open(.settings)
+                    }
+                },
+                onTimer: { open(.home) }
+            )
         }
     }
 
-    private func toggleSidebar() {
-        guard !inSession else { return }
-        sidebarRail.toggle()
+    private var railSelection: RailDestination? {
+        switch screen {
+        case .home: .home
+        case .calendar: .calendar
+        case .notes: .notes
+        case .lists: .lists
+        case .stats: .stats
+        case .settings: .settings
+        }
     }
 
-    /// La barre latérale glisse depuis la gauche ; avec « Réduire les animations », elle apparaît en fondu.
-    private var sidebarTransition: AnyTransition {
+    private func open(_ target: Screen) {
+        if case .lists(let list) = target { lastList = list }
+        screen = target
+    }
+
+    /// Le rail glisse depuis la gauche ; avec « Réduire les animations », il apparaît en fondu.
+    private var railTransition: AnyTransition {
         reduceMotion ? .opacity : .move(edge: .leading)
     }
 
-    /// Sur l'écran Focus, toute phase autre que le repos est une session :
-    /// la navigation s'efface, il ne reste que la tâche et le minuteur.
+    /// Sur Ma journée, toute phase autre que le repos est une session : le rail s'efface, il ne reste
+    /// que la tâche et le minuteur. Ailleurs, la session continue et le rail montre son minuteur.
     private var inSession: Bool {
-        screen == .focus && engine.phase != .idle
+        screen == .home && engine.phase != .idle
     }
 
     private var content: some View {
         VStack(spacing: 0) {
-            TopBar(screen: screen, inSession: inSession, isRail: sidebarRail, searchRequest: searchRequest, onToggleSidebar: toggleSidebar) { showCapture = true }
-                // Les résultats de la recherche passent par-dessus l'écran.
-                .zIndex(1)
             if let message = model.errorMessage {
                 ErrorBanner(message: message) { model.errorMessage = nil }
                     .padding(.horizontal, DoneSpace.s32)
+                    .padding(.top, DoneSpace.s20)
                     .padding(.bottom, DoneSpace.s8)
             }
             detail
@@ -138,495 +150,100 @@ struct RootView: View {
 
     /// Fond bleuté pendant la pause, sans halos : on sait dans quelle phase on est sans lire.
     private var isOnBreak: Bool {
-        screen == .focus && engine.phase == .onBreak
+        screen == .home && engine.phase == .onBreak
     }
 
     @ViewBuilder
     private var detail: some View {
         switch screen {
-        case .focus:
-            FocusView(openPlan: { screen = .plan }, openTasks: { screen = .list(.inbox) })
-        case .today:
-            TodayView(openFocus: { screen = .focus }, openPlan: { screen = .plan })
-        case .plan:
-            PlanView(onValidate: { screen = .focus })
+        case .home:
+            if engine.phase == .idle {
+                HomeView(searchRequested: $searchRequested, onCapture: { showCapture = true }, open: open)
+            } else {
+                SessionScreen()
+            }
         case .calendar:
             CalendarView()
+                .padding(.top, 26)
         case .notes:
             NotesView()
-        case .list(let list):
-            TaskListView(list: list) { screen = .list($0) }
-                .id(list)
+                .padding(.top, 26)
+        case .lists:
+            ListsView(list: Binding(
+                get: {
+                    if case .lists(let list) = screen { return list }
+                    return lastList
+                },
+                set: { open(.lists($0)) }
+            ))
         case .stats:
             StatsView()
+                .padding(.top, 26)
         case .settings:
             SettingsView()
+                .padding(.top, 26)
         }
     }
 }
 
-/// Raccourcis clavier, toujours actifs, même en session quand la barre latérale est masquée.
-private struct ShortcutKeys: View {
-    @Binding var screen: RootView.Screen
-    let onCapture: () -> Void
-    let onToggleSidebar: () -> Void
-    let onSearch: () -> Void
-
-    var body: some View {
-        ZStack {
-            Button("Focus") { screen = .focus }
-                .keyboardShortcut("1")
-            Button("Plan du jour") { screen = .plan }
-                .keyboardShortcut("2")
-            Button("Inbox") { screen = .list(.inbox) }
-                .keyboardShortcut("3")
-            Button("Stats") { screen = .stats }
-                .keyboardShortcut("4")
-            Button("Calendrier") { screen = .calendar }
-                .keyboardShortcut("5")
-            Button("Aujourd'hui") { screen = .today }
-                .keyboardShortcut("6")
-            Button("Notes") { screen = .notes }
-                .keyboardShortcut("7")
-            Button("Réglages") { screen = .settings }
-                .keyboardShortcut(",")
-            Button("Nouvelle tâche", action: onCapture)
-                .keyboardShortcut("n")
-            Button("Rechercher", action: onSearch)
-                .keyboardShortcut("k")
-            Button("Réduire ou déplier la barre latérale", action: onToggleSidebar)
-                .keyboardShortcut("s", modifiers: [.control, .command])
-        }
-        .buttonStyle(.plain)
-        .opacity(0)
-        .frame(width: 1, height: 1)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
-// MARK: Barre latérale
-
-/// Barre latérale réduite : un rail de 56 avec les icônes des écrans. Les projets et les étiquettes
-/// sont dans la barre complète, qui passe par-dessus au survol.
-private struct SidebarRail: View {
-    @Binding var screen: RootView.Screen
-
-    var body: some View {
-        VStack(spacing: DoneSpace.s2) {
-            item(.focus, "Focus (⌘1)", Image("DoneGlyph"))
-            item(.today, "Aujourd'hui (⌘6)", Image(systemName: "sun.max"), color: DoneColor.accent)
-            item(.plan, "Plan du jour (⌘2)", Image(systemName: "calendar"))
-            item(.calendar, "Calendrier (⌘5)", Image(systemName: "calendar.day.timeline.left"))
-            item(.list(.inbox), "Inbox (⌘3)", Image(systemName: "tray"))
-            item(.notes, "Notes (⌘7)", Image(systemName: "doc.text"))
-            Spacer(minLength: DoneSpace.s16)
-            item(.stats, "Stats (⌘4)", Image(systemName: "chart.bar"))
-            item(.settings, "Réglages (⌘,)", Image(systemName: "gearshape"))
-        }
-        // Les feux de la fenêtre occupent le haut.
-        .padding(.top, 52)
-        .padding(.bottom, DoneSpace.s12)
-        .frame(width: 56)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(DoneColor.bgSunken)
-        .overlay(alignment: .trailing) {
-            Rectangle().fill(DoneColor.borderSubtle).frame(width: 1)
-        }
-    }
-
-    private func item(_ target: RootView.Screen, _ title: String, _ icon: Image, color: Color? = nil) -> some View {
-        NavRailItem(title: title, icon: icon, iconColor: color, isSelected: screen == target) { screen = target }
-    }
-}
-
-/// Navigation à gauche : Focus, Aujourd'hui, Plan du jour, Calendrier et l'Inbox ; puis les projets
-/// (avec leurs sous-projets) et les étiquettes, en sections repliables ; en bas, Stats et Réglages.
-private struct Sidebar: View {
-    @Environment(AppModel.self) private var model
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Binding var screen: RootView.Screen
-
-    @State private var dropTarget: String?
-    @State private var naming: Naming?
-    @State private var nameDraft = ""
-    @State private var deletingProject: Project?
-
-    @State private var removingTag: String?
-    /// Augmente quand le plan du jour vient d'être bouclé : le soleil d'« Aujourd'hui » fait un éclat.
-    @State private var planCelebrations = 0
-
-    @AppStorage(SettingsKey.sidebarProjectsCollapsed) private var projectsCollapsed = false
-    @AppStorage(SettingsKey.sidebarTagsCollapsed) private var tagsCollapsed = false
-    /// Projets dont les sous-projets sont repliés, séparés par des virgules.
-    @AppStorage(SettingsKey.sidebarFoldedProjects) private var foldedProjects = ""
-
-    private enum Naming: Identifiable {
-        case new
-        case newSub(Project)
-        case rename(Project)
-        case renameTag(String)
-
-        var id: String {
-            switch self {
-            case .new: "new"
-            case .newSub(let parent): "sub:" + parent.id
-            case .rename(let project): project.id
-            case .renameTag(let tag): "tag:" + tag
-            }
-        }
-
-        var title: String {
-            switch self {
-            case .new: "Nouveau projet"
-            case .newSub(let parent): "Nouveau sous-projet dans « \(parent.name) »"
-            case .rename: "Renommer le projet"
-            case .renameTag: "Renommer l'étiquette"
-            }
-        }
-
-        var action: String {
-            switch self {
-            case .new, .newSub: "Créer"
-            case .rename, .renameTag: "Renommer"
-            }
-        }
-
-        var placeholder: String {
-            switch self {
-            case .new, .rename: "Nom du projet"
-            case .newSub: "Nom du sous-projet"
-            case .renameTag: "Nom de l'étiquette"
-            }
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DoneSpace.s2) {
-            NavItem(title: "Focus", icon: Image("DoneGlyph"), isSelected: screen == .focus) { screen = .focus }
-                .help("Focus (⌘1)")
-            NavItem(
-                title: "Aujourd'hui",
-                icon: Image(systemName: "sun.max"),
-                iconColor: DoneColor.accent,
-                burstCount: planCelebrations,
-                isSelected: screen == .today
-            ) { screen = .today }
-                .help("Aujourd'hui (⌘6)")
-                .onChange(of: model.isPlanFinished) { _, finished in
-                    if finished { planCelebrations += 1 }
-                }
-            NavItem(title: "Plan du jour", icon: Image(systemName: "calendar"), counter: planCounter, isSelected: screen == .plan) { screen = .plan }
-                .help("Plan du jour (⌘2)")
-            NavItem(title: "Calendrier", icon: Image(systemName: "calendar.day.timeline.left"), isSelected: screen == .calendar) { screen = .calendar }
-                .help("Calendrier (⌘5)")
-            listItem(.inbox, name: "Inbox", symbol: "tray")
-                .help("Inbox (⌘3)")
-            NavItem(title: "Notes", icon: Image(systemName: "doc.text"), isSelected: screen == .notes) { screen = .notes }
-                .help("Notes (⌘7)")
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: DoneSpace.s2) {
-                    sectionHeader("Projets", collapsed: $projectsCollapsed)
-                    if !projectsCollapsed {
-                        ForEach(model.topLevelProjects) { project in
-                            let subprojects = model.subprojects(of: project.id)
-                            let folded = isFolded(project.id)
-                            listItem(
-                                .project(project.id),
-                                name: project.name,
-                                symbol: "folder",
-                                isExpanded: subprojects.isEmpty ? nil : !folded
-                            ) {
-                                toggleFold(project.id)
-                            }
-                            .contextMenu { projectMenu(project) }
-                            if !folded {
-                                ForEach(subprojects) { subproject in
-                                    listItem(.project(subproject.id), name: subproject.name, symbol: "folder")
-                                        .padding(.leading, DoneSpace.s16)
-                                        .contextMenu { projectMenu(subproject) }
-                                }
-                            }
-                        }
-                        Button {
-                            nameDraft = ""
-                            naming = .new
-                        } label: {
-                            Label("Nouveau projet", systemImage: "plus")
-                        }
-                        .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
-                        .padding(.top, DoneSpace.s4)
-                    }
-                    if !model.tags.isEmpty {
-                        sectionHeader("Étiquettes", collapsed: $tagsCollapsed)
-                        if !tagsCollapsed {
-                            ForEach(model.tags, id: \.self) { tag in
-                                listItem(.tag(tag), name: tag, symbol: "tag")
-                                    .contextMenu { tagMenu(tag) }
-                            }
-                        }
-                    }
-                }
-            }
-            .scrollIndicators(.never)
-            .padding(.top, DoneSpace.s8)
-
-            Spacer(minLength: DoneSpace.s16)
-            NavItem(title: "Stats", icon: Image(systemName: "chart.bar"), isSelected: screen == .stats) { screen = .stats }
-                .help("Stats (⌘4)")
-            NavItem(title: "Réglages", icon: Image(systemName: "gearshape"), isSelected: screen == .settings) { screen = .settings }
-                .help("Réglages (⌘,)")
-        }
-        .padding(.horizontal, DoneSpace.s12)
-        // Les feux de la fenêtre occupent le haut de la barre.
-        .padding(.top, 52)
-        .padding(.bottom, DoneSpace.s12)
-        .frame(width: 228)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(DoneColor.bgSunken)
-        .overlay(alignment: .trailing) {
-            Rectangle().fill(DoneColor.borderSubtle).frame(width: 1)
-        }
-        .alert(naming?.title ?? "", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
-            TextField(naming?.placeholder ?? "Nom", text: $nameDraft)
-            Button("Annuler", role: .cancel) { naming = nil }
-            Button(naming?.action ?? "OK") { commitNaming() }
-        }
-        .confirmationDialog(
-            "Supprimer le projet « \(deletingProject?.name ?? "") » ?",
-            isPresented: Binding(get: { deletingProject != nil }, set: { if !$0 { deletingProject = nil } }),
-            presenting: deletingProject
-        ) { project in
-            Button("Supprimer le projet", role: .destructive) {
-                if screen == .list(.project(project.id)) { screen = .list(.inbox) }
-                model.deleteProject(project.id)
-                deletingProject = nil
-            }
-        } message: { project in
-            let count = model.index.all.filter { $0.parentID == nil && $0.projectID == project.id }.count
-            let tasks = count == 0 ? "Il ne contient aucune tâche ouverte." : "Ses \(count) tâche\(count > 1 ? "s" : "") passe\(count > 1 ? "nt" : "") dans l'Inbox."
-            Text(model.subprojects(of: project.id).isEmpty ? tasks : tasks + " Ses sous-projets deviennent des projets.")
-        }
-        .confirmationDialog(
-            "Retirer l'étiquette « \(removingTag ?? "") » ?",
-            isPresented: Binding(get: { removingTag != nil }, set: { if !$0 { removingTag = nil } }),
-            presenting: removingTag
-        ) { tag in
-            Button("Retirer l'étiquette", role: .destructive) {
-                if screen == .list(.tag(tag)) { screen = .list(.inbox) }
-                model.removeTag(tag)
-                removingTag = nil
-            }
-        } message: { tag in
-            let count = model.openCount(in: .tag(tag))
-            Text("Elle disparaît de \(count == 1 ? "sa tâche" : "ses \(count) tâches") ; les tâches restent dans leur projet, ou dans l'Inbox.")
-        }
-    }
-
-    /// Tâches du plan encore ouvertes.
-    private var planCounter: String? {
-        let count = model.planIDs.count
-        return count > 0 ? "\(count)" : nil
-    }
-
-    /// Titre de section repliable : « Projets », « Étiquettes ». Done se souvient de l'état.
-    private func sectionHeader(_ title: String, collapsed: Binding<Bool>) -> some View {
-        Button {
-            withAnimation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion)) { collapsed.wrappedValue.toggle() }
-        } label: {
-            HStack(spacing: DoneSpace.s6) {
-                Eyebrow(text: title)
-                Spacer()
-                Image(systemName: collapsed.wrappedValue ? "chevron.right" : "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(DoneColor.textSecondary)
-            }
-            .padding(.horizontal, DoneSpace.s8)
-            .padding(.top, DoneSpace.s16)
-            .padding(.bottom, DoneSpace.s6)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(collapsed.wrappedValue ? "Afficher \(title.lowercased())" : "Masquer \(title.lowercased())")
-    }
-
-    private func isFolded(_ id: String) -> Bool {
-        foldedProjects.split(separator: ",").contains { $0 == id }
-    }
-
-    private func toggleFold(_ id: String) {
-        var ids = foldedProjects.split(separator: ",").map(String.init)
-        if ids.contains(id) { ids.removeAll { $0 == id } } else { ids.append(id) }
-        withAnimation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion)) { foldedProjects = ids.joined(separator: ",") }
-    }
-
-    private func listItem(_ list: TaskList, name: String, symbol: String, isExpanded: Bool? = nil, onToggle: @escaping () -> Void = {}) -> some View {
-        let key = switch list {
-        case .inbox: "inbox"
-        case .project(let id): "project:" + id
-        case .tag(let tag): "tag:" + tag
-        }
-        let count = model.openCount(in: list)
-        return NavItem(
-            title: name,
-            icon: Image(systemName: symbol),
-            counter: count > 0 ? "\(count)" : nil,
-            isSelected: screen == .list(list),
-            isDropTarget: dropTarget == key,
-            isExpanded: isExpanded,
-            onToggle: onToggle
-        ) {
-            screen = .list(list)
-        }
-        // Glisser une tâche sur une liste l'y range : projet, étiquette en plus, ou retour à l'Inbox.
-        .dropDestination(for: String.self) { ids, _ in
-            ids.forEach { model.file($0, into: list) }
-            return true
-        } isTargeted: { targeted in
-            if targeted {
-                dropTarget = key
-            } else if dropTarget == key {
-                dropTarget = nil
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func projectMenu(_ project: Project) -> some View {
-        let siblings = project.parentID.map { model.subprojects(of: $0) } ?? model.topLevelProjects
-        let hasSubprojects = !model.subprojects(of: project.id).isEmpty
-        Button("Renommer…") {
-            nameDraft = project.name
-            naming = .rename(project)
-        }
-        if project.parentID == nil {
-            Button("Nouveau sous-projet…") {
-                nameDraft = ""
-                naming = .newSub(project)
-            }
-        }
-        Button("Monter") { model.shiftProject(project.id, by: -1) }
-            .disabled(project.id == siblings.first?.id)
-        Button("Descendre") { model.shiftProject(project.id, by: 1) }
-            .disabled(project.id == siblings.last?.id)
-        // Un projet qui a des sous-projets reste au premier niveau.
-        if !hasSubprojects {
-            Menu("Ranger dans") {
-                ForEach(model.topLevelProjects.filter { $0.id != project.id && $0.id != project.parentID }) { parent in
-                    Button(parent.name) { model.moveProject(project.id, under: parent.id) }
-                }
-            }
-        }
-        if project.parentID != nil {
-            Button("Sortir du projet") { model.moveProject(project.id, under: nil) }
-        }
-        Divider()
-        Button("Supprimer le projet…", role: .destructive) { deletingProject = project }
-    }
-
-    @ViewBuilder
-    private func tagMenu(_ tag: String) -> some View {
-        Button("Renommer…") {
-            nameDraft = tag
-            naming = .renameTag(tag)
-        }
-        Divider()
-        Button("Retirer l'étiquette…", role: .destructive) { removingTag = tag }
-    }
-
-    private func commitNaming() {
-        switch naming {
-        case .new:
-            if let project = model.addProject(named: nameDraft) { screen = .list(.project(project.id)) }
-        case .newSub(let parent):
-            if let project = model.addProject(named: nameDraft, parentID: parent.id) {
-                if isFolded(parent.id) { toggleFold(parent.id) }
-                screen = .list(.project(project.id))
-            }
-        case .rename(let project):
-            model.renameProject(project.id, to: nameDraft)
-        case .renameTag(let old):
-            model.renameTag(old, to: nameDraft)
-            // Reste sur la vue de l'étiquette, sous son nouveau nom (ou celui de l'étiquette où elle s'est fondue).
-            if screen == .list(.tag(old)) {
-                let name = nameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                if let renamed = model.tags.first(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) {
-                    screen = .list(.tag(renamed))
-                }
-            }
-        case nil:
-            break
-        }
-        naming = nil
-    }
-}
-
-// MARK: Barre du haut
-
-/// Barre du haut, dans la zone de titre : réunion au centre, nouvelle tâche à droite.
-private struct TopBar: View {
+/// La session de focus en plein écran : une réunion en cours en haut quand la session est interrompue,
+/// puis la phase (minuteur, interruption, bilan de la session, pause).
+private struct SessionScreen: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
-    let screen: RootView.Screen
-    let inSession: Bool
-    let isRail: Bool
-    /// Augmente à chaque ⌘K.
-    let searchRequest: Int
-    let onToggleSidebar: () -> Void
-    let onCapture: () -> Void
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            HStack(spacing: DoneSpace.s12) {
-                // À gauche, la bascule de la barre latérale. En rail, les feux de la fenêtre débordent
-                // sur cette zone : le bouton se range après eux. En session, la place reste aux feux.
-                HStack(spacing: 0) {
-                    if !inSession {
-                        if isRail { Spacer(minLength: 0) }
-                        Button(action: onToggleSidebar) {
-                            Image(systemName: "sidebar.left")
-                        }
-                        .buttonStyle(DoneIconButtonStyle())
-                        .help(isRail ? "Déplier la barre latérale (⌃⌘S)" : "Réduire la barre latérale (⌃⌘S)")
+        VStack(spacing: 0) {
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                HStack {
+                    if isInterrupted, let pill = MeetingPill.make(meetings: model.meetingsToday, now: context.date, includeNext: false) {
+                        MeetingPill(content: pill)
                     }
                 }
-                .frame(width: 80, alignment: .leading)
-                Spacer(minLength: 0)
-                center(now: context.date)
-                Spacer(minLength: 0)
-                HStack(spacing: DoneSpace.s8) {
-                    if !inSession {
-                        GlobalSearchBox(focusRequest: searchRequest)
-                    }
-                    Button(action: onCapture) {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(DoneIconButtonStyle())
-                    .help("Nouvelle tâche (⌘N)")
-                    .opacity(inSession ? 0 : 1)
-                    .allowsHitTesting(!inSession)
-                }
-                .frame(minWidth: 80, alignment: .trailing)
+                .frame(height: 52)
             }
-            .padding(.horizontal, DoneSpace.s16)
-            .frame(height: 52)
-        }
-    }
-
-    @ViewBuilder
-    private func center(now: Date) -> some View {
-        if screen == .focus || screen == .plan {
-            let showPill = !inSession || isInterrupted
-            if showPill, let pill = MeetingPill.make(meetings: model.meetingsToday, now: now, includeNext: !inSession) {
-                MeetingPill(content: pill)
-            }
+            FocusView()
         }
     }
 
     private var isInterrupted: Bool {
         if case .interrupted = engine.phase { return true }
         return false
+    }
+}
+
+/// Raccourcis clavier, toujours actifs, même en session quand le rail est masqué.
+private struct ShortcutKeys: View {
+    let open: (RootView.Screen) -> Void
+    /// ⌘4 : la dernière liste ouverte.
+    let openLists: () -> Void
+    let onCapture: () -> Void
+    let onSearch: () -> Void
+
+    var body: some View {
+        ZStack {
+            Button("Ma journée") { open(.home) }
+                .keyboardShortcut("1")
+            Button("Calendrier") { open(.calendar) }
+                .keyboardShortcut("2")
+            Button("Notes") { open(.notes) }
+                .keyboardShortcut("3")
+            Button("Listes", action: openLists)
+                .keyboardShortcut("4")
+            Button("Stats") { open(.stats) }
+                .keyboardShortcut("5")
+            Button("Réglages") { open(.settings) }
+                .keyboardShortcut(",")
+            Button("Nouvelle tâche", action: onCapture)
+                .keyboardShortcut("n")
+            Button("Rechercher", action: onSearch)
+                .keyboardShortcut("k")
+        }
+        .buttonStyle(.plain)
+        .opacity(0)
+        .frame(width: 1, height: 1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

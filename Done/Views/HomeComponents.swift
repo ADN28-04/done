@@ -95,13 +95,13 @@ struct SearchField: View {
     }
 }
 
-/// Recherche globale de la barre du haut : ⌘K donne le focus depuis n'importe quel écran ; les
+/// Recherche globale de l'en-tête de Ma journée : ⌘K y mène depuis n'importe quel écran ; les
 /// résultats s'ouvrent sous la pilule, groupés (Tâches, Notes, Réunions), cinq au plus par groupe.
 /// ↑ ↓ choisissent, Entrée ouvre, Échap ferme. La recherche elle-même est `GlobalSearch` (Core).
 struct GlobalSearchBox: View {
     @Environment(AppModel.self) private var model
-    /// Augmente à chaque ⌘K.
-    let focusRequest: Int
+    /// ⌘K : vrai jusqu'à ce que la recherche ait pris le focus.
+    @Binding var focusRequest: Bool
 
     @State private var query = ""
     @State private var isOpen = false
@@ -155,7 +155,13 @@ struct GlobalSearchBox: View {
                 highlighted = 0
                 isOpen = !query.trimmingCharacters(in: .whitespaces).isEmpty
             }
-            .onChange(of: focusRequest) { focused = true }
+            .task(id: focusRequest) {
+                guard focusRequest else { return }
+                // Laisse l'écran se poser avant de donner le focus.
+                try? await Task.sleep(for: .milliseconds(60))
+                focused = true
+                focusRequest = false
+            }
             .onChange(of: focused) { _, isFocused in
                 if isFocused {
                     isOpen = !query.trimmingCharacters(in: .whitespaces).isEmpty
@@ -287,8 +293,9 @@ struct GlobalSearchBox: View {
 
 // MARK: Barre de saisie
 
-/// Barre de saisie en bas de Ma journée : pilule de 54, genre en pilules de 38 (Tâche, Note, Réunion),
-/// texte d'aide avec un vrai exemple, bouton d'envoi rond en actionPrimary. Entrée ajoute, ⌘ Entrée
+/// Barre de saisie en bas de Ma journée : pilule de 54 ; à gauche un + et le texte, avec un vrai exemple
+/// en aide ; à droite le genre en pilules de 38 (Tâche, Note, Réunion) et le bouton d'envoi rond en
+/// actionPrimary. Entrée ajoute, ⌘ Entrée
 /// ouvre la saisie complète. Après l'ajout, une puce de confirmation reste 2 s au-dessus.
 struct CaptureBar: View {
     enum Kind: String, CaseIterable, Identifiable {
@@ -306,9 +313,17 @@ struct CaptureBar: View {
 
         var placeholder: String {
             switch self {
-            case .task: "Appeler le transporteur demain P2"
+            case .task: "Noter une tâche, une note ou une réunion… « Appeler le transporteur demain P2 »"
             case .note: "Une idée, une décision, un nom à retenir"
             case .meeting: "Point fournisseur"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .task: "checkmark.square"
+            case .note: "doc.text"
+            case .meeting: "calendar"
             }
         }
     }
@@ -334,19 +349,27 @@ struct CaptureBar: View {
                     .transition(.opacity)
             }
             HStack(spacing: DoneSpace.s8) {
-                HStack(spacing: DoneSpace.s4) {
-                    ForEach(Kind.allCases) { option in
-                        Button(option.title) { kind = option }
-                            .buttonStyle(KindPillStyle(isOn: kind == option))
-                    }
-                }
+                Image(systemName: "plus")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(DoneColor.textSecondary)
+                    .padding(.leading, DoneSpace.s12)
                 TextField(kind.placeholder, text: $text)
                     .textFieldStyle(.plain)
                     .font(.done(.body))
                     .foregroundStyle(DoneColor.textPrimary)
                     .focused($focused)
                     .onSubmit(submit)
-                    .padding(.horizontal, DoneSpace.s4)
+                    .padding(.trailing, DoneSpace.s8)
+                HStack(spacing: DoneSpace.s6) {
+                    ForEach(Kind.allCases) { option in
+                        Button {
+                            kind = option
+                        } label: {
+                            Label(option.title, systemImage: option.symbol)
+                        }
+                        .buttonStyle(KindPillStyle(isOn: kind == option))
+                    }
+                }
                 Button(action: submit) {
                     Image(systemName: "arrow.up")
                         .font(.system(size: 15, weight: .semibold))
@@ -536,8 +559,12 @@ struct Rail: View {
     var inboxCount = 0
     /// Minuteur d'une session en cours (« 18:42 »), à la place du logo.
     var timer: String?
+    /// Augmente quand le plan du jour vient d'être bouclé : le soleil de Ma journée fait un éclat.
+    var homeBursts = 0
     let onCapture: () -> Void
     let onSelect: (RailDestination) -> Void
+    /// Clic sur le minuteur : retour à la session.
+    var onTimer: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 10) {
@@ -595,6 +622,11 @@ struct Rail: View {
                     .accessibilityHidden(true)
             }
         }
+        .background {
+            if destination == .home {
+                SunBurst(count: homeBursts, distance: 30, scale: 0.7)
+            }
+        }
         .help("\(destination.title) (\(destination.shortcut))")
         .accessibilityLabel(destination == .lists && inboxCount > 0 ? "\(destination.title), \(inboxCount) dans l'Inbox" : destination.title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -603,13 +635,17 @@ struct Rail: View {
     @ViewBuilder
     private var logo: some View {
         if let timer {
-            Text(timer)
-                .font(.done(.numericS))
-                .foregroundStyle(DoneColor.textPrimary)
-                .frame(width: 56, height: 28)
-                .background(DoneColor.surfaceDefault, in: Capsule(style: .continuous))
-                .overlay(Capsule(style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
-                .help("Session en cours")
+            Button(action: onTimer) {
+                Text(timer)
+                    .font(.done(.numericS))
+                    .foregroundStyle(DoneColor.textPrimary)
+                    .frame(width: 56, height: 28)
+                    .background(DoneColor.surfaceDefault, in: Capsule(style: .continuous))
+                    .overlay(Capsule(style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
+                    .contentShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .help("Revenir à la session (⌘1)")
         } else {
             DoneAppIcon(size: 32)
                 .accessibilityHidden(true)

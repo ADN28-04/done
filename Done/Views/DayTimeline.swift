@@ -33,6 +33,8 @@ struct DayTimeline: View {
     var lastHour = DayTimeline.lastHour
     /// Montre les créneaux libres d'aujourd'hui, à partir de maintenant.
     var showsFreeSlots = false
+    /// Clic sur un créneau libre (Ma journée : lancer la prochaine action). Sans, le clic passe à la colonne.
+    var onFreeSlot: ((DateInterval) -> Void)?
     let onMeeting: (Meeting) -> Void
     let onSlot: (Date) -> Void
 
@@ -148,8 +150,23 @@ struct DayTimeline: View {
         .accessibilityHidden(true)
     }
 
-    /// Créneau libre : pointillé stateWaiting, avec ce qu'il permet. Un clic passe à la colonne.
+    /// Créneau libre : pointillé stateWaiting, avec ce qu'il permet. Cliquable avec `onFreeSlot`,
+    /// sinon le clic passe à la colonne.
+    @ViewBuilder
     private func freeSlotView(_ slot: DateInterval) -> some View {
+        if let onFreeSlot {
+            freeSlotShape(slot)
+                .contentShape(RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous))
+                .onTapGesture { onFreeSlot(slot) }
+                .help("Lancer la prochaine action")
+                .accessibilityAddTraits(.isButton)
+        } else {
+            freeSlotShape(slot)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func freeSlotShape(_ slot: DateInterval) -> some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         let rules = Rules.current
         let count = DayAgenda.pomodoros(fitting: Int(slot.duration / 60), focus: rules.defaultMinutes, pause: rules.shortBreakMinutes)
@@ -164,7 +181,6 @@ struct DayTimeline: View {
                     .padding(.horizontal, DoneSpace.s8)
                     .padding(.top, DoneSpace.s4)
             }
-            .allowsHitTesting(false)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Libre de \(Format.time(slot.start)) à \(Format.time(slot.end)) : \(text.lowercased())")
     }
