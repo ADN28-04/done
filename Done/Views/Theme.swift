@@ -3,76 +3,99 @@ import SwiftUI
 
 // MARK: Couleurs
 
-/// Design system Done v6 « Jardin » : couleurs nommées par rôle, en clair et en sombre.
-/// Référence : docs/design/jardin/design-system (README.md et tokens.json).
-/// Le code ne référence jamais une couleur de marque (Crème, Encre, Vert profond, Tournesol, Brique)
-/// directement. En sombre, le vert s'éclaircit et ce qui est posé dessus passe en vert nuit.
+/// Design system Done v7 « Mymind » : couleurs nommées par rôle, en clair et en sombre.
+/// Référence : docs/design/mymind/design-system (README.md et tokens.json).
+/// Le code ne référence jamais une couleur de marque (Toile, Encre, Braise, Cobalt, Rose des halos)
+/// directement. En sombre, la pilule principale s'inverse : fond clair, texte sombre.
 enum DoneColor {
-    // Fonds et surfaces
-    static let bgCanvas = dynamic(0xF7F3E8, 0x161914)
-    static let bgSunken = dynamic(0xEFE9DA, 0x11140F)
-    static let surfaceDefault = dynamic(0xFFFDF7, 0x1E221B)
-    static let surfaceHover = dynamic(0xF3EEE0, 0x272C23)
-    static let surfaceSelected = dynamic(0xE2EDE3, 0x243529)
+    // Fonds et surfaces. La fenêtre se pose sur bgCanvas, réchauffée par deux halos.
+    static let bgCanvas = dynamic(0xF9FAFC, 0x0F1012)
+    static let bgSunken = dynamic(0xF1F3F7, 0x0B0C0E)
+    static let surfaceDefault = dynamic(0xFFFFFF, 0x18191C)
+    static let surfaceHover = dynamic(0xF3F5F9, 0x202226)
+    static let surfaceSelected = dynamic(0xE5EAF2, 0x232A36)
+    static let haloWarm = dynamic(0xFF5924, 0xFF6A3D, lightAlpha: 0.22, darkAlpha: 0.12)
+    static let haloPink = dynamic(0xF078A0, 0xF078A0, lightAlpha: 0.20, darkAlpha: 0.10)
 
     // Bordures
-    static let borderSubtle = dynamic(0xE6DFCD, 0x2E3329)
-    static let borderDefault = dynamic(0xD5CDB8, 0x3E4537)
-    static let borderControl = dynamic(0x8A8473, 0x858C7C)
+    static let borderSubtle = dynamic(0xE6E8EE, 0x2A2C31)
+    static let borderDefault = dynamic(0xD6DAE2, 0x383B42)
+    static let borderControl = dynamic(0x8B91A0, 0x7D8494)
 
     // Textes
-    static let textPrimary = dynamic(0x23281F, 0xECEADF)
-    static let textSecondary = dynamic(0x5C6354, 0xA7AC9C)
-    static let textDisabled = dynamic(0xB4AF9F, 0x585E51)
+    static let textPrimary = dynamic(0x24272D, 0xEEF0F4)
+    static let textSecondary = dynamic(0x5D6575, 0xA3A9B6)
+    static let textDisabled = dynamic(0xAFB5C1, 0x4F5560)
 
-    // Actions
-    static let actionPrimary = dynamic(0x2F6B4F, 0x7CC39C)
-    static let actionPrimaryHover = dynamic(0x285E45, 0x8DCDA9)
-    static let actionPrimaryPressed = dynamic(0x204F3A, 0x6BB38C)
-    static let actionOnPrimary = dynamic(0xFFFFFF, 0x0F2419)
-    static let actionDisabled = dynamic(0xEBE5D6, 0x272C23)
-    static let focusRing = dynamic(0x2F6B4F, 0x8DCDA9)
+    // Actions : une pilule d'encre, inversée en sombre. focusRing en cobalt, aussi l'AccentColor.
+    static let actionPrimary = dynamic(0x24272D, 0xEEF0F4)
+    static let actionPrimaryHover = dynamic(0x3A3E46, 0xFFFFFF)
+    static let actionPrimaryPressed = dynamic(0x111316, 0xD5D8DE)
+    static let actionOnPrimary = dynamic(0xFFFFFF, 0x15171A)
+    static let actionDisabled = dynamic(0xECEEF3, 0x202226)
+    static let focusRing = dynamic(0x1573DD, 0x5AA2F0)
 
-    // États
-    static let stateActive = dynamic(0x3B7A5B, 0x7CC39C)
-    static let stateOnActive = dynamic(0xFFFFFF, 0x0F2419)
-    static let stateActiveText = dynamic(0x1F5138, 0xA6DBBB)
-    static let stateActiveTint = dynamic(0xDCEBDF, 0x21362A)
-    static let stateBlocked = dynamic(0xECE6D7, 0x2A2F25)
-    static let stateOnBlocked = dynamic(0x23281F, 0xECEADF)
-    static let stateWaiting = dynamic(0x8A8473, 0x858C7C)
-    static let stateRisk = dynamic(0xC2463F, 0xE06A63)
-    static let stateRiskTint = dynamic(0xF8E3DE, 0x3A2320)
-    static let stateRiskText = dynamic(0xA3332E, 0xF0A29D)
-    static let stateDone = dynamic(0xEFE9DA, 0x1B1F18)
-    static let stateOnDone = dynamic(0x5C6354, 0xA7AC9C)
+    // Marque et joie : la braise, en plein ou en forme (bouton + du rail, anneau du minuteur, heure
+    // courante, soleil d'« Aujourd'hui », pétales, pastilles de série), jamais en texte ; pour du texte,
+    // accentText sur accentTint.
+    static let accent = dynamic(0xFF5924, 0xFF6A3D)
+    static let onAccent = dynamic(0x2B0F04, 0x2B0F04)
+    static let accentTint = dynamic(0xFFECE4, 0x3A1D14)
+    static let accentText = dynamic(0xB33A0C, 0xFF9B77)
 
-    // Joie : réservée aux réussites (Aujourd'hui, Fait, plan terminé, fin de pomodoro).
-    // `sun` en plein ou en forme, jamais en texte ; `sunText` sur `sunTint` pour les mots.
-    static let sun = dynamic(0xF6C343, 0xF6C343)
-    static let onSun = dynamic(0x3D2A00, 0x3D2A00)
-    static let sunTint = dynamic(0xFBECC2, 0x3A3016)
-    static let sunText = dynamic(0x6B4A05, 0xF2CF6E)
+    // Rôles de joie de la v6, gardés sous leur nom comme alias de la braise. Plus aucun composant ne
+    // s'en sert : utiliser accent, accentTint, accentText, ou success pour « Fait ».
+    static let sun = dynamic(0xFF5924, 0xFF6A3D)
+    static let onSun = dynamic(0x2B0F04, 0x2B0F04)
+    static let sunTint = dynamic(0xFFECE4, 0x3A1D14)
+    static let sunText = dynamic(0xB33A0C, 0xFF9B77)
+
+    // États : le cobalt pour ce qui est actif, le vert pour « Fait », l'alerte toujours avec son triangle.
+    static let stateActive = dynamic(0x1573DD, 0x5AA2F0)
+    static let stateOnActive = dynamic(0xFFFFFF, 0x0B1A2C)
+    static let stateActiveText = dynamic(0x0F5BB5, 0x91C2F7)
+    static let stateActiveTint = dynamic(0xE7F0FC, 0x16243A)
+    static let success = dynamic(0x3D8C4A, 0x6CC07A)
+    static let successTint = dynamic(0xE4EFDC, 0x1B2B1D)
+    static let successText = dynamic(0x2D6B33, 0x9FD6A5)
+    static let stateBlocked = dynamic(0xECEEF3, 0x23262B)
+    static let stateOnBlocked = dynamic(0x24272D, 0xEEF0F4)
+    static let stateWaiting = dynamic(0x8B91A0, 0x7D8494)
+    static let stateRisk = dynamic(0xD2313C, 0xF0646B)
+    static let stateRiskTint = dynamic(0xFDEAEA, 0x3A1B1E)
+    static let stateRiskText = dynamic(0x8F1A24, 0xFCC4C7)
+    static let stateDone = dynamic(0xF1F3F7, 0x141518)
+    static let stateOnDone = dynamic(0x5D6575, 0xA3A9B6)
+
+    // Étiquettes et cartes de note : une teinte par type de note.
+    static let tagPink = dynamic(0xB8336A, 0xF08AB3)
+    static let tagYellow = dynamic(0x8A5D00, 0xF2C25C)
+    static let cardParchment = dynamic(0xF3F0E7, 0x1F1D18)
+    static let cardSage = dynamic(0xDDE9D3, 0x19221A)
+    static let cardSlate = dynamic(0xE5EAF2, 0x1A1F29)
+    static let cardBlush = dynamic(0xFFF1F1, 0x251A1A)
 
     // Réunions
-    static let meetingBg = dynamic(0xEEE8D8, 0x23281F)
-    static let meetingHatch = dynamic(0x2F6B4F, 0x7CC39C, lightAlpha: 0.16, darkAlpha: 0.16)
-    static let meetingNow = dynamic(0x2F6B4F, 0x7CC39C)
-    static let meetingOnNow = dynamic(0xFFFFFF, 0x0F2419)
+    static let meetingBg = dynamic(0xE5EAF2, 0x1C2230)
+    static let meetingHatch = dynamic(0x1573DD, 0x5AA2F0, lightAlpha: 0.14, darkAlpha: 0.16)
+    static let meetingNow = dynamic(0x24272D, 0xEEF0F4)
+    static let meetingOnNow = dynamic(0xFFFFFF, 0x15171A)
 
-    // Pomodoro
-    static let pomodoroFocus = dynamic(0x2F6B4F, 0x8DCDA9)
-    static let pomodoroBreak = dynamic(0xB07A12, 0xF2CF6E)
-    static let pomodoroBreakBg = dynamic(0xFBF1D6, 0x24210F)
-    static let pomodoroTrack = dynamic(0xE6DFCD, 0x2E3329)
-    static let pomodoroPaused = dynamic(0xB4AF9F, 0x585E51)
+    // Pomodoro : la braise en concentration, le cobalt en pause.
+    static let pomodoroFocus = dynamic(0xF4511F, 0xFF6A3D)
+    static let pomodoroBreak = dynamic(0x1573DD, 0x5AA2F0)
+    static let pomodoroBreakBg = dynamic(0xEEF4FC, 0x101A27)
+    static let pomodoroTrack = dynamic(0xE6E8EE, 0x2A2C31)
+    static let pomodoroPaused = dynamic(0xAFB5C1, 0x4F5560)
 
-    // Ombres : teintées de l'encre en clair, noires en sombre. Jamais sur une carte ordinaire :
-    // shadowCard pour le segment choisi, shadowRaised (et sa part proche) pour la carte de fin de
-    // pomodoro et la saisie flottante.
-    static let shadowCard = dynamic(0x23281F, 0x000000, lightAlpha: 0.08, darkAlpha: 0.35)
-    static let shadowRaised = dynamic(0x23281F, 0x000000, lightAlpha: 0.12, darkAlpha: 0.50)
-    static let shadowRaisedNear = dynamic(0x23281F, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
+    // Ombres, en deux couches, teintées de l'encre en clair, noires en sombre. shadowCard (avec sa
+    // part proche) : cartes widget, barre de saisie, boutons du rail. shadowRaised : carte de fin de
+    // pomodoro et saisie flottante. shadowControl : segment choisi.
+    static let shadowCard = dynamic(0x24272D, 0x000000, lightAlpha: 0.06, darkAlpha: 0.30)
+    static let shadowCardNear = dynamic(0x24272D, 0x000000, lightAlpha: 0.05, darkAlpha: 0.40)
+    static let shadowRaised = dynamic(0x24272D, 0x000000, lightAlpha: 0.14, darkAlpha: 0.55)
+    static let shadowRaisedNear = dynamic(0x24272D, 0x000000, lightAlpha: 0.06, darkAlpha: 0.35)
+    static let shadowControl = dynamic(0x24272D, 0x000000, lightAlpha: 0.10, darkAlpha: 0.45)
 
     static func dynamic(_ light: UInt32, _ dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -106,18 +129,21 @@ enum DoneSpace {
     static let s64: CGFloat = 64
 }
 
-/// Rayons doux : assez ronds pour être amicaux, jamais en pilule sauf la barre de progression.
+/// Rayons : de grands rectangles doux pour ce qui regroupe, la pilule pour tout ce qui se clique.
 enum DoneRadius {
-    /// Case à cocher, segment choisi du sélecteur.
-    static let xs: CGFloat = 5
-    /// Puces d'état, de priorité et de réussite.
-    static let chip: CGFloat = 8
-    /// Boutons, champs, réunions, navigation, tuile numérotée, encadrés.
-    static let sm: CGFloat = 10
-    /// Lignes de tâche, cartes.
-    static let md: CGFloat = 14
-    /// Panneaux, feuilles, carte de fin de pomodoro, carte de la ligne de temps.
-    static let lg: CGFloat = 20
+    /// Case à cocher.
+    static let xs: CGFloat = 6
+    /// Champs de formulaire, tuiles numérotées, réunions, segments.
+    static let sm: CGFloat = 12
+    /// Lignes de tâche au survol, cartes de note, encadrés.
+    static let md: CGFloat = 18
+    /// Cartes widget, feuilles, carte de fin de pomodoro.
+    static let lg: CGFloat = 24
+    /// Capsule : boutons, puces, étiquettes, recherche, barre de saisie, boutons du rail. Un rayon plus
+    /// grand que la demi-hauteur donne une capsule.
+    static let pill: CGFloat = 999
+    /// Puces d'état, de priorité et de réussite : en capsule, comme toutes les puces.
+    static let chip: CGFloat = pill
 }
 
 // MARK: Mouvement
@@ -137,7 +163,7 @@ enum DoneMotion {
     static let base: Double = 0.26
     /// Cartes, feuilles, fond de la pause, ligne qui part vers « Fait aujourd'hui ».
     static let slow: Double = 0.42
-    /// Éclat de tournesol.
+    /// Éclat des réussites.
     static let celebrate: Double = 0.9
 
     // Animations.
@@ -155,7 +181,7 @@ enum DoneMotion {
     static let travel = Animation.easeInOut(duration: slow)
     /// ease-spring, dur-base : le rebond des réussites (case cochée, puce « Fait », pastille de série).
     static let pop = Animation.spring(response: 0.3, dampingFraction: 0.55)
-    /// ease-out, dur-celebrate : l'éclat de tournesol.
+    /// ease-out, dur-celebrate : l'éclat des réussites.
     static let burst = Animation.easeOut(duration: celebrate)
     /// Ce qui reste d'un mouvement avec « Réduire les animations » : un fondu court.
     static let fade = Animation.easeOut(duration: fast)
@@ -233,7 +259,7 @@ struct CheckMarkShape: Shape {
     }
 }
 
-/// Éclat de tournesol : un halo sunTint et huit pétales sun qui partent du centre puis s'effacent,
+/// Éclat des réussites : un halo accentTint et huit pétales braise, rose et jaune qui partent du centre puis s'effacent,
 /// une fois chaque fois que `count` augmente. À poser en fond ou en surimpression, centré : il ne
 /// prend pas de place. Rien avec « Réduire les animations ».
 struct SunBurst: View {
@@ -271,13 +297,13 @@ private struct SunBurstFrame: View, Animatable {
         let petalOpacity = t < 0.25 ? t / 0.25 : (1 - t) / 0.75
         ZStack {
             Circle()
-                .fill(DoneColor.sunTint)
+                .fill(DoneColor.accentTint)
                 .frame(width: 56 * scale, height: 56 * scale)
                 .scaleEffect(0.4 + 1.2 * t)
                 .opacity(t == 0 ? 0 : 0.9 * (1 - t))
             ForEach(0..<8, id: \.self) { index in
                 Capsule()
-                    .fill(DoneColor.sun)
+                    .fill(Self.petalColor(index))
                     .frame(width: 8 * scale, height: 14 * scale)
                     .scaleEffect(0.4 + 0.6 * t)
                     .offset(y: -distance * t)
@@ -287,85 +313,107 @@ private struct SunBurstFrame: View, Animatable {
         }
         .frame(width: 0, height: 0)
     }
+
+    /// Un pétale sur trois en braise, puis rose, puis jaune.
+    private static func petalColor(_ index: Int) -> Color {
+        switch index % 3 {
+        case 1: DoneColor.tagPink
+        case 2: DoneColor.tagYellow
+        default: DoneColor.accent
+        }
+    }
 }
 
 // MARK: Typographie
 
-/// Échelle typographique, en deux familles. Fraunces (version douce, SemiBold) pour les trois titres
-/// d'affichage seulement ; Archivo pour tout le reste, nombres compris, en chiffres tabulaires.
-/// Fraunces ne descend jamais sous displayM. Fichiers dans Done/Fonts, chargés par `FontLoader`.
+/// Échelle typographique, en trois familles libres (licences OFL dans docs/fonts) :
+/// - Newsreader (Display pour displayXL et displayL, Text pour displayM et noteTitle), Medium, pour les
+///   titres ; l'italique pour la salutation de l'accueil. Jamais sous noteTitle (17), jamais pour un nombre.
+/// - Nunito Sans pour l'interface : Regular pour le texte, SemiBold pour les libellés et les titres de
+///   tâche, Bold pour title et label, Light pour les grands chiffres. Ses chiffres sont à chasse fixe.
+/// - Courier Prime pour noteMono seulement : le corps des notes dans la mosaïque.
+/// Fichiers dans Done/Fonts, chargés par `FontLoader`.
 enum DoneTextStyle {
-    /// 46/52 Fraunces, l'action proposée. Une seule chose forte par écran.
+    /// 46/50 Newsreader Display, titre d'accueil et action proposée en session. Une seule chose forte par écran.
     case displayXL
-    /// 34/40 Fraunces, titre d'écran.
+    /// 32/38 Newsreader Display, prochaine action, titres d'écran.
     case displayL
-    /// 23/28 Fraunces, titre de feuille et de carte, tâche en session.
+    /// 22/28 Newsreader Text, titres de feuille et de carte surélevée, note ouverte.
     case displayM
-    /// 17/24, titre de panneau.
+    /// 17/22 Newsreader Text, titre d'une carte de note dans la mosaïque.
+    case noteTitle
+    /// 16/22 Bold, titre de panneau, tâche parente.
     case title
     /// 14/20, texte courant.
     case body
-    /// 14/20 Medium, titre de tâche.
+    /// 14/20 SemiBold, titre de tâche, libellé de pilule.
     case bodyStrong
     /// 13/18, texte d'appoint.
     case callout
     /// 12/16, métadonnées.
     case caption
-    /// 12/16 SemiBold, étiquette de section en casse normale.
+    /// 12/16 Bold, en-tête de carte et étiquette de section, en casse normale.
     case label
-    /// 60/64 Regular, minuteur.
+    /// 60/64 Light, minuteur.
     case numericXL
-    /// 28/32, totaux.
+    /// 44/48 Light, grand chiffre d'une carte, totaux.
     case numericL
-    /// 14/20, heures et durées en ligne.
+    /// 14/20 SemiBold, valeurs en ligne.
     case numericM
-    /// 12/16, puces de durée et de date.
+    /// 12/16 SemiBold, dates, durées, heures, compteurs.
     case numericS
+    /// 13/19 Courier Prime, corps des notes rapides et du journal dans la mosaïque. Jamais pour l'interface.
+    case noteMono
 
     var size: CGFloat {
         switch self {
         case .displayXL: 46
-        case .displayL: 34
-        case .displayM: 23
-        case .title: 17
+        case .displayL: 32
+        case .displayM: 22
+        case .noteTitle: 17
+        case .title: 16
         case .body, .bodyStrong, .numericM: 14
-        case .callout: 13
+        case .callout, .noteMono: 13
         case .caption, .label, .numericS: 12
         case .numericXL: 60
-        case .numericL: 28
+        case .numericL: 44
         }
     }
 
     var lineHeight: CGFloat {
         switch self {
-        case .displayXL: 52
-        case .displayL: 40
+        case .displayXL: 50
+        case .displayL: 38
         case .displayM: 28
-        case .title: 24
+        case .noteTitle, .title: 22
         case .body, .bodyStrong, .numericM: 20
         case .callout: 18
+        case .noteMono: 19
         case .caption, .label, .numericS: 16
         case .numericXL: 64
-        case .numericL: 32
+        case .numericL: 48
         }
     }
 
     /// Interlettrage, en em.
     var tracking: CGFloat {
         switch self {
-        case .numericXL: -0.02
-        case .displayXL, .numericL: -0.01
-        case .displayL: -0.005
+        case .displayXL, .numericXL, .numericL: -0.02
+        case .displayL: -0.015
+        case .displayM: -0.01
         default: 0
         }
     }
 
     var fontName: String {
         switch self {
-        case .displayXL, .displayL, .displayM: "FrauncesSoft-SemiBold"
-        case .title, .label: "Archivo-SemiBold"
-        case .bodyStrong, .numericL, .numericM, .numericS: "Archivo-Medium"
-        case .body, .callout, .caption, .numericXL: "Archivo-Regular"
+        case .displayXL, .displayL: "NewsreaderDisplay-Medium"
+        case .displayM, .noteTitle: "NewsreaderText-Medium"
+        case .title, .label: "NunitoSans-Bold"
+        case .bodyStrong, .numericM, .numericS: "NunitoSans-SemiBold"
+        case .body, .callout, .caption: "NunitoSans-Regular"
+        case .numericXL, .numericL: "NunitoSans-Light"
+        case .noteMono: "CourierPrime-Regular"
         }
     }
 
@@ -376,8 +424,8 @@ enum DoneTextStyle {
         }
     }
 
-    /// Les styles numériques prennent les chiffres tabulaires d'Archivo : les colonnes et le minuteur
-    /// ne bougent pas en largeur.
+    /// Les chiffres de Nunito Sans sont déjà à chasse fixe ; `monospacedDigit` le garantit pour les
+    /// styles numériques : les colonnes et le minuteur ne bougent pas en largeur.
     var font: Font {
         let font = Font.custom(fontName, fixedSize: size)
         return isNumeric ? font.monospacedDigit() : font
@@ -385,18 +433,25 @@ enum DoneTextStyle {
 }
 
 extension Font {
+    /// Graisses hors échelle. Nunito Sans n'a pas de Medium : `medium` et `semibold` donnent SemiBold,
+    /// `bold` donne Bold (navigation active).
     enum TextWeight {
-        case regular, medium, semibold
+        case regular, medium, semibold, bold
     }
 
     static func done(_ style: DoneTextStyle) -> Font { style.font }
 
-    /// Archivo hors échelle : boutons, navigation active. Ajouter `.monospacedDigit()` pour un nombre.
+    /// Un titre d'affichage en italique (Newsreader Display Medium Italic) : la salutation de l'accueil.
+    static func doneItalic(_ style: DoneTextStyle) -> Font {
+        .custom("NewsreaderDisplay-MediumItalic", fixedSize: style.size)
+    }
+
+    /// Nunito Sans hors échelle : boutons, puces, navigation. Ajouter `.monospacedDigit()` pour un nombre.
     static func sans(_ size: CGFloat, _ weight: TextWeight = .regular) -> Font {
         let name = switch weight {
-        case .regular: "Archivo-Regular"
-        case .medium: "Archivo-Medium"
-        case .semibold: "Archivo-SemiBold"
+        case .regular: "NunitoSans-Regular"
+        case .medium, .semibold: "NunitoSans-SemiBold"
+        case .bold: "NunitoSans-Bold"
         }
         return .custom(name, fixedSize: size)
     }
@@ -440,32 +495,72 @@ struct Eyebrow: View {
 // MARK: Surfaces
 
 extension View {
-    /// Carte : surface et liseré border.subtle, sans ombre.
-    func doneCard(radius: CGFloat = DoneRadius.md) -> some View {
+    /// Carte widget : surface, liseré border.subtle et ombre très douce (shadow.card : 0 10 30 et 0 1 2),
+    /// rayon lg. À plat (`flat`), sans ombre : dans une feuille ou dans une autre carte.
+    func doneCard(radius: CGFloat = DoneRadius.lg, flat: Bool = false) -> some View {
         background(DoneColor.surfaceDefault, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
+            .shadow(color: flat ? .clear : DoneColor.shadowCard, radius: 15, y: 10)
+            .shadow(color: flat ? .clear : DoneColor.shadowCardNear, radius: 1, y: 1)
     }
 
-    /// Carte surélevée (shadow.raised : 0 14 32 et 0 2 6) : carte de fin de pomodoro, saisie flottante.
+    /// Carte surélevée (shadow.raised : 0 20 50 et 0 4 10) : carte de fin de pomodoro, saisie flottante.
     func doneRaised(radius: CGFloat = DoneRadius.lg) -> some View {
         background(DoneColor.surfaceDefault, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
-            .shadow(color: DoneColor.shadowRaised, radius: 16, y: 14)
-            .shadow(color: DoneColor.shadowRaisedNear, radius: 3, y: 2)
+            .shadow(color: DoneColor.shadowRaised, radius: 25, y: 20)
+            .shadow(color: DoneColor.shadowRaisedNear, radius: 5, y: 4)
     }
 
-    /// Champ de saisie : hauteur 32, rayon sm, contour border.control, contour focus.ring de 2 au focus.
-    func doneField(focused: Bool, height: CGFloat? = 32) -> some View {
+    /// Champ de saisie : hauteur 34, rayon sm, marge 12, contour border.control, contour focus.ring de 2 au focus.
+    func doneField(focused: Bool, height: CGFloat? = 34) -> some View {
         textFieldStyle(.plain)
             .font(.done(.body))
             .foregroundStyle(DoneColor.textPrimary)
-            .padding(.horizontal, DoneSpace.s8)
+            .padding(.horizontal, DoneSpace.s12)
             .frame(height: height)
             .background(DoneColor.surfaceDefault, in: RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
                     .strokeBorder(focused ? DoneColor.focusRing : DoneColor.borderControl, lineWidth: focused ? 2 : 1)
             )
+    }
+}
+
+/// Toile de la fenêtre : bgCanvas, réchauffée de deux halos en dégradé radial, haloWarm en haut à droite
+/// et haloPink en bas à gauche (comme `.d-window` du design system). Ils ne bougent pas. Pendant la
+/// pause, le fond passe en pomodoroBreakBg et les halos s'effacent, en dur-slow.
+struct DoneCanvas: View {
+    var isOnBreak = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(proxy.size.width, 1)
+            let height = max(proxy.size.height, 1)
+            ZStack {
+                isOnBreak ? DoneColor.pomodoroBreakBg : DoneColor.bgCanvas
+                ZStack {
+                    // Halo chaud : centré à 210 du bord droit et 30 sous le haut, effacé à 377.
+                    RadialGradient(
+                        colors: [DoneColor.haloWarm, DoneColor.haloWarm.opacity(0)],
+                        center: UnitPoint(x: (width - 210) / width, y: 30 / height),
+                        startRadius: 0,
+                        endRadius: 377
+                    )
+                    // Halo rose : centré à 190 du bord gauche et 110 sous le bas, effacé à 414.
+                    RadialGradient(
+                        colors: [DoneColor.haloPink, DoneColor.haloPink.opacity(0)],
+                        center: UnitPoint(x: 190 / width, y: (height + 110) / height),
+                        startRadius: 0,
+                        endRadius: 414
+                    )
+                }
+                .opacity(isOnBreak ? 0 : 1)
+            }
+            .animation(DoneMotion.arrive, value: isOnBreak)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -499,10 +594,11 @@ struct Hatching: View {
 
 // MARK: Boutons
 
-/// Boutons : hauteur 32, rayon sm, padding 14. Un seul principal par vue.
+/// Boutons, toujours en pilule : hauteur 34 (compact 28), marge 16 (compact 12), texte 14 SemiBold
+/// (compact 13). Un seul principal par vue.
 struct DoneButtonStyle: ButtonStyle {
     enum Kind {
-        /// action.primary : vert profond en clair, vert clair en sombre.
+        /// action.primary : pilule d'encre, inversée en sombre.
         case primary
         /// Surface et contour border.default.
         case secondary
@@ -512,7 +608,7 @@ struct DoneButtonStyle: ButtonStyle {
 
     var kind: Kind = .secondary
     var fullWidth = false
-    /// 26 de haut, pour les lignes de réglages et les puces d'action.
+    /// 28 de haut, pour les lignes de réglages et les puces d'action.
     var compact = false
 
     func makeBody(configuration: Configuration) -> some View {
@@ -530,13 +626,13 @@ private struct DoneButtonBody: View {
     @State private var hovered = false
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        let shape = Capsule(style: .continuous)
         configuration.label
-            .font(.sans(compact ? 13 : 14, kind == .primary ? .semibold : .medium))
+            .font(.sans(compact ? 13 : 14, .semibold))
             .lineLimit(1)
             .foregroundStyle(foreground)
-            .padding(.horizontal, kind == .plain ? 8 : (compact ? 10 : 14))
-            .frame(height: compact ? 26 : 32)
+            .padding(.horizontal, kind == .plain ? 10 : (compact ? 12 : 16))
+            .frame(height: compact ? 28 : 34)
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .background(background, in: shape)
             .overlay {
@@ -574,7 +670,8 @@ private struct DoneButtonBody: View {
     }
 }
 
-/// Bouton carré à icône, 32 × 32 : nouvelle tâche, semaine précédente ou suivante.
+/// Bouton rond à icône, 34 × 34, icône de 14 : nouvelle tâche, semaine précédente ou suivante.
+/// Se tasse un peu plus qu'un bouton texte à l'appui (0,94).
 struct DoneIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         DoneIconButtonBody(configuration: configuration)
@@ -587,15 +684,15 @@ private struct DoneIconButtonBody: View {
     @State private var hovered = false
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        let shape = Circle()
         configuration.label
-            .font(.system(size: 13, weight: .semibold))
+            .font(.system(size: 14, weight: .medium))
             .foregroundStyle(isEnabled ? DoneColor.textPrimary : DoneColor.textDisabled)
-            .frame(width: 32, height: 32)
+            .frame(width: 34, height: 34)
             .background(isEnabled && (hovered || configuration.isPressed) ? DoneColor.surfaceHover : DoneColor.surfaceDefault, in: shape)
             .overlay(shape.strokeBorder(isEnabled ? DoneColor.borderDefault : DoneColor.borderSubtle, lineWidth: 1))
             .contentShape(shape)
-            .donePress(configuration.isPressed)
+            .donePress(configuration.isPressed, scale: 0.94)
             .animation(DoneMotion.hover, value: hovered)
             .onHover { hovered = $0 }
     }
@@ -618,8 +715,9 @@ struct DoneStepper: View {
     }
 }
 
-/// Choix exclusif : piste bg.sunken, segment choisi sur une surface, qui glisse vers la nouvelle
-/// option (dur-base, ease-in-out). Avec « Réduire les animations », il change de place sans glisser.
+/// Choix exclusif : piste bg.sunken en pilule, marge 3 ; segment choisi de 26, en pilule sur une surface
+/// avec shadow.control, qui glisse vers la nouvelle option (dur-base, ease-in-out). Avec « Réduire les
+/// animations », il change de place sans glisser.
 struct DoneSegmented<Value: Hashable>: View {
     @Binding var selection: Value
     let options: [(value: Value, title: String)]
@@ -635,16 +733,16 @@ struct DoneSegmented<Value: Hashable>: View {
                     withAnimation(reduceMotion ? nil : DoneMotion.move) { selection = option.value }
                 } label: {
                     Text(option.title)
-                        .font(.sans(13, isOn ? .semibold : .medium))
+                        .font(.sans(13, .semibold))
                         .foregroundStyle(isOn ? DoneColor.textPrimary : DoneColor.textSecondary)
                         .lineLimit(1)
                         .padding(.horizontal, DoneSpace.s12)
-                        .frame(height: 24)
+                        .frame(height: 26)
                         .background {
                             if isOn {
-                                RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
+                                Capsule(style: .continuous)
                                     .fill(DoneColor.surfaceDefault)
-                                    .shadow(color: DoneColor.shadowCard, radius: 1, y: 1)
+                                    .shadow(color: DoneColor.shadowControl, radius: 1, y: 1)
                                     .matchedGeometryEffect(id: "segment", in: segment)
                             }
                         }
@@ -653,8 +751,8 @@ struct DoneSegmented<Value: Hashable>: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(2)
-        .background(DoneColor.bgSunken, in: RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous))
+        .padding(3)
+        .background(DoneColor.bgSunken, in: Capsule(style: .continuous))
         .fixedSize()
     }
 }
@@ -667,7 +765,7 @@ struct DoneSegmented<Value: Hashable>: View {
 /// rien. Avec « Réduire les animations », la case change en fondu.
 struct TaskCheckbox: View {
     let isDone: Bool
-    /// Ligne de tâche : l'éclat de tournesol accompagne la coche.
+    /// Ligne de tâche : l'éclat accompagne la coche.
     var bursts = false
     let action: () -> Void
 
@@ -752,11 +850,11 @@ private struct CheckboxFace: View, Animatable {
     }
 }
 
-/// Puce d'état : hauteur 22, rayon chip, marge 8, icône 10, texte 12 Medium. Une icône double toujours
-/// la couleur ; fond léger, jamais de plein ni de contour, pour que la ligne reste calme.
+/// Puce d'état : pilule de 22, marge 8, icône 10, texte 12 SemiBold. Une icône double toujours la
+/// couleur ; fond léger, jamais de plein ni de contour, pour que la ligne reste calme.
 struct StateChip: View {
     enum Kind {
-        /// « Aujourd'hui », tâche du plan du jour : soleil, sunText sur sunTint.
+        /// « Aujourd'hui », tâche du plan du jour : soleil, accentText sur accentTint.
         case active
         /// Ne peut pas avancer.
         case blocked
@@ -764,8 +862,8 @@ struct StateChip: View {
         case risk
         /// Fait un autre jour : coche et texte seuls, recule visuellement.
         case done
-        /// « Fait », tout juste coché : coche, sunText sur sunTint. L'appelant la fait arriver en
-        /// rebondissant (DoneMotion.pop).
+        /// « Fait », tout juste coché : coche, successText sur successTint. L'appelant la fait arriver
+        /// en rebondissant (DoneMotion.pop).
         case doneToday
     }
 
@@ -777,7 +875,7 @@ struct StateChip: View {
             icon
             Text(title)
         }
-        .font(.sans(12, .medium))
+        .font(.sans(12, .semibold))
         .foregroundStyle(foreground)
         .padding(.horizontal, kind == .done ? 0 : DoneSpace.s8)
         .frame(height: 22)
@@ -803,7 +901,8 @@ struct StateChip: View {
 
     private var background: Color {
         switch kind {
-        case .active, .doneToday: DoneColor.sunTint
+        case .active: DoneColor.accentTint
+        case .doneToday: DoneColor.successTint
         case .blocked: DoneColor.stateBlocked
         case .risk: DoneColor.stateRiskTint
         case .done: .clear
@@ -812,7 +911,8 @@ struct StateChip: View {
 
     private var foreground: Color {
         switch kind {
-        case .active, .doneToday: DoneColor.sunText
+        case .active: DoneColor.accentText
+        case .doneToday: DoneColor.successText
         case .blocked: DoneColor.stateOnBlocked
         case .risk: DoneColor.stateRiskText
         case .done: DoneColor.stateOnDone
@@ -859,6 +959,26 @@ struct TagChip: View {
     }
 }
 
+/// Étiquette en pilule à contour coloré, comme les mots de l'accueil de mymind : le type d'une note, ou
+/// une étiquette de tâche dans une carte. Texte et contour de la même couleur, fond transparent ; 22 de
+/// haut, marge 10, 12 SemiBold. Dans une ligne de tâche, garder TagChip.
+struct TagPill: View {
+    let title: String
+    /// Couleur du texte et du contour : celle du type de note, ou textSecondary pour une étiquette.
+    var color: Color = DoneColor.textSecondary
+
+    var body: some View {
+        Text(title)
+            .font(.sans(12, .semibold))
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .frame(height: 22)
+            .overlay(Capsule(style: .continuous).strokeBorder(color, lineWidth: 1))
+            .fixedSize()
+    }
+}
+
 /// Priorité : « P1 » sur teinte active, « P2 » en texte actif seul, rien pour P3 et P4.
 struct PriorityChip: View {
     let priority: Int
@@ -879,25 +999,20 @@ struct PriorityChip: View {
 
 // MARK: Raccourcis
 
-/// Touche dessinée, comme le « ⌘K » d'une recherche : 11 Medium en texte secondaire, sur surface, contour
-/// borderDefault, rayon xs, 18 de haut. Montre un raccourci sans prendre la parole.
+/// Touche de raccourci, comme le « ⌘K » d'une recherche : texte seul, 12 SemiBold, à 60 % de la couleur
+/// du texte qui l'entoure. Montre un raccourci sans prendre la parole.
 struct KeyCap: View {
     let key: String
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
         Text(key)
-            .font(.sans(11, .medium).monospacedDigit())
-            .foregroundStyle(DoneColor.textSecondary)
-            .padding(.horizontal, DoneSpace.s4)
-            .frame(minWidth: 18, minHeight: 18)
-            .background(DoneColor.surfaceDefault, in: shape)
-            .overlay(shape.strokeBorder(DoneColor.borderDefault, lineWidth: 1))
+            .font(.sans(12, .semibold).monospacedDigit())
+            .opacity(0.6)
             .fixedSize()
     }
 }
 
-/// Un raccourci et ce qu'il fait : des touches dessinées, puis le verbe en caption secondaire.
+/// Un raccourci et ce qu'il fait : les touches, puis le verbe en caption, le tout en texte secondaire.
 struct ShortcutHint: View {
     let keys: [String]
     let label: String
@@ -909,9 +1024,9 @@ struct ShortcutHint: View {
             }
             Text(label)
                 .doneText(.caption)
-                .foregroundStyle(DoneColor.textSecondary)
                 .padding(.leading, DoneSpace.s4)
         }
+        .foregroundStyle(DoneColor.textSecondary)
         .accessibilityElement(children: .combine)
     }
 }
@@ -936,13 +1051,13 @@ struct ListShortcutHints: View {
 
 // MARK: Navigation
 
-/// Élément de navigation : hauteur 32, rayon sm, icône 16, compteur en chiffres tabulaires à droite.
+/// Élément de navigation : pilule de 34, marge 12, icône 16, compteur en chiffres tabulaires à droite.
 /// Un projet qui a des sous-projets porte un chevron pour les replier.
-/// Actif : surface.selected et graisse Semibold.
+/// Actif : surface.selected et graisse Bold.
 struct NavItem: View {
     let title: String
     let icon: Image
-    /// Couleur propre de l'icône : le soleil d'« Aujourd'hui » reste en sunText, même au repos.
+    /// Couleur propre de l'icône : le soleil d'« Aujourd'hui » reste en braise (accent), même au repos.
     var iconColor: Color?
     /// Pour une icône qui fête une réussite : augmente d'un à chaque éclat (plan du jour bouclé).
     var burstCount: Int?
@@ -958,7 +1073,7 @@ struct NavItem: View {
     @State private var hovered = false
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        let shape = Capsule(style: .continuous)
         Button(action: action) {
             HStack(spacing: DoneSpace.s8) {
                 iconView
@@ -968,7 +1083,7 @@ struct NavItem: View {
                         }
                     }
                 Text(title)
-                    .font(isSelected ? .sans(14, .semibold) : .done(.body))
+                    .font(isSelected ? .sans(14, .bold) : .done(.body))
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 if let counter {
@@ -988,8 +1103,8 @@ struct NavItem: View {
                 }
             }
             .foregroundStyle(isEnabled ? DoneColor.textPrimary : DoneColor.textDisabled)
-            .padding(.horizontal, DoneSpace.s8)
-            .frame(height: 32)
+            .padding(.horizontal, DoneSpace.s12)
+            .frame(height: 34)
             .background(isSelected ? DoneColor.surfaceSelected : (hovered ? DoneColor.surfaceHover : Color.clear), in: shape)
             .overlay(shape.strokeBorder(DoneColor.focusRing, lineWidth: isDropTarget ? 2 : 0))
             .contentShape(shape)
@@ -1015,48 +1130,9 @@ struct NavItem: View {
     }
 }
 
-/// Élément du rail de navigation (barre latérale réduite) : icône de 16 dans une case de 40 × 32,
-/// rayon sm. Actif en surfaceSelected, survol en surfaceHover. Le titre et le raccourci passent dans l'aide.
-struct NavRailItem: View {
-    let title: String
-    let icon: Image
-    /// Couleur propre de l'icône : le soleil d'« Aujourd'hui » reste en sunText.
-    var iconColor: Color?
-    let isSelected: Bool
-    let action: () -> Void
-
-    @State private var hovered = false
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
-        Button(action: action) {
-            iconView
-                .frame(width: 40, height: 32)
-                .background(isSelected ? DoneColor.surfaceSelected : (hovered ? DoneColor.surfaceHover : Color.clear), in: shape)
-                .contentShape(shape)
-                .animation(DoneMotion.hover, value: hovered)
-        }
-        .buttonStyle(.plain)
-        .onHover { hovered = $0 }
-        .help(title)
-        .accessibilityLabel(title)
-    }
-
-    @ViewBuilder
-    private var iconView: some View {
-        let image = icon
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
-            .frame(width: 15, height: 15)
-            .frame(width: 16, height: 16)
-        image.foregroundStyle(iconColor ?? DoneColor.textPrimary)
-    }
-}
-
 // MARK: Réunions
 
-/// Bloc réunion, rayon sm. Hachuré à venir (temps pris), plein vert en cours, gris une fois passé.
+/// Bloc réunion, rayon sm. Hachuré à venir (temps pris), plein meetingNow (encre) en cours, gris une fois passé.
 struct MeetingBlock: View {
     let meeting: Meeting
     let now: Date
@@ -1064,23 +1140,39 @@ struct MeetingBlock: View {
     let detail: String
     /// Remplit toute la hauteur proposée : un créneau de la grille du calendrier.
     var fillsHeight = false
+    /// Moins de 30 min : titre et créneau sur une seule ligne.
+    var singleLine = false
 
     private enum Moment { case upcoming, now, past }
 
     var body: some View {
         let moment: Moment = meeting.contains(now) ? .now : (meeting.end <= now ? .past : .upcoming)
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
-        VStack(alignment: .leading, spacing: 1) {
-            Text(meeting.title)
-                .font(.sans(13, .medium))
-                .lineLimit(1)
-            Text(moment == .now ? "En cours · fin \(Format.time(meeting.end))" : detail)
-                .font(.done(.numericS))
-                .opacity(moment == .now ? 1 : 0.85)
+        let detailText = Text(moment == .now ? "En cours · fin \(Format.time(meeting.end))" : detail)
+            .font(.done(.numericS))
+        Group {
+            if singleLine {
+                HStack(spacing: DoneSpace.s6) {
+                    Text(meeting.title)
+                        .font(.sans(12, .semibold))
+                        .lineLimit(1)
+                    detailText
+                        .lineLimit(1)
+                        .opacity(moment == .now ? 1 : 0.85)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(meeting.title)
+                        .font(.sans(13, .semibold))
+                        .lineLimit(1)
+                    detailText
+                        .opacity(moment == .now ? 1 : 0.85)
+                }
+            }
         }
         .foregroundStyle(moment == .now ? DoneColor.meetingOnNow : (moment == .past ? DoneColor.textDisabled : DoneColor.textPrimary))
         .padding(.horizontal, DoneSpace.s8)
-        .padding(.vertical, DoneSpace.s6)
+        .padding(.vertical, singleLine ? 1 : DoneSpace.s6)
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
         .background {
             switch moment {
@@ -1101,38 +1193,46 @@ struct MeetingBlock: View {
 
 // MARK: Logo et anneaux
 
-/// Icône de l'app : carré arrondi en dégradé vert, anneau crème à 24 % et arc crème de 300° depuis
-/// midi, un minuteur presque refermé ; dans l'ouverture, un soleil tournesol. Mêmes proportions que
-/// docs/design/icon.svg (carré de 824). Couleurs fixes : l'icône ne change pas avec le thème.
+/// Icône de l'app : carré arrondi blanc, réchauffé d'un halo braise en haut à droite et d'un halo rose en
+/// bas à gauche ; dessus, un anneau fin en encre (trait de 30 sur 824) ouvert sur 60°, et un point
+/// braise au milieu de l'ouverture. Mêmes proportions que docs/design/icon.svg (carré de 824).
+/// Couleurs fixes : l'icône ne change pas avec le thème.
 struct DoneAppIcon: View {
     var size: CGFloat = 90
 
-    private static let gradientTop = fixed(0x3B7A5B)
-    private static let gradientBottom = fixed(0x204F3A)
-    private static let cream = fixed(0xF7F3E8)
-    private static let sun = fixed(0xF6C343)
+    private static let ink = fixed(0x24272D)
+    private static let ember = fixed(0xFF5924)
+    private static let warmStops: [Gradient.Stop] = [
+        .init(color: fixed(0xFFD9C9), location: 0),
+        .init(color: fixed(0xFFF4EF), location: 0.45),
+        .init(color: fixed(0xFFFFFF), location: 1),
+    ]
+    private static let pink = fixed(0xF7C6D8)
 
     var body: some View {
         let unit = size / 824
-        let ring = 500 * unit
-        let line = 76 * unit
+        let ring = 480 * unit
+        let line = 30 * unit
         // Milieu de l'ouverture : 330°, depuis midi dans le sens horaire, sur l'anneau.
-        let sunAngle = Angle.degrees(330).radians
+        let dotAngle = Angle.degrees(330).radians
+        let shape = RoundedRectangle(cornerRadius: 185 * unit, style: .continuous)
         ZStack {
-            RoundedRectangle(cornerRadius: 185 * unit, style: .continuous)
-                .fill(LinearGradient(colors: [Self.gradientTop, Self.gradientBottom], startPoint: .top, endPoint: .bottom))
+            shape
+                .fill(RadialGradient(stops: Self.warmStops, center: UnitPoint(x: 0.85, y: 0.1), startRadius: 0, endRadius: 0.9 * size))
+            shape
+                .fill(RadialGradient(colors: [Self.pink.opacity(0.9), Self.pink.opacity(0)], center: UnitPoint(x: 0.1, y: 0.95), startRadius: 0, endRadius: 0.7 * size))
             Circle()
-                .stroke(Self.cream.opacity(0.24), lineWidth: line)
+                .stroke(Self.ink.opacity(0.12), lineWidth: line)
                 .frame(width: ring, height: ring)
             Circle()
                 .trim(from: 0, to: 300.0 / 360.0)
-                .stroke(Self.cream, style: StrokeStyle(lineWidth: line, lineCap: .round))
+                .stroke(Self.ink, style: StrokeStyle(lineWidth: line, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .frame(width: ring, height: ring)
             Circle()
-                .fill(Self.sun)
-                .frame(width: 112 * unit, height: 112 * unit)
-                .offset(x: ring / 2 * sin(sunAngle), y: -ring / 2 * cos(sunAngle))
+                .fill(Self.ember)
+                .frame(width: 80 * unit, height: 80 * unit)
+                .offset(x: ring / 2 * sin(dotAngle), y: -ring / 2 * cos(dotAngle))
         }
         .frame(width: size, height: size)
     }
@@ -1148,11 +1248,11 @@ struct DoneAppIcon: View {
 }
 
 /// Anneau du minuteur : la part restante, depuis midi, dans le sens horaire.
-/// Diamètre 280 et trait 8 en session ; vert en concentration, ocre en pause, gris à l'arrêt.
+/// Diamètre 280 et trait 6 en session, fin comme le logo ; braise en concentration, cobalt en pause, gris à l'arrêt.
 struct ProgressRing: View {
     let fraction: Double
     var color: Color = DoneColor.pomodoroFocus
-    var lineWidth: CGFloat = 8
+    var lineWidth: CGFloat = 6
 
     var body: some View {
         ZStack {
@@ -1189,8 +1289,8 @@ struct ProgressBar: View {
     }
 }
 
-/// Encadré de message, sans contour : information en vert, réussite en tournesol (plan du jour
-/// terminé), erreur en brique. Arrive en fondu (dur-base).
+/// Encadré de message, sans contour, rayon md, marges 14 × 10 : information en cobalt, réussite en braise
+/// (plan du jour terminé), erreur en rouge sombre. Arrive en fondu (dur-base).
 struct NoticeBox: View {
     enum Tone {
         case info, success, error
@@ -1200,7 +1300,7 @@ struct NoticeBox: View {
     var tone: Tone = .info
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
         HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s8) {
             Image(systemName: symbol)
                 .font(.system(size: 11, weight: .semibold))
@@ -1210,8 +1310,8 @@ struct NoticeBox: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(foreground)
-        .padding(.horizontal, DoneSpace.s12)
-        .padding(.vertical, DoneSpace.s8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(background, in: shape)
         .doneArrive(animation: DoneMotion.appear)
     }
@@ -1227,7 +1327,7 @@ struct NoticeBox: View {
     private var foreground: Color {
         switch tone {
         case .info: DoneColor.stateActiveText
-        case .success: DoneColor.sunText
+        case .success: DoneColor.accentText
         case .error: DoneColor.stateRiskText
         }
     }
@@ -1235,7 +1335,7 @@ struct NoticeBox: View {
     private var background: Color {
         switch tone {
         case .info: DoneColor.stateActiveTint
-        case .success: DoneColor.sunTint
+        case .success: DoneColor.accentTint
         case .error: DoneColor.stateRiskTint
         }
     }

@@ -150,7 +150,7 @@ struct TaskEditorSheet: View {
                 .padding(.horizontal, DoneSpace.s12)
                 .frame(height: 40)
             }
-            .doneCard()
+            .doneCard(radius: DoneRadius.md, flat: true)
         }
     }
 
@@ -246,7 +246,7 @@ struct TaskDetailsCard<Extra: View>: View {
             }
             extra
         }
-        .doneCard()
+        .doneCard(radius: DoneRadius.md, flat: true)
     }
 }
 
@@ -576,7 +576,7 @@ struct CaptureForm: View {
                 .padding(.horizontal, DoneSpace.s12)
                 .frame(height: 36)
             }
-            .doneCard()
+            .doneCard(radius: DoneRadius.md, flat: true)
         }
     }
 

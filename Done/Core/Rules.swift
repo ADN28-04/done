@@ -26,8 +26,8 @@ enum SettingsKey {
     static let sidebarProjectsCollapsed = "sidebar.projectsCollapsed"
     static let sidebarTagsCollapsed = "sidebar.tagsCollapsed"
     static let sidebarFoldedProjects = "sidebar.foldedProjects"
-    /// Barre latérale réduite en rail d'icônes ; la barre complète passe par-dessus au survol.
-    static let sidebarRail = "sidebar.rail"
+    /// Prénom de la salutation de Ma journée ; vide, Done prend celui du compte macOS.
+    static let firstName = "home.firstName"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.

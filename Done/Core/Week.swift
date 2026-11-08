@@ -87,6 +87,28 @@ enum DayAgenda {
         WorkWeek.dueTasks(on: today, in: tasks, today: today).filter { !plan.contains($0.id) }
     }
 
+    /// Créneaux libres entre `from` et `to` : ce qui reste hors des moments pris (réunions, focus),
+    /// en morceaux d'au moins `minimumMinutes`, dans l'ordre.
+    static func freeSlots(busy: [DateInterval], from: Date, to: Date, minimumMinutes: Int = 30) -> [DateInterval] {
+        guard from < to else { return [] }
+        var slots: [DateInterval] = []
+        var cursor = from
+        for interval in busy.sorted(by: { $0.start < $1.start }) where interval.end > cursor {
+            if interval.start >= to { break }
+            if interval.start > cursor { slots.append(DateInterval(start: cursor, end: interval.start)) }
+            cursor = max(cursor, interval.end)
+        }
+        if cursor < to { slots.append(DateInterval(start: cursor, end: to)) }
+        return slots.filter { $0.duration >= Double(minimumMinutes) * 60 }
+    }
+
+    /// Pomodoros qui tiennent dans un créneau : chacun prend `focus` minutes, suivies d'une pause de
+    /// `pause` minutes, sauf le dernier.
+    static func pomodoros(fitting minutes: Int, focus: Int, pause: Int) -> Int {
+        guard focus > 0, minutes >= focus else { return 0 }
+        return (minutes + pause) / (focus + pause)
+    }
+
     /// Tâches cochées dans la journée, les plus récentes d'abord.
     static func doneToday(in tasks: [TodoTask], today: Date, calendar: Calendar = .current) -> [TodoTask] {
         tasks

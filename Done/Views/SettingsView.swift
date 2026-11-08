@@ -21,6 +21,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.captureShortcut) private var captureShortcut = CaptureShortcut.standard.rawValue
     @AppStorage(SettingsKey.remindersEnabled) private var remindersEnabled = false
     @AppStorage(SettingsKey.remindersList) private var remindersList = RemindersBridge.defaultList
+    @AppStorage(SettingsKey.firstName) private var firstName = ""
 
     @State private var dndStatus: CheckStatus = .unknown
     @State private var notificationStatus: Notifier.Permission?
@@ -42,6 +43,10 @@ struct SettingsView: View {
                 Text("Réglages")
                     .doneText(.displayL)
                     .foregroundStyle(DoneColor.textPrimary)
+
+                SettingsSection("Accueil", footer: firstNameFooter) {
+                    textRow("Prénom", text: $firstName)
+                }
 
                 SettingsSection("Rythme") {
                     stepperRow("Session", value: $defaultMinutes, range: 10...90, step: 5, unit: "min")
@@ -244,6 +249,14 @@ struct SettingsView: View {
                 DoneStepper(value: value, range: range, step: step)
             }
         }
+    }
+
+    /// Le prénom pris quand le champ est vide : celui du compte macOS.
+    private var firstNameFooter: String {
+        if let name = DaySummary.firstName(setting: "", fullName: NSFullUserName()) {
+            return "Pour la salutation de Ma journée. Vide, Done prend celui de ton compte macOS : \(name)."
+        }
+        return "Pour la salutation de Ma journée. Vide, elle dit simplement « Bonjour, »."
     }
 
     private func textRow(_ title: String, text: Binding<String>) -> some View {

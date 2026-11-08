@@ -1,0 +1,245 @@
+/* Done, direction Mymind : rendu web des composants SwiftUI de Done (Theme.swift, Components.swift) et de l'écran Ma journée.
+   Écrit à la main. Les valeurs viennent de tokens.css (tokens.json). */
+
+.d-preview { margin: 0; padding: var(--s16); background: var(--bgCanvas); color: var(--textPrimary); font-family: var(--font-sans); font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
+.d-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s12); }
+.d-col { display: flex; flex-direction: column; gap: var(--s8); }
+.d-tnum { font-variant-numeric: tabular-nums; }
+.d-ico { width: 11px; height: 11px; flex: none; display: block; }
+.d-display { font-family: var(--font-display); font-weight: 500; font-optical-sizing: auto; letter-spacing: -0.015em; }
+.d-mono { font-family: var(--font-mono); }
+
+/* Mouvement : keyframes communes. */
+@keyframes d-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@keyframes d-rise { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes d-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes d-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes d-strike { from { background-size: 0 1.5px; } to { background-size: 100% 1.5px; } }
+@keyframes d-petal { 0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d, 34px))) scale(1); } }
+@keyframes d-glow { 0% { transform: scale(.4); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* Bouton : pilule. Principal en encre pleine, secondaire sur surface avec contour, discret en texte. */
+.d-btn { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: var(--control-height); padding: 0 16px; border-radius: var(--pill); border: var(--border-hairline) solid var(--borderDefault); background: var(--surfaceDefault); color: var(--textPrimary); font: 600 14px/20px var(--font-sans); white-space: nowrap; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.d-btn svg { width: 14px; height: 14px; flex: none; }
+.d-btn:hover { background: var(--surfaceHover); }
+.d-btn:active { transform: scale(.97); }
+.d-btn--primary { border: 0; background: var(--actionPrimary); color: var(--actionOnPrimary); }
+.d-btn--primary:hover { background: var(--actionPrimaryHover); }
+.d-btn--primary:active { background: var(--actionPrimaryPressed); }
+.d-btn--plain { border: 0; background: transparent; color: var(--textSecondary); padding: 0 10px; }
+.d-btn--plain:hover { background: transparent; color: var(--textPrimary); }
+.d-btn--plain:active { background: var(--surfaceHover); }
+.d-btn--compact { height: var(--control-compact); padding: 0 12px; font-size: 13px; }
+.d-btn:disabled { cursor: default; transform: none; color: var(--textDisabled); background: transparent; border-color: var(--borderSubtle); }
+.d-btn--primary:disabled { background: var(--actionDisabled); }
+.d-btn--plain:disabled { background: transparent; }
+.d-btn--full { display: flex; width: 100%; }
+.d-kbd { font: 600 12px/16px var(--font-sans); opacity: .6; }
+
+/* Bouton à icône : rond de 34. */
+.d-iconbtn { box-sizing: border-box; width: var(--control-height); height: var(--control-height); display: inline-flex; align-items: center; justify-content: center; border-radius: var(--pill); border: var(--border-hairline) solid var(--borderDefault); background: var(--surfaceDefault); color: var(--textPrimary); padding: 0; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.d-iconbtn:hover { background: var(--surfaceHover); }
+.d-iconbtn:active { transform: scale(.94); }
+.d-iconbtn:disabled { transform: none; color: var(--textDisabled); border-color: var(--borderSubtle); background: var(--surfaceDefault); }
+.d-iconbtn svg { width: 14px; height: 14px; }
+
+.d-stepper { display: inline-flex; gap: var(--s4); }
+
+/* Sélecteur : piste bgSunken en pilule, segment choisi qui glisse. */
+.d-seg { position: relative; display: inline-flex; gap: var(--s2); padding: 3px; border-radius: var(--pill); background: var(--bgSunken); }
+.d-seg__thumb { position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: var(--pill); background: var(--surfaceDefault); box-shadow: var(--shadowControl); transition: transform var(--dur-base) var(--ease-in-out), width var(--dur-base) var(--ease-in-out); }
+.d-seg__opt { position: relative; height: 26px; padding: 0 var(--s12); border: 0; border-radius: var(--pill); background: transparent; color: var(--textSecondary); font: 600 13px/26px var(--font-sans); cursor: pointer; white-space: nowrap; transition: color var(--dur-fast) var(--ease-out); }
+.d-seg__opt[aria-pressed="true"] { color: var(--textPrimary); }
+.d-seg:not(.has-thumb) .d-seg__opt[aria-pressed="true"] { background: var(--surfaceDefault); box-shadow: var(--shadowControl); }
+
+/* Champ : rayon sm, contour borderControl, focus 2 focusRing. */
+.d-field { box-sizing: border-box; height: var(--control-height); padding: 0 12px; border-radius: var(--sm); border: var(--border-hairline) solid var(--borderControl); background: var(--surfaceDefault); color: var(--textPrimary); font: 400 14px/20px var(--font-sans); outline: none; min-width: 0; transition: border-color var(--dur-fast) var(--ease-out); }
+.d-field::placeholder { color: var(--textSecondary); }
+.d-field:focus, .d-field.is-focused { border: var(--border-focus) solid var(--focusRing); padding: 0 11px; }
+
+/* Recherche : pilule de 38, loupe, raccourci à droite. */
+.d-search { box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: var(--pill); border: var(--border-hairline) solid var(--borderDefault); background: var(--surfaceDefault); color: var(--textSecondary); font: 400 14px/20px var(--font-sans); min-width: 240px; }
+.d-search svg { width: 15px; height: 15px; flex: none; }
+.d-search .d-kbd { margin-left: auto; }
+
+/* Cartes : widget flottant (liseré + ombre douce), surélevée, en-tête de widget. */
+.d-card { box-sizing: border-box; background: var(--surfaceDefault); border: var(--border-hairline) solid var(--borderSubtle); border-radius: var(--lg); box-shadow: var(--shadowCard); padding: 20px 22px; }
+.d-card--flat { box-shadow: none; }
+.d-card--raised { box-shadow: var(--shadowRaised); }
+.d-card--arrive { animation: d-rise var(--dur-slow) var(--ease-out) both; }
+.d-widget__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.d-widget__link { font: 600 12px/16px var(--font-sans); color: var(--stateActiveText); text-decoration: none; cursor: pointer; }
+.d-hairline { height: 1px; background: var(--borderSubtle); border: 0; margin: 0; }
+.d-eyebrow { font: 700 12px/16px var(--font-sans); color: var(--textSecondary); display: inline-flex; align-items: center; gap: 8px; }
+
+/* Case à cocher : 18, rayon 6 ; cochée, encre pleine, elle rebondit et la coche se trace. */
+.d-check { box-sizing: border-box; width: var(--checkbox-size); height: var(--checkbox-size); flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--xs); border: var(--border-checkbox) solid var(--borderControl); background: var(--surfaceDefault); color: transparent; padding: 0; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.d-check svg { width: 10px; height: 10px; }
+.d-check svg path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.d-check:hover { color: var(--borderControl); }
+.d-check:active { transform: scale(.88); }
+.d-check[aria-checked="true"] { border-color: var(--actionPrimary); background: var(--actionPrimary); color: var(--actionOnPrimary); }
+.d-check.is-popping { animation: d-pop var(--dur-base) var(--ease-spring); }
+.d-check.is-popping svg path { animation: d-draw var(--dur-fast) var(--ease-out) 60ms both; }
+.d-check:disabled { transform: none; background: var(--actionDisabled); border-color: var(--borderSubtle); }
+
+/* Puces : pilules de 22, sur teinte, sans contour. */
+.d-chip { box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; height: var(--chip-height); padding: 0 9px; border-radius: var(--pill); font: 600 12px/16px var(--font-sans); white-space: nowrap; }
+.d-chip svg { width: 10px; height: 10px; }
+.d-chip--today { background: var(--accentTint); color: var(--accentText); }
+.d-chip--active { background: var(--stateActiveTint); color: var(--stateActiveText); }
+.d-chip--blocked { background: var(--stateBlocked); color: var(--stateOnBlocked); }
+.d-chip--risk { background: var(--stateRiskTint); color: var(--stateRiskText); }
+.d-chip--done { background: var(--successTint); color: var(--successText); }
+.d-chip--past { padding: 0; background: none; color: var(--stateOnDone); }
+.d-chip.is-popping { animation: d-pop var(--dur-base) var(--ease-spring); }
+
+/* Étiquette : pilule en contour coloré, comme sur mymind. */
+.d-tagpill { box-sizing: border-box; display: inline-flex; align-items: center; height: var(--chip-height); padding: 0 10px; border-radius: var(--pill); border: 1px solid currentColor; font: 600 12px/16px var(--font-sans); white-space: nowrap; width: fit-content; background: transparent; }
+.d-tagpill--note { color: var(--accentText); }
+.d-tagpill--meeting { color: var(--stateActiveText); }
+.d-tagpill--decision { color: var(--tagPink); }
+.d-tagpill--journal { color: var(--tagYellow); }
+.d-tagpill--person { color: var(--successText); }
+.d-tagpill--neutral { color: var(--textSecondary); }
+
+.d-info { display: inline-flex; align-items: center; gap: var(--s4); height: var(--chip-height); color: var(--textSecondary); font: 600 12px/16px var(--font-sans); white-space: nowrap; }
+.d-info svg { width: 10px; height: 10px; }
+.d-info--alert { color: var(--stateRiskText); }
+.d-tag { display: inline-flex; align-items: center; gap: var(--s4); height: var(--chip-height); color: var(--textSecondary); font: 600 12px/16px var(--font-sans); white-space: nowrap; }
+.d-tag svg { width: 10px; height: 10px; }
+.d-prio { display: inline-flex; align-items: center; height: var(--chip-height); color: var(--stateActiveText); font: 600 12px/16px var(--font-sans); }
+.d-prio--p1 { padding: 0 var(--s8); border-radius: var(--pill); background: var(--stateActiveTint); font-weight: 700; }
+
+/* Rail : colonne de boutons ronds, sur verre clair. */
+.d-rail { box-sizing: border-box; width: var(--rail-width); padding: 18px 0 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; background: color-mix(in srgb, var(--bgSunken) 70%, transparent); backdrop-filter: blur(30px); border-right: var(--border-hairline) solid var(--borderSubtle); }
+.d-rail__lights { display: flex; gap: 8px; margin-bottom: 18px; } .d-rail__lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.d-rail__btn { position: relative; width: var(--rail-button); height: var(--rail-button); border-radius: var(--pill); display: flex; align-items: center; justify-content: center; color: var(--textSecondary); background: var(--surfaceDefault); box-shadow: var(--shadowCard); border: 0; padding: 0; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.d-rail__btn svg { width: 19px; height: 19px; }
+.d-rail__btn:hover { color: var(--textPrimary); }
+.d-rail__btn:active { transform: scale(.94); }
+.d-rail__btn.is-selected { background: var(--actionPrimary); color: var(--actionOnPrimary); }
+.d-rail__btn--add { background: var(--accent); color: var(--onAccent); margin-bottom: 8px; }
+.d-rail__btn--add:hover { color: var(--onAccent); }
+.d-rail__badge { position: absolute; top: -2px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--accent); color: var(--onAccent); font: 700 11px/18px var(--font-sans); text-align: center; }
+.d-rail__spacer { flex: 1; }
+
+/* En-tête d'accueil : date, puis titre en deux tons. */
+.d-greet__date { display: flex; align-items: center; gap: 8px; font: 600 13px/18px var(--font-sans); color: var(--textSecondary); }
+.d-greet__date svg { width: 14px; height: 14px; color: var(--accent); }
+.d-greet__title { margin: 8px 0 0; font: 500 46px/50px var(--font-display); font-variation-settings: "opsz" 72; letter-spacing: -0.02em; color: var(--textPrimary); max-width: 820px; }
+.d-greet__title em { font-style: italic; color: var(--textSecondary); }
+
+/* Barre de saisie : pilule de 54 en bas de Ma journée. */
+.d-capture { box-sizing: border-box; display: flex; align-items: center; gap: 10px; height: var(--capture-height); padding: 0 8px 0 20px; border-radius: var(--pill); background: var(--surfaceDefault); border: var(--border-hairline) solid var(--borderSubtle); box-shadow: var(--shadowCard); }
+.d-capture__input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--textPrimary); font: 400 14px/20px var(--font-sans); }
+.d-capture__input::placeholder { color: var(--textSecondary); }
+.d-capture__kind { height: 38px; padding: 0 14px; border-radius: var(--pill); display: inline-flex; align-items: center; gap: 6px; font: 600 13px/18px var(--font-sans); background: var(--bgSunken); color: var(--textPrimary); border: 0; cursor: pointer; }
+.d-capture__kind[aria-pressed="true"] { background: var(--surfaceSelected); }
+.d-capture__kind svg { width: 14px; height: 14px; }
+.d-capture__send { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--actionPrimary); color: var(--actionOnPrimary); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.d-capture__send svg { width: 16px; height: 16px; }
+
+/* Carte de note : tuile de la mosaïque, teinte selon le type. */
+.d-note { box-sizing: border-box; border-radius: var(--md); padding: 14px 16px; background: var(--surfaceDefault); border: var(--border-hairline) solid var(--borderSubtle); display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.d-note__title { margin: 0; font: 500 17px/22px var(--font-display); font-variation-settings: "opsz" 18; color: var(--textPrimary); }
+.d-note__body { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--textSecondary); }
+.d-note__body--mono { font: 400 13px/19px var(--font-mono); color: var(--textPrimary); }
+.d-note--blush { background: var(--cardBlush); border-color: transparent; }
+.d-note--slate { background: var(--cardSlate); border-color: transparent; }
+.d-note--sage { background: var(--cardSage); border-color: transparent; }
+.d-note--parchment { background: var(--cardParchment); border-color: transparent; }
+.d-note--new { border: 1.5px dashed var(--stateWaiting); background: transparent; }
+.d-note__todo { display: flex; gap: 8px; align-items: center; font: 400 12px/16px var(--font-sans); color: var(--textSecondary); }
+.d-note__todo .d-check { width: 14px; height: 14px; border-radius: 4px; border-width: 1.2px; } .d-note__todo .d-check svg { width: 8px; height: 8px; }
+.d-masonry { columns: 2; column-gap: 10px; } .d-masonry > * { break-inside: avoid; margin-bottom: 10px; }
+
+/* Navigation (écran Listes) : élément de liste en pilule. */
+.d-nav { box-sizing: border-box; display: flex; align-items: center; gap: var(--s8); height: var(--control-height); padding: 0 12px; border-radius: var(--pill); color: var(--textPrimary); font: 400 14px/20px var(--font-sans); cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out); }
+.d-nav:hover { background: var(--surfaceHover); }
+.d-nav.is-selected { background: var(--surfaceSelected); font-weight: 700; }
+.d-nav.is-drop { box-shadow: inset 0 0 0 var(--border-focus) var(--focusRing); }
+.d-nav__icon { width: 16px; height: 16px; flex: none; display: flex; align-items: center; justify-content: center; }
+.d-nav__icon svg { width: 15px; height: 15px; }
+.d-nav__icon--sun { color: var(--accent); }
+.d-nav__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-nav__count { color: var(--textSecondary); font: 600 12px/16px var(--font-sans); }
+.d-nav__chev { width: 14px; display: flex; justify-content: center; color: var(--textSecondary); }
+.d-nav__chev svg { width: 9px; height: 9px; }
+.d-sidebar { width: var(--list-sidebar-width); box-sizing: border-box; background: var(--bgSunken); border-right: 1px solid var(--borderSubtle); padding: var(--s12) 10px; }
+.d-sidebar .d-eyebrow { padding: 18px 12px 6px; }
+
+/* Réunion : rayon sm. */
+.d-meeting { box-sizing: border-box; display: flex; flex-direction: column; gap: 1px; padding: var(--s6) 10px; border-radius: var(--sm); color: var(--textPrimary); }
+.d-meeting__title { font: 600 13px/18px var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-meeting__time { font: 600 12px/16px var(--font-sans); opacity: .85; }
+.d-meeting--one { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+.d-meeting--upcoming { background-color: var(--meetingBg); background-image: repeating-linear-gradient(135deg, var(--meetingHatch) 0 1.5px, transparent 1.5px 6px); }
+.d-meeting--now { background: var(--meetingNow); color: var(--meetingOnNow); }
+.d-meeting--now .d-meeting__time { opacity: 1; }
+.d-meeting--past { background: var(--stateDone); color: var(--textDisabled); }
+.d-meeting--focus { background: var(--accentTint); color: var(--accentText); }
+.d-meeting--slot { border: 1.5px dashed var(--stateWaiting); color: var(--textSecondary); }
+
+/* Ligne de temps de la journée. */
+.d-timeline { position: relative; margin-left: 40px; border-left: 1px solid var(--borderSubtle); }
+.d-timeline__hour { position: absolute; left: -40px; width: calc(100% + 40px); display: flex; align-items: center; gap: 8px; font: 600 11px/14px var(--font-sans); color: var(--textSecondary); }
+.d-timeline__hour span { width: 32px; }
+.d-timeline__hour::after { content: ""; flex: 1; height: 1px; background: var(--borderSubtle); }
+.d-timeline .d-meeting { position: absolute; left: 10px; right: 4px; }
+.d-timeline__now { position: absolute; left: -5px; right: 0; height: 2px; background: var(--accent); }
+.d-timeline__now::before { content: ""; position: absolute; left: -1px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.d-timeline__now span { position: absolute; left: -46px; top: -8px; font: 700 11px/16px var(--font-sans); color: var(--accentText); }
+
+/* Anneau du minuteur. */
+.d-ring { position: relative; display: inline-block; }
+.d-ring > svg { display: block; transform: rotate(-90deg); overflow: visible; }
+.d-ring__track { fill: none; stroke: var(--pomodoroTrack); }
+.d-ring__fill { fill: none; stroke: var(--pomodoroFocus); stroke-linecap: round; transition: stroke-dasharray 1s linear, stroke var(--dur-base) var(--ease-out); }
+.d-ring--break .d-ring__fill { stroke: var(--pomodoroBreak); }
+.d-ring--paused .d-ring__fill { stroke: var(--pomodoroPaused); }
+.d-ring__center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* Éclat : huit pétales braise, rose et jaune. */
+.d-burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.d-burst::before { content: ""; position: absolute; left: -28px; top: -28px; width: 56px; height: 56px; border-radius: 50%; background: var(--accentTint); opacity: 0; }
+.d-burst i { position: absolute; left: -4px; top: -7px; width: 8px; height: 14px; border-radius: 4px; background: var(--accent); opacity: 0; transform-origin: 4px 7px; }
+.d-burst i:nth-child(3n+2) { background: var(--tagPink); } .d-burst i:nth-child(3n) { background: var(--tagYellow); }
+.d-burst.is-on::before { animation: d-glow var(--dur-celebrate) var(--ease-out); }
+.d-burst.is-on i { animation: d-petal var(--dur-celebrate) var(--ease-out) both; }
+
+/* Barre de progression. */
+.d-bar { height: 6px; border-radius: 3px; background: var(--pomodoroTrack); overflow: hidden; }
+.d-bar__fill { height: 100%; border-radius: 3px; background: var(--stateActive); transition: width var(--dur-slow) var(--ease-out); }
+
+/* Encadré. */
+.d-notice { box-sizing: border-box; display: flex; align-items: baseline; gap: var(--s8); padding: 10px 14px; border-radius: var(--md); background: var(--stateActiveTint); color: var(--stateActiveText); font: 400 13px/18px var(--font-sans); animation: d-fade-in var(--dur-base) var(--ease-out); }
+.d-notice svg { width: 11px; height: 11px; flex: none; transform: translateY(1px); }
+.d-notice--success { background: var(--accentTint); color: var(--accentText); }
+.d-notice--error { background: var(--stateRiskTint); color: var(--stateRiskText); }
+
+/* Ligne de tâche. */
+.d-task { box-sizing: border-box; display: flex; align-items: center; gap: var(--s12); min-height: var(--row-height); padding: 6px 10px; border-radius: var(--md); transition: background-color var(--dur-fast) var(--ease-out), opacity var(--dur-slow) var(--ease-out); }
+.d-task:hover, .d-task.is-hover { background: var(--surfaceHover); }
+.d-task__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.d-task__title { align-self: flex-start; max-width: 100%; font: 600 14px/20px var(--font-sans); color: var(--textPrimary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0 1.5px; transition: color var(--dur-base) var(--ease-out); }
+.d-task__meta { font: 400 12px/16px var(--font-sans); color: var(--textSecondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-task__chips { display: flex; align-items: center; gap: var(--s8); }
+.d-task--step { padding-left: calc(10px + var(--step-indent)); }
+.d-task--done .d-task__title { color: var(--textSecondary); font-weight: 400; background-size: 100% 1.5px; }
+.d-task.is-finishing .d-task__title { animation: d-strike var(--dur-base) var(--ease-out) 80ms both; }
+.d-tile { box-sizing: border-box; width: var(--tile-size); height: var(--tile-size); flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--stateActive); color: var(--stateOnActive); font: 700 12px/16px var(--font-sans); }
+.d-tile--empty { background: transparent; border: 1.5px dashed var(--stateWaiting); color: var(--textSecondary); }
+
+/* Fenêtre et halos (écran Ma journée). */
+.d-window { position: relative; overflow: hidden; background: var(--bgCanvas); display: flex; }
+.d-window::before { content: ""; position: absolute; width: 820px; height: 820px; right: -200px; top: -380px; border-radius: 50%; background: radial-gradient(circle, var(--haloWarm), transparent 65%); pointer-events: none; }
+.d-window::after { content: ""; position: absolute; width: 900px; height: 900px; left: -260px; bottom: -560px; border-radius: 50%; background: radial-gradient(circle, var(--haloPink), transparent 65%); pointer-events: none; }
+.d-window > * { position: relative; z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .d-btn, .d-iconbtn, .d-check, .d-rail__btn { transform: none !important; }
+  .d-check.is-popping, .d-chip.is-popping, .d-card--arrive { animation: d-fade-in var(--dur-fast) linear; }
+  .d-burst.is-on i, .d-burst.is-on::before { animation: none; }
+  .d-ring__fill, .d-seg__thumb { transition: none; }
+}

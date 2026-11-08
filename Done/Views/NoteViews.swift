@@ -7,41 +7,37 @@ struct NoteRef: Identifiable, Hashable {
 
 // MARK: Écran Notes
 
-/// Toutes les notes : à gauche la liste (recherche, filtre par type, création), à droite la note choisie.
+/// Toutes les notes : en tête la recherche, le filtre par type et la création ; dessous, la mosaïque
+/// des cartes de note. Une note ouverte prend toute la largeur, avec « Retour » vers la mosaïque.
 struct NotesView: View {
     @Environment(AppModel.self) private var model
     @State private var selection: String?
     @State private var query = ""
     @State private var filter: NoteKind?
+    @FocusState private var searchFocused: Bool
 
     private var book: NoteBook { NoteBook.shared }
 
     var body: some View {
-        HStack(spacing: 0) {
-            list
-                .frame(width: 300)
-            Rectangle()
-                .fill(DoneColor.borderSubtle)
-                .frame(width: 1)
-            Group {
-                if let selection, book.note(selection) != nil {
+        Group {
+            if let selection, book.note(selection) != nil {
+                VStack(alignment: .leading, spacing: 0) {
+                    Button {
+                        self.selection = nil
+                    } label: {
+                        Label("Toutes les notes", systemImage: "chevron.left")
+                    }
+                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
+                    .padding(.horizontal, DoneSpace.s20)
+                    .padding(.top, DoneSpace.s4)
                     NoteDetailView(noteID: selection) { self.selection = $0 }
                         .id(selection)
-                } else {
-                    VStack(spacing: DoneSpace.s6) {
-                        Text("Aucune note ouverte")
-                            .doneText(.title)
-                            .foregroundStyle(DoneColor.textPrimary)
-                        Text("Choisis une note à gauche, ou crée-en une.")
-                            .doneText(.callout)
-                            .foregroundStyle(DoneColor.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+            } else {
+                mosaic
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var filtered: [Note] {
@@ -52,63 +48,261 @@ struct NotesView: View {
         }
     }
 
-    private var list: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
+    private var mosaic: some View {
+        VStack(alignment: .leading, spacing: DoneSpace.s16) {
+            HStack(alignment: .center, spacing: DoneSpace.s12) {
                 Text("Notes")
                     .doneText(.displayL)
                     .foregroundStyle(DoneColor.textPrimary)
-                Spacer()
-                NewNoteMenu { kind in
-                    selection = book.create(Note(kind: kind, title: "Nouvelle \(kind.label.lowercased())", date: kind == .meeting ? .now : nil)).id
+                Spacer(minLength: DoneSpace.s16)
+                HStack(spacing: DoneSpace.s8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(DoneColor.textSecondary)
+                    TextField("Chercher dans les notes", text: $query)
+                        .textFieldStyle(.plain)
+                        .focused($searchFocused)
                 }
-            }
-            HStack(spacing: DoneSpace.s8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(DoneColor.textSecondary)
-                TextField("Chercher", text: $query)
-                    .textFieldStyle(.plain)
-            }
-            .doneField(focused: false)
-            .padding(.top, DoneSpace.s16)
-            Menu {
-                Button("Tous les types") { filter = nil }
-                Divider()
-                ForEach(NoteKind.allCases) { kind in
-                    Button(kind.plural) { filter = kind }
+                .doneField(focused: searchFocused)
+                .frame(maxWidth: 260)
+                Menu {
+                    Button("Tous les types") { filter = nil }
+                    Divider()
+                    ForEach(NoteKind.allCases) { kind in
+                        Button(kind.plural) { filter = kind }
+                    }
+                } label: {
+                    Text("Type : \(filter?.plural.lowercased() ?? "tous")")
+                        .font(.done(.callout))
                 }
-            } label: {
-                Text("Type : \(filter?.plural ?? "tous")")
-                    .font(.done(.callout))
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                NewNoteMenu(title: "Nouvelle") { kind in create(kind) }
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .padding(.top, DoneSpace.s8)
             if let message = book.errorMessage {
                 NoticeBox(text: message, tone: .error)
-                    .padding(.top, DoneSpace.s8)
             }
-            ScrollView {
-                LazyVStack(spacing: DoneSpace.s2) {
-                    ForEach(filtered) { note in
-                        NoteRow(note: note, isSelected: note.id == selection) { selection = note.id }
+            GeometryReader { proxy in
+                ScrollView {
+                    if filtered.isEmpty && !(filter == nil && query.isEmpty) {
+                        Text("Aucune note ne correspond.")
+                            .doneText(.callout)
+                            .foregroundStyle(DoneColor.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    // Quatre colonnes au plus, 220 de large au moins.
+                    MasonryLayout(columns: max(2, min(4, Int(proxy.size.width / 220))), spacing: 10) {
+                        ForEach(filtered) { note in
+                            NoteCard(note: note) { selection = note.id }
+                        }
+                        if filter == nil && query.isEmpty {
+                            NewNoteTile { create(.note) }
+                        }
+                    }
+                    .padding(.bottom, DoneSpace.s24)
                 }
-                .padding(.vertical, DoneSpace.s8)
-            }
-            .scrollIndicators(.never)
-            .padding(.top, DoneSpace.s8)
-            if filtered.isEmpty {
-                Text(book.notes.isEmpty ? "Pas encore de note. Le bouton + en crée une." : "Aucune note ne correspond.")
-                    .doneText(.callout)
-                    .foregroundStyle(DoneColor.textSecondary)
-                    .padding(.bottom, DoneSpace.s16)
+                .scrollIndicators(.never)
             }
         }
-        .padding(.horizontal, DoneSpace.s20)
+        .padding(.horizontal, DoneSpace.s32)
         .padding(.top, DoneSpace.s4)
-        .padding(.bottom, DoneSpace.s16)
+    }
+
+    private func create(_ kind: NoteKind) {
+        selection = book.create(Note(kind: kind, title: "Nouvelle \(kind.label.lowercased())", date: kind == .meeting ? .now : nil)).id
+    }
+}
+
+/// Mosaïque : chaque carte va dans la colonne la plus courte, de gauche à droite, avec le même écart
+/// entre colonnes et entre cartes.
+struct MasonryLayout: Layout {
+    var columns: Int
+    var spacing: CGFloat = 10
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 800
+        return CGSize(width: width, height: arrange(width: width, subviews: subviews).height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let frames = arrange(width: bounds.width, subviews: subviews).frames
+        for (subview, frame) in zip(subviews, frames) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(width: frame.width, height: frame.height)
+            )
+        }
+    }
+
+    private func arrange(width: CGFloat, subviews: Subviews) -> (frames: [CGRect], height: CGFloat) {
+        let count = max(columns, 1)
+        let columnWidth = max((width - spacing * CGFloat(count - 1)) / CGFloat(count), 0)
+        // Bas de chaque colonne ; nil tant qu'elle est vide.
+        var bottoms = [CGFloat?](repeating: nil, count: count)
+        var frames: [CGRect] = []
+        for subview in subviews {
+            let column = bottoms.indices.min { (bottoms[$0] ?? 0) < (bottoms[$1] ?? 0) } ?? 0
+            let height = subview.sizeThatFits(ProposedViewSize(width: columnWidth, height: nil)).height
+            let top = bottoms[column].map { $0 + spacing } ?? 0
+            frames.append(CGRect(x: CGFloat(column) * (columnWidth + spacing), y: top, width: columnWidth, height: height))
+            bottoms[column] = top + height
+        }
+        return (frames, bottoms.compactMap { $0 }.max() ?? 0)
+    }
+}
+
+/// Carte de note de la mosaïque : étiquette du type en pilule, titre en serif, extrait sur trois lignes
+/// et jusqu'à trois cases, cliquables. Teinte de carte selon le type ; le journal et les notes simples
+/// montrent leur texte en noteMono, comme un brouillon. Rayon md, marges 16 × 14.
+struct NoteCard: View {
+    let note: Note
+    let open: () -> Void
+    @State private var hovered = false
+
+    /// Une case de la note, avec sa ligne dans le texte.
+    private struct Todo: Identifiable {
+        let checked: Bool
+        let text: String
+        let line: Int
+        var id: Int { line }
+    }
+
+    private var book: NoteBook { NoteBook.shared }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
+        let blocks = MarkdownBlocks.parse(note.body)
+        let todos = Array(blocks.compactMap(Self.todo).prefix(3))
+        let excerpt = Self.excerpt(blocks)
+        let isMono = note.kind == .journal || note.kind == .note
+        VStack(alignment: .leading, spacing: DoneSpace.s8) {
+            TagPill(title: note.kind.label, color: note.kind.tagColor)
+            Text(note.title)
+                .doneText(.noteTitle)
+                .foregroundStyle(DoneColor.textPrimary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+            if !excerpt.isEmpty {
+                Text(excerpt)
+                    .doneText(isMono ? .noteMono : .callout)
+                    .foregroundStyle(isMono ? DoneColor.textPrimary : DoneColor.textSecondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(todos) { todo in
+                HStack(spacing: DoneSpace.s8) {
+                    TaskCheckbox(isDone: todo.checked) { toggle(todo.line) }
+                        .scaleEffect(14.0 / 18.0)
+                        .frame(width: 14, height: 14)
+                    Text(MarkdownView.inline(todo.text))
+                        .font(.sans(12))
+                        .strikethrough(todo.checked, color: DoneColor.stateOnDone)
+                        .foregroundStyle(DoneColor.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.horizontal, DoneSpace.s16)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(note.kind.cardTint, in: shape)
+        .overlay {
+            if !note.kind.isTinted || hovered {
+                shape.strokeBorder(hovered ? DoneColor.borderDefault : DoneColor.borderSubtle, lineWidth: 1)
+            }
+        }
+        .contentShape(shape)
+        .onTapGesture(perform: open)
+        .onHover { hovered = $0 }
+        .animation(DoneMotion.hover, value: hovered)
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "Ouvrir", open)
+        .help("Ouvrir « \(note.title) »")
+    }
+
+    private func toggle(_ line: Int) {
+        var updated = note
+        updated.body = MarkdownBlocks.toggleTask(in: note.body, line: line)
+        book.save(updated)
+    }
+
+    private static func todo(_ block: MarkdownBlock) -> Todo? {
+        if case let .task(checked, _, text, line) = block { return Todo(checked: checked, text: text, line: line) }
+        return nil
+    }
+
+    /// Le texte de la note, sans mise en forme ni cases : de quoi remplir trois lignes.
+    private static func excerpt(_ blocks: [MarkdownBlock]) -> String {
+        var parts: [String] = []
+        for block in blocks {
+            let line: String? = switch block {
+            case .heading(_, let value), .paragraph(let value), .bullet(_, let value), .numbered(_, _, let value), .quote(let value): value
+            case .code(let code): code
+            case .task, .rule: nil
+            }
+            if let line {
+                parts.append(String(MarkdownView.inline(line).characters))
+            }
+            if parts.joined(separator: " ").count > 240 { break }
+        }
+        return parts.joined(separator: " ")
+    }
+}
+
+/// Dernière tuile de la mosaïque : « Nouvelle note… » (ou un autre libellé), en pointillé.
+struct NewNoteTile: View {
+    var title = "Nouvelle note…"
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
+        Button(action: action) {
+            Label(title, systemImage: "plus")
+                .font(.sans(13, .semibold))
+                .foregroundStyle(hovered ? DoneColor.textPrimary : DoneColor.textSecondary)
+                .frame(maxWidth: .infinity, minHeight: 64)
+                .background(hovered ? DoneColor.surfaceHover : Color.clear, in: shape)
+                .overlay(shape.strokeBorder(DoneColor.stateWaiting, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])))
+                .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .animation(DoneMotion.hover, value: hovered)
+    }
+}
+
+extension NoteKind {
+    /// Carte teintée, sans liseré ; les autres sont sur surfaceDefault avec un liseré.
+    var isTinted: Bool {
+        switch self {
+        case .note, .decision: false
+        default: true
+        }
+    }
+
+    /// Teinte de la carte de note.
+    var cardTint: Color {
+        switch self {
+        case .journal: DoneColor.cardBlush
+        case .meeting: DoneColor.cardSlate
+        case .person: DoneColor.cardSage
+        case .reference, .project: DoneColor.cardParchment
+        case .note, .decision: DoneColor.surfaceDefault
+        }
+    }
+
+    /// Couleur de l'étiquette du type (TagPill) : 4,5:1 sur la teinte de la carte.
+    var tagColor: Color {
+        switch self {
+        case .note: DoneColor.accentText
+        case .meeting: DoneColor.stateActiveText
+        case .decision: DoneColor.tagPink
+        case .journal: DoneColor.tagYellow
+        case .person: DoneColor.successText
+        case .reference, .project: DoneColor.textSecondary
+        }
     }
 }
 
@@ -352,7 +546,7 @@ struct NoteDetailView: View {
                 }
             }
         }
-        .doneCard()
+        .doneCard(radius: DoneRadius.md, flat: true)
     }
 
     private func taskToken(_ id: String, note: Binding<Note>) -> some View {
@@ -664,7 +858,7 @@ struct TaskNotesList: View {
                     }
                 }
                 .padding(DoneSpace.s6)
-                .doneCard()
+                .doneCard(radius: DoneRadius.md, flat: true)
             }
             .sheet(item: $opened) { ref in
                 NoteSheet(noteID: ref.id)

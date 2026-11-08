@@ -44,10 +44,10 @@ struct DoneApp: App {
                 .font(.done(.body))
                 .foregroundStyle(DoneColor.textPrimary)
                 .tint(DoneColor.stateActive)
-                .frame(minWidth: 1000, minHeight: 660)
+                .frame(minWidth: 1100, minHeight: 680)
         }
         .modelContainer(container)
-        // Le contenu monte sous la barre de titre : barre latérale et barre du haut maison.
+        // Le contenu monte sous la barre de titre : le rail commence sous les feux de la fenêtre.
         .windowStyle(.hiddenTitleBar)
 
         // Le minuteur reste visible dans la barre de menus, même fenêtre fermée, et la capture rapide y est à un clic.
