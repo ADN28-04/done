@@ -4,7 +4,7 @@ App macOS personnelle qui réunit une liste de tâches et un minuteur Pomodoro. 
 
 Tout reste sur le Mac : pas de compte, pas de synchro, pas de service tiers.
 
-Le cadrage est dans `docs/` : `vision.md` (le problème), `spec.md` (fonctionnalités, écrans, données) et `questions.md` (ce qui reste ouvert). Le design est décrit dans `design-system.md`, avec les maquettes dans `docs/design/`.
+Le cadrage est dans `docs/` : `vision.md` (le problème), `spec.md` (fonctionnalités, écrans, données) et `questions.md` (ce qui reste ouvert). Le design est décrit dans `design-system.md` (v6 « Jardin »), avec sa référence dans `docs/design/jardin/` et les versions précédentes dans `docs/design/`.
 
 ## Lancer l'app
 
@@ -101,8 +101,8 @@ Done/
   Data/       modèles SwiftData (plan du jour, sessions, interruptions)
   Services/   fichiers des tâches et des notes, connecteur Claude, notifications, « Ne pas déranger », Rappels, appels AppKit
   State/      AppModel (tâches, réunions, plan) et FocusEngine (minuteur)
-  Views/      écrans SwiftUI, et Theme.swift pour les tokens et composants du design system v5
-  Fonts/      Archivo (licence OFL dans docs/fonts/)
+  Views/      écrans SwiftUI, et Theme.swift pour les tokens, le mouvement et les composants du design system v6 « Jardin »
+  Fonts/      Fraunces pour les titres, Archivo pour le reste (licences OFL dans docs/fonts/)
   Assets.xcassets/  icône de l'app et couleur d'accent
 ```
 

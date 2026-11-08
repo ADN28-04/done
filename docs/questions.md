@@ -41,5 +41,11 @@ Points à trancher à l'usage.
 9. **Jusqu'où laisser écrire Claude ?**
    Claude crée, modifie, coche et fixe le plan du jour directement, sans validation dans Done. Si un changement surprend, deux pistes : faire du plan une proposition à valider dans Done, ou marquer d'un signe ce que Claude a créé. Il ne supprime jamais rien : c'est voulu.
 
-9. **Faut-il bloquer les distractions ?**
+10. **Une seconde avant qu'une tâche cochée parte.**
+   Le temps de voir la coche, et d'annuler d'un second clic. Si c'est trop long quand on coche plusieurs tâches d'affilée, on peut descendre à une demi-seconde ; si on annule souvent trop tard, monter à deux.
+
+11. **Ce qui compte comme un pomodoro.**
+   La série de la carte de fin compte les minuteurs menés au bout, rallonges comprises. Une tâche cochée avant la fin ne compte pas. Si cela décourage de cocher tôt, on pourra compter toute session de plus de 20 minutes.
+
+12. **Faut-il bloquer les distractions ?**
    Exclu pour l'instant. À réévaluer après un mois si la concentration reste le principal frein malgré le minuteur.

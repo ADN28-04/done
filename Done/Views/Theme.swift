@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: Couleurs
 
 /// Design system Done v6 « Jardin » : couleurs nommées par rôle, en clair et en sombre.
-/// Référence : docs/design/done-jardin/design-system (README.md et tokens.json).
+/// Référence : docs/design/jardin/design-system (README.md et tokens.json).
 /// Le code ne référence jamais une couleur de marque (Crème, Encre, Vert profond, Tournesol, Brique)
 /// directement. En sombre, le vert s'éclaircit et ce qui est posé dessus passe en vert nuit.
 enum DoneColor {
