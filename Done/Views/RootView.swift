@@ -15,6 +15,7 @@ struct RootView: View {
 
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var screen: Screen = .focus
     @State private var choseInitialScreen = false
     @State private var revealSidebar = false
@@ -25,7 +26,7 @@ struct RootView: View {
             HStack(spacing: 0) {
                 if !inSession {
                     Sidebar(screen: $screen)
-                        .transition(.move(edge: .leading))
+                        .transition(sidebarTransition)
                 }
                 content
             }
@@ -44,13 +45,13 @@ struct RootView: View {
                         .onHover { inside in
                             if !inside { revealSidebar = false }
                         }
-                        .transition(.move(edge: .leading))
+                        .transition(sidebarTransition)
                 }
             }
         }
         .ignoresSafeArea(.container, edges: .top)
-        .animation(.easeInOut(duration: 0.25), value: inSession)
-        .animation(.easeInOut(duration: 0.2), value: revealSidebar)
+        .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: inSession)
+        .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: revealSidebar)
         .background { ShortcutKeys(screen: $screen) { showCapture = true } }
         .onChange(of: inSession) { revealSidebar = false }
         .onAppear {
@@ -67,6 +68,11 @@ struct RootView: View {
             CaptureSheet()
                 .environment(model)
         }
+    }
+
+    /// La barre latérale glisse depuis la gauche ; avec « Réduire les animations », elle apparaît en fondu.
+    private var sidebarTransition: AnyTransition {
+        reduceMotion ? .opacity : .move(edge: .leading)
     }
 
     /// Sur l'écran Focus, toute phase autre que le repos est une session :
@@ -87,12 +93,16 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(contentBackground)
+        .background {
+            // La lumière change en dur-slow, en même temps que l'anneau de la pause arrive.
+            (isOnBreak ? DoneColor.pomodoroBreakBg : DoneColor.bgCanvas)
+                .animation(DoneMotion.arrive, value: isOnBreak)
+        }
     }
 
-    /// Fond lavande pendant la pause : on sait dans quelle phase on est sans lire.
-    private var contentBackground: Color {
-        screen == .focus && engine.phase == .onBreak ? DoneColor.pomodoroBreakBg : DoneColor.bgCanvas
+    /// Fond plus chaud pendant la pause : on sait dans quelle phase on est sans lire.
+    private var isOnBreak: Bool {
+        screen == .focus && engine.phase == .onBreak
     }
 
     @ViewBuilder
@@ -159,6 +169,7 @@ private struct ShortcutKeys: View {
 /// (avec leurs sous-projets) et les étiquettes, en sections repliables ; en bas, Stats et Réglages.
 private struct Sidebar: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var screen: RootView.Screen
 
     @State private var dropTarget: String?
@@ -336,7 +347,7 @@ private struct Sidebar: View {
     /// Titre de section repliable : « Projets », « Étiquettes ». Done se souvient de l'état.
     private func sectionHeader(_ title: String, collapsed: Binding<Bool>) -> some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.15)) { collapsed.wrappedValue.toggle() }
+            withAnimation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion)) { collapsed.wrappedValue.toggle() }
         } label: {
             HStack(spacing: DoneSpace.s6) {
                 Eyebrow(text: title)
@@ -361,7 +372,7 @@ private struct Sidebar: View {
     private func toggleFold(_ id: String) {
         var ids = foldedProjects.split(separator: ",").map(String.init)
         if ids.contains(id) { ids.removeAll { $0 == id } } else { ids.append(id) }
-        withAnimation(.easeInOut(duration: 0.15)) { foldedProjects = ids.joined(separator: ",") }
+        withAnimation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion)) { foldedProjects = ids.joined(separator: ",") }
     }
 
     private func listItem(_ list: TaskList, name: String, symbol: String, isExpanded: Bool? = nil, onToggle: @escaping () -> Void = {}) -> some View {

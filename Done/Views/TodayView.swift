@@ -6,6 +6,7 @@ import SwiftUI
 /// est déjà coché. Le Plan du jour reste l'écran où l'on choisit ses tâches.
 struct TodayView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \FocusSession.startedAt) private var sessions: [FocusSession]
     var openFocus: () -> Void
     var openPlan: () -> Void
@@ -189,7 +190,7 @@ struct TodayView: View {
     private func doneSection(_ tasks: [TodoTask]) -> some View {
         VStack(alignment: .leading, spacing: DoneSpace.s8) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) { showDone.toggle() }
+                withAnimation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion)) { showDone.toggle() }
             } label: {
                 HStack(spacing: DoneSpace.s6) {
                     Image(systemName: showDone ? "chevron.down" : "chevron.right")

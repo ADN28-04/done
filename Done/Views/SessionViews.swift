@@ -468,6 +468,8 @@ struct BreakView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // La pause arrive en fondu, en même temps que le fond change de lumière.
+        .doneArrive()
     }
 
     /// Prochaine action du plan, pour savoir où l'on repart.

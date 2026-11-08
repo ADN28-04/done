@@ -120,6 +120,175 @@ enum DoneRadius {
     static let lg: CGFloat = 20
 }
 
+// MARK: Mouvement
+
+/// Mouvement : durées et courbes de tokens.json, avec leurs équivalents SwiftUI. Le mouvement dit
+/// « c'est fait », il ne décore pas : ce qui arrive ralentit en se posant, ce qui se déplace accélère
+/// puis freine, et seules les réussites rebondissent, une fois. Rien ne bouge sans action de la
+/// personne, sauf l'anneau du minuteur. Avec « Réduire les animations », il ne reste que des fondus :
+/// chaque vue lit `accessibilityReduceMotion` et passe par `DoneMotion.fade`, ou ne bouge pas.
+enum DoneMotion {
+    // Durées, en secondes.
+    /// Appui : un bouton qui s'enfonce, une case qui se tasse.
+    static let instant: Double = 0.09
+    /// Survol, coche qui se trace, changement de couleur d'état.
+    static let fast: Double = 0.16
+    /// Puces qui apparaissent, segment qui glisse, ligne qui se barre.
+    static let base: Double = 0.26
+    /// Cartes, feuilles, fond de la pause, ligne qui part vers « Fait aujourd'hui ».
+    static let slow: Double = 0.42
+    /// Éclat de tournesol.
+    static let celebrate: Double = 0.9
+
+    // Animations.
+    /// ease-out, dur-instant : l'appui.
+    static let press = Animation.easeOut(duration: instant)
+    /// ease-out, dur-fast : survol, coche, couleur d'état.
+    static let hover = Animation.easeOut(duration: fast)
+    /// ease-out, dur-base : une puce, un encadré ou un trait qui arrive.
+    static let appear = Animation.easeOut(duration: base)
+    /// ease-out, dur-slow : une carte, une feuille, un fond qui change.
+    static let arrive = Animation.smooth(duration: slow)
+    /// ease-in-out, dur-base : ce qui se déplace (segment choisi, section qui se replie, barre latérale).
+    static let move = Animation.easeInOut(duration: base)
+    /// ease-in-out, dur-slow : une ligne qui change de liste.
+    static let travel = Animation.easeInOut(duration: slow)
+    /// ease-spring, dur-base : le rebond des réussites (case cochée, puce « Fait », pastille de série).
+    static let pop = Animation.spring(response: 0.3, dampingFraction: 0.55)
+    /// ease-out, dur-celebrate : l'éclat de tournesol.
+    static let burst = Animation.easeOut(duration: celebrate)
+    /// Ce qui reste d'un mouvement avec « Réduire les animations » : un fondu court.
+    static let fade = Animation.easeOut(duration: fast)
+
+    /// L'animation demandée, ou un simple fondu si la personne a choisi de réduire les animations.
+    static func motion(_ animation: Animation, reduced: Bool) -> Animation {
+        reduced ? fade : animation
+    }
+}
+
+/// Appui : la cible se tasse en dur-instant (bouton à 0,97, case à 0,88). Rien avec « Réduire les animations ».
+private struct PressEffect: ViewModifier {
+    let isPressed: Bool
+    let scale: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPressed && !reduceMotion ? scale : 1)
+            .animation(DoneMotion.press, value: isPressed)
+    }
+}
+
+/// Arrivée à l'apparition : fondu, et pour une carte une montée de 12 (d-rise). Une seule fois.
+/// Avec « Réduire les animations », le fondu seul.
+private struct ArriveEffect: ViewModifier {
+    let rise: CGFloat
+    let animation: Animation
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let moving = !shown && !reduceMotion && rise > 0
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: moving ? rise : 0)
+            .scaleEffect(moving ? 0.98 : 1)
+            .onAppear {
+                withAnimation(DoneMotion.motion(animation, reduced: reduceMotion)) { shown = true }
+            }
+    }
+}
+
+extension View {
+    /// La vue se tasse tant qu'elle est appuyée.
+    func donePress(_ isPressed: Bool, scale: CGFloat = 0.97) -> some View {
+        modifier(PressEffect(isPressed: isPressed, scale: scale))
+    }
+
+    /// La vue arrive en fondu à son apparition ; avec `rise`, elle monte aussi de cette hauteur.
+    func doneArrive(rise: CGFloat = 0, animation: Animation = DoneMotion.arrive) -> some View {
+        modifier(ArriveEffect(rise: rise, animation: animation))
+    }
+}
+
+/// Bouton sans habillage qui se tasse à l'appui : la case à cocher.
+struct DonePressStyle: ButtonStyle {
+    var scale: CGFloat = 0.88
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.donePress(configuration.isPressed, scale: scale)
+    }
+}
+
+/// Coche du design system, sur un carré de 12 : « M2.2 6.4 l2.4 2.4 5.2-5.6 ». Se trace avec `.trim`.
+struct CheckMarkShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let x = rect.width / 12
+        let y = rect.height / 12
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + 2.2 * x, y: rect.minY + 6.4 * y))
+        path.addLine(to: CGPoint(x: rect.minX + 4.6 * x, y: rect.minY + 8.8 * y))
+        path.addLine(to: CGPoint(x: rect.minX + 9.8 * x, y: rect.minY + 3.2 * y))
+        return path
+    }
+}
+
+/// Éclat de tournesol : un halo sunTint et huit pétales sun qui partent du centre puis s'effacent,
+/// une fois chaque fois que `count` augmente. À poser en fond ou en surimpression, centré : il ne
+/// prend pas de place. Rien avec « Réduire les animations ».
+struct SunBurst: View {
+    /// Augmente d'un à chaque réussite.
+    let count: Int
+    /// Distance parcourue par les pétales : 24 depuis une case, 44 depuis l'anneau de fin.
+    var distance: CGFloat = 24
+    /// Taille des pétales et du halo : 1 pour une case ou un anneau, moins pour une icône.
+    var scale: CGFloat = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        SunBurstFrame(progress: Double(count), distance: distance, scale: scale)
+            .animation(reduceMotion ? nil : DoneMotion.burst, value: count)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Une image de l'éclat. `progress` avance d'un entier par éclat ; sa partie décimale est l'avancée,
+/// et un nombre entier, l'éclat au repos, invisible.
+private struct SunBurstFrame: View, Animatable {
+    var progress: Double
+    let distance: CGFloat
+    let scale: CGFloat
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View {
+        let t = progress - progress.rounded(.down)
+        // Les pétales apparaissent sur le premier quart, puis s'effacent en s'éloignant.
+        let petalOpacity = t < 0.25 ? t / 0.25 : (1 - t) / 0.75
+        ZStack {
+            Circle()
+                .fill(DoneColor.sunTint)
+                .frame(width: 56 * scale, height: 56 * scale)
+                .scaleEffect(0.4 + 1.2 * t)
+                .opacity(t == 0 ? 0 : 0.9 * (1 - t))
+            ForEach(0..<8, id: \.self) { index in
+                Capsule()
+                    .fill(DoneColor.sun)
+                    .frame(width: 8 * scale, height: 14 * scale)
+                    .scaleEffect(0.4 + 0.6 * t)
+                    .offset(y: -distance * t)
+                    .rotationEffect(.degrees(Double(index) * 45))
+                    .opacity(petalOpacity)
+            }
+        }
+        .frame(width: 0, height: 0)
+    }
+}
+
 // MARK: Typographie
 
 /// Échelle typographique, en deux familles. Fraunces (version douce, SemiBold) pour les trois titres
@@ -376,6 +545,8 @@ private struct DoneButtonBody: View {
                 }
             }
             .contentShape(shape)
+            .donePress(configuration.isPressed)
+            .animation(DoneMotion.hover, value: hovered)
             .onHover { hovered = $0 }
     }
 
@@ -424,6 +595,8 @@ private struct DoneIconButtonBody: View {
             .background(isEnabled && (hovered || configuration.isPressed) ? DoneColor.surfaceHover : DoneColor.surfaceDefault, in: shape)
             .overlay(shape.strokeBorder(isEnabled ? DoneColor.borderDefault : DoneColor.borderSubtle, lineWidth: 1))
             .contentShape(shape)
+            .donePress(configuration.isPressed)
+            .animation(DoneMotion.hover, value: hovered)
             .onHover { hovered = $0 }
     }
 }
@@ -513,7 +686,7 @@ struct TaskCheckbox: View {
                 .frame(width: 18, height: 18)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DonePressStyle())
         .onHover { hovered = $0 }
         .help(isDone ? "Rouvrir" : "Cocher")
     }
@@ -694,6 +867,7 @@ struct NavItem: View {
             .background(isSelected ? DoneColor.surfaceSelected : (hovered ? DoneColor.surfaceHover : Color.clear), in: shape)
             .overlay(shape.strokeBorder(DoneColor.focusRing, lineWidth: isDropTarget ? 2 : 0))
             .contentShape(shape)
+            .animation(DoneMotion.hover, value: hovered)
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
@@ -808,7 +982,9 @@ struct ProgressRing: View {
                 .trim(from: 0, to: max(0, min(1, fraction)))
                 .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                // Le trait glisse d'une seconde à l'autre ; la couleur change avec le fond, en dur-slow.
                 .animation(.linear(duration: 1), value: fraction)
+                .animation(DoneMotion.arrive, value: color)
         }
         .padding(lineWidth / 2)
     }

@@ -4,6 +4,7 @@ import SwiftUI
 /// Un projet montre ses propres tâches, puis celles de chaque sous-projet, groupées sous leur nom.
 struct TaskListView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let list: TaskList
     /// Ouvre une autre liste (le titre d'un sous-projet).
     var open: (TaskList) -> Void = { _ in }
@@ -296,7 +297,7 @@ struct TaskListView: View {
     private func completedSection(_ tasks: [TodoTask]) -> some View {
         VStack(alignment: .leading, spacing: DoneSpace.s8) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) { showCompleted.toggle() }
+                withAnimation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion)) { showCompleted.toggle() }
             } label: {
                 HStack(spacing: DoneSpace.s6) {
                     Image(systemName: showCompleted ? "chevron.down" : "chevron.right")
