@@ -104,16 +104,18 @@ enum DoneSpace {
     static let s64: CGFloat = 64
 }
 
-/// Rayons : petits et nets, Done est un outil de précision.
+/// Rayons doux : assez ronds pour être amicaux, jamais en pilule sauf la barre de progression.
 enum DoneRadius {
-    /// Puces d'état, de durée, de date.
-    static let xs: CGFloat = 3
-    /// Boutons, champs, réunions, navigation.
-    static let sm: CGFloat = 6
+    /// Case à cocher, segment choisi du sélecteur.
+    static let xs: CGFloat = 5
+    /// Puces d'état, de priorité et de réussite.
+    static let chip: CGFloat = 8
+    /// Boutons, champs, réunions, navigation, tuile numérotée, encadrés.
+    static let sm: CGFloat = 10
     /// Lignes de tâche, cartes.
-    static let md: CGFloat = 10
-    /// Panneaux, feuilles.
-    static let lg: CGFloat = 14
+    static let md: CGFloat = 14
+    /// Panneaux, feuilles, carte de fin de pomodoro, carte de la ligne de temps.
+    static let lg: CGFloat = 20
 }
 
 // MARK: Typographie
@@ -283,7 +285,7 @@ extension View {
             .shadow(color: DoneColor.shadowRaisedNear, radius: 3, y: 2)
     }
 
-    /// Champ de saisie : hauteur 32, rayon 6, contour border.control, contour focus.ring de 2 au focus.
+    /// Champ de saisie : hauteur 32, rayon sm, contour border.control, contour focus.ring de 2 au focus.
     func doneField(focused: Bool, height: CGFloat? = 32) -> some View {
         textFieldStyle(.plain)
             .font(.done(.body))
@@ -328,7 +330,7 @@ struct Hatching: View {
 
 // MARK: Boutons
 
-/// Boutons : hauteur 32, rayon 6, padding 14. Un seul principal par vue.
+/// Boutons : hauteur 32, rayon sm, padding 14. Un seul principal par vue.
 struct DoneButtonStyle: ButtonStyle {
     enum Kind {
         /// action.primary : vert profond en clair, vert clair en sombre.
@@ -464,7 +466,7 @@ struct DoneSegmented<Value: Hashable>: View {
                         .frame(height: 24)
                         .background {
                             if isOn {
-                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
                                     .fill(DoneColor.surfaceDefault)
                                     .shadow(color: DoneColor.shadowCard, radius: 1, y: 1)
                             }
@@ -482,7 +484,7 @@ struct DoneSegmented<Value: Hashable>: View {
 
 // MARK: Tâches
 
-/// Case à cocher de tâche : carré de 16, rayon 4, contour 1,5. La coche apparaît en filigrane
+/// Case à cocher de tâche : carré de 16, rayon xs, contour 1,5. La coche apparaît en filigrane
 /// au survol ; cochée, plein action.primary.
 struct TaskCheckbox: View {
     let isDone: Bool
@@ -492,7 +494,7 @@ struct TaskCheckbox: View {
     @State private var hovered = false
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 4, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
         Button(action: action) {
             shape
                 .fill(isDone ? DoneColor.actionPrimary : (isEnabled ? DoneColor.surfaceDefault : DoneColor.actionDisabled))
@@ -517,7 +519,7 @@ struct TaskCheckbox: View {
     }
 }
 
-/// Puce d'état : hauteur 20, rayon 4, texte 12 Medium. Une forme en plus de la couleur ; fond léger,
+/// Puce d'état : hauteur 20, rayon chip, texte 12 Medium. Une forme en plus de la couleur ; fond léger,
 /// jamais de plein ni de contour, pour que la ligne reste calme.
 struct StateChip: View {
     enum Kind {
@@ -543,7 +545,7 @@ struct StateChip: View {
         .foregroundStyle(foreground)
         .padding(.horizontal, kind == .done ? 0 : 7)
         .frame(height: 20)
-        .background(background, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .background(background, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
         .fixedSize()
     }
 
@@ -630,7 +632,7 @@ struct PriorityChip: View {
                 .foregroundStyle(DoneColor.stateActiveText)
                 .padding(.horizontal, priority == 1 ? DoneSpace.s6 : 0)
                 .frame(height: 20)
-                .background(priority == 1 ? DoneColor.stateActiveTint : Color.clear, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                .background(priority == 1 ? DoneColor.stateActiveTint : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
                 .fixedSize()
                 .help(priority == 1 ? "Priorité 1" : "Priorité 2")
         }
@@ -639,7 +641,7 @@ struct PriorityChip: View {
 
 // MARK: Navigation
 
-/// Élément de navigation : hauteur 32, rayon 6, icône 16, compteur en chiffres tabulaires à droite.
+/// Élément de navigation : hauteur 32, rayon sm, icône 16, compteur en chiffres tabulaires à droite.
 /// Un projet qui a des sous-projets porte un chevron pour les replier.
 /// Actif : surface.selected et graisse Semibold.
 struct NavItem: View {
@@ -700,7 +702,7 @@ struct NavItem: View {
 
 // MARK: Réunions
 
-/// Bloc réunion, rayon 6. Hachuré à venir (temps pris), plein vert en cours, gris une fois passé.
+/// Bloc réunion, rayon sm. Hachuré à venir (temps pris), plein vert en cours, gris une fois passé.
 struct MeetingBlock: View {
     let meeting: Meeting
     let now: Date

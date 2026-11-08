@@ -249,7 +249,7 @@ struct NoteDetailView: View {
                     .foregroundStyle(DoneColor.stateActiveText)
                     .padding(.horizontal, DoneSpace.s8)
                     .frame(height: 22)
-                    .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
                 Text("Modifiée \(Format.moment(current.updatedAt).lowercased())")
                     .doneText(.caption)
                     .foregroundStyle(DoneColor.textSecondary)
@@ -378,7 +378,7 @@ struct NoteDetailView: View {
         .padding(.trailing, 5)
         .frame(maxWidth: 180)
         .frame(height: 22)
-        .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
         .fixedSize(horizontal: true, vertical: false)
     }
 

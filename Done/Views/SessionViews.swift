@@ -119,7 +119,7 @@ private struct ReasonMenu: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, DoneSpace.s8)
                         .frame(height: 28)
-                        .background(hovered == reason ? DoneColor.actionPrimary : Color.clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .background(hovered == reason ? DoneColor.actionPrimary : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -337,7 +337,7 @@ struct StepsBadge: View {
             .foregroundStyle(DoneColor.stateActiveText)
             .padding(.horizontal, DoneSpace.s8)
             .frame(height: 22)
-            .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous))
+            .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
             .fixedSize()
     }
 

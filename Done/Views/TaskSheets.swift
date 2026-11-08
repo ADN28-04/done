@@ -310,7 +310,7 @@ struct TagEditor: View {
         .padding(.leading, 7)
         .padding(.trailing, 5)
         .frame(height: 22)
-        .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .background(DoneColor.stateActiveTint, in: RoundedRectangle(cornerRadius: DoneRadius.chip, style: .continuous))
         .fixedSize()
     }
 
