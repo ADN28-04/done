@@ -155,9 +155,9 @@ struct TodayView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         HStack(alignment: .top, spacing: 0) {
-                            HourLabels(hourHeight: hourHeight)
+                            HourLabels(hourHeight: hourHeight, now: now)
                                 .frame(width: 52)
-                            DayTimeline(day: now, now: now, hourHeight: hourHeight, sessions: sessions) { meeting in
+                            DayTimeline(day: now, now: now, hourHeight: hourHeight, sessions: sessions, showsFreeSlots: true) { meeting in
                                 meetingRequest = MeetingRequest(meeting: meeting)
                             } onSlot: { start in
                                 meetingRequest = MeetingRequest(start: start, end: start.addingTimeInterval(3600))

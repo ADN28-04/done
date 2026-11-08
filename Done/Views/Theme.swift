@@ -959,6 +959,26 @@ struct TagChip: View {
     }
 }
 
+/// Étiquette en pilule à contour coloré, comme les mots de l'accueil de mymind : le type d'une note, ou
+/// une étiquette de tâche dans une carte. Texte et contour de la même couleur, fond transparent ; 22 de
+/// haut, marge 10, 12 SemiBold. Dans une ligne de tâche, garder TagChip.
+struct TagPill: View {
+    let title: String
+    /// Couleur du texte et du contour : celle du type de note, ou textSecondary pour une étiquette.
+    var color: Color = DoneColor.textSecondary
+
+    var body: some View {
+        Text(title)
+            .font(.sans(12, .semibold))
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .frame(height: 22)
+            .overlay(Capsule(style: .continuous).strokeBorder(color, lineWidth: 1))
+            .fixedSize()
+    }
+}
+
 /// Priorité : « P1 » sur teinte active, « P2 » en texte actif seul, rien pour P3 et P4.
 struct PriorityChip: View {
     let priority: Int
@@ -1159,23 +1179,39 @@ struct MeetingBlock: View {
     let detail: String
     /// Remplit toute la hauteur proposée : un créneau de la grille du calendrier.
     var fillsHeight = false
+    /// Moins de 30 min : titre et créneau sur une seule ligne.
+    var singleLine = false
 
     private enum Moment { case upcoming, now, past }
 
     var body: some View {
         let moment: Moment = meeting.contains(now) ? .now : (meeting.end <= now ? .past : .upcoming)
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
-        VStack(alignment: .leading, spacing: 1) {
-            Text(meeting.title)
-                .font(.sans(13, .medium))
-                .lineLimit(1)
-            Text(moment == .now ? "En cours · fin \(Format.time(meeting.end))" : detail)
-                .font(.done(.numericS))
-                .opacity(moment == .now ? 1 : 0.85)
+        let detailText = Text(moment == .now ? "En cours · fin \(Format.time(meeting.end))" : detail)
+            .font(.done(.numericS))
+        Group {
+            if singleLine {
+                HStack(spacing: DoneSpace.s6) {
+                    Text(meeting.title)
+                        .font(.sans(12, .semibold))
+                        .lineLimit(1)
+                    detailText
+                        .lineLimit(1)
+                        .opacity(moment == .now ? 1 : 0.85)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(meeting.title)
+                        .font(.sans(13, .semibold))
+                        .lineLimit(1)
+                    detailText
+                        .opacity(moment == .now ? 1 : 0.85)
+                }
+            }
         }
         .foregroundStyle(moment == .now ? DoneColor.meetingOnNow : (moment == .past ? DoneColor.textDisabled : DoneColor.textPrimary))
         .padding(.horizontal, DoneSpace.s8)
-        .padding(.vertical, DoneSpace.s6)
+        .padding(.vertical, singleLine ? 1 : DoneSpace.s6)
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
         .background {
             switch moment {

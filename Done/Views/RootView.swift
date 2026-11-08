@@ -20,6 +20,8 @@ struct RootView: View {
     @State private var choseInitialScreen = false
     @State private var revealSidebar = false
     @State private var showCapture = false
+    /// Augmente à chaque ⌘K : la recherche prend le focus.
+    @State private var searchRequest = 0
     /// Barre latérale réduite en rail d'icônes.
     @AppStorage(SettingsKey.sidebarRail) private var sidebarRail = false
     @State private var railHovered = false
@@ -58,7 +60,9 @@ struct RootView: View {
         .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: revealSidebar)
         .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: sidebarRail)
         .background {
-            ShortcutKeys(screen: $screen, onCapture: { showCapture = true }, onToggleSidebar: toggleSidebar)
+            ShortcutKeys(screen: $screen, onCapture: { showCapture = true }, onToggleSidebar: toggleSidebar, onSearch: {
+                if !inSession { searchRequest += 1 }
+            })
         }
         .onChange(of: inSession) { revealSidebar = false }
         .onChange(of: sidebarRail) { revealSidebar = false }
@@ -114,7 +118,9 @@ struct RootView: View {
 
     private var content: some View {
         VStack(spacing: 0) {
-            TopBar(screen: screen, inSession: inSession, isRail: sidebarRail, onToggleSidebar: toggleSidebar) { showCapture = true }
+            TopBar(screen: screen, inSession: inSession, isRail: sidebarRail, searchRequest: searchRequest, onToggleSidebar: toggleSidebar) { showCapture = true }
+                // Les résultats de la recherche passent par-dessus l'écran.
+                .zIndex(1)
             if let message = model.errorMessage {
                 ErrorBanner(message: message) { model.errorMessage = nil }
                     .padding(.horizontal, DoneSpace.s32)
@@ -164,6 +170,7 @@ private struct ShortcutKeys: View {
     @Binding var screen: RootView.Screen
     let onCapture: () -> Void
     let onToggleSidebar: () -> Void
+    let onSearch: () -> Void
 
     var body: some View {
         ZStack {
@@ -185,6 +192,8 @@ private struct ShortcutKeys: View {
                 .keyboardShortcut(",")
             Button("Nouvelle tâche", action: onCapture)
                 .keyboardShortcut("n")
+            Button("Rechercher", action: onSearch)
+                .keyboardShortcut("k")
             Button("Réduire ou déplier la barre latérale", action: onToggleSidebar)
                 .keyboardShortcut("s", modifiers: [.control, .command])
         }
@@ -562,6 +571,8 @@ private struct TopBar: View {
     let screen: RootView.Screen
     let inSession: Bool
     let isRail: Bool
+    /// Augmente à chaque ⌘K.
+    let searchRequest: Int
     let onToggleSidebar: () -> Void
     let onCapture: () -> Void
 
@@ -584,7 +595,10 @@ private struct TopBar: View {
                 Spacer(minLength: 0)
                 center(now: context.date)
                 Spacer(minLength: 0)
-                HStack {
+                HStack(spacing: DoneSpace.s8) {
+                    if !inSession {
+                        GlobalSearchBox(focusRequest: searchRequest)
+                    }
                     Button(action: onCapture) {
                         Image(systemName: "plus")
                     }
@@ -593,7 +607,7 @@ private struct TopBar: View {
                     .opacity(inSession ? 0 : 1)
                     .allowsHitTesting(!inSession)
                 }
-                .frame(width: 80, alignment: .trailing)
+                .frame(minWidth: 80, alignment: .trailing)
             }
             .padding(.horizontal, DoneSpace.s16)
             .frame(height: 52)

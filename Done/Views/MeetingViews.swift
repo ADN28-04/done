@@ -84,10 +84,10 @@ struct MeetingSheet: View {
     @State private var openedNote: NoteRef?
     @FocusState private var titleFocused: Bool
 
-    init(meeting: Meeting? = nil, start: Date? = nil, end: Date? = nil) {
+    init(meeting: Meeting? = nil, start: Date? = nil, end: Date? = nil, title: String = "") {
         self.meeting = meeting
         let from = meeting?.start ?? start ?? MeetingSheet.nextQuarter()
-        _title = State(initialValue: meeting?.title ?? "")
+        _title = State(initialValue: meeting?.title ?? title)
         _day = State(initialValue: from)
         _start = State(initialValue: from)
         _end = State(initialValue: meeting?.end ?? end ?? from.addingTimeInterval(3600))

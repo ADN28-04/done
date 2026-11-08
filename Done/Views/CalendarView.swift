@@ -57,7 +57,7 @@ struct CalendarView: View {
                                     dayColumn(day, now: now, hourHeight: hourHeight)
                                 }
                             } gutter: {
-                                HourLabels(hourHeight: hourHeight)
+                                HourLabels(hourHeight: hourHeight, now: days.contains { Calendar.current.isDate($0, inSameDayAs: now) } ? now : nil)
                             }
                             .frame(height: hourHeight * hours)
                             .padding(.top, DoneSpace.s8)
