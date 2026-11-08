@@ -436,6 +436,10 @@ struct CaptureForm: View {
                 .focused($focus, equals: .title)
                 .onSubmit(add)
                 .padding(.top, DoneSpace.s8)
+            // « demain p1 #Shop » à la fin du titre : ce qui est compris remplit la fiche à l'ajout.
+            QuickEntryHint(entry: entry)
+                .padding(.top, DoneSpace.s6)
+                .animation(DoneMotion.hover, value: entry.pieces)
             NotesEditor(text: $draft.notes, height: 64)
                 .padding(.top, DoneSpace.s12)
             TaskDetailsCard(projectID: $draft.projectID, tags: $draft.tags, priority: $draft.priority, kind: $draft.kind, due: $draft.due)
@@ -517,8 +521,12 @@ struct CaptureForm: View {
         focus = .step
     }
 
+    private var entry: QuickEntry {
+        QuickEntry.parse(draft.title)
+    }
+
     private func add() {
-        var complete = draft
+        var complete = draft.applying(entry)
         // Une étape tapée sans Entrée n'est pas perdue.
         let pending = newStep.trimmingCharacters(in: .whitespacesAndNewlines)
         if !pending.isEmpty { complete.steps.append(pending) }

@@ -143,6 +143,15 @@ struct TaskListView: View {
     // MARK: Saisie
 
     private var addField: some View {
+        VStack(alignment: .leading, spacing: DoneSpace.s6) {
+            addLine
+            QuickEntryHint(entry: QuickEntry.parse(newTitle))
+                .padding(.leading, DoneSpace.s8)
+                .animation(DoneMotion.hover, value: QuickEntry.parse(newTitle).pieces)
+        }
+    }
+
+    private var addLine: some View {
         HStack(spacing: DoneSpace.s8) {
             Image(systemName: "plus")
                 .font(.system(size: 12, weight: .semibold))
@@ -427,7 +436,8 @@ struct TaskListView: View {
     }
 
     private func addTask() {
-        guard model.addTask(draft(titled: newTitle)) != nil else { return }
+        // « demain p1 #Shop » à la fin du titre remplit l'échéance, la priorité et les étiquettes.
+        guard model.addTask(draft(titled: newTitle).applying(QuickEntry.parse(newTitle))) != nil else { return }
         newTitle = ""
         addFocused = true
     }

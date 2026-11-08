@@ -134,6 +134,39 @@ func taskRowTransition(reduced: Bool) -> AnyTransition {
     .asymmetric(insertion: .opacity, removal: reduced ? .opacity : .opacity.combined(with: .offset(y: 12)))
 }
 
+/// Ce que Done a compris à la fin du titre saisi (`QuickEntry`), montré avant l'ajout : échéance,
+/// priorité, étiquettes. Rien quand il n'y a rien à lire.
+struct QuickEntryHint: View {
+    let entry: QuickEntry
+
+    var body: some View {
+        if !entry.pieces.isEmpty {
+            HStack(spacing: DoneSpace.s12) {
+                Text("Compris")
+                    .doneText(.caption)
+                    .foregroundStyle(DoneColor.textSecondary)
+                ForEach(Array(entry.pieces.enumerated()), id: \.offset) { _, piece in
+                    chip(piece)
+                }
+            }
+            .transition(.opacity)
+            .help("Lu à la fin du titre, retiré du titre à l'ajout")
+        }
+    }
+
+    @ViewBuilder
+    private func chip(_ piece: QuickEntry.Piece) -> some View {
+        switch piece {
+        case .due(let date):
+            InfoChip(symbol: "calendar", text: Format.chipDate(date))
+        case .priority(let value):
+            InfoChip(symbol: "flag", text: "P\(value)")
+        case .tag(let name):
+            TagChip(name: name)
+        }
+    }
+}
+
 /// Recherche dans toutes les tâches ouvertes.
 struct TaskPickerView: View {
     @Environment(AppModel.self) private var model

@@ -115,6 +115,8 @@ struct MenuBarView: View {
                 .doneField(focused: captureFocused)
                 .onSubmit(add)
                 .padding(.top, DoneSpace.s8)
+            QuickEntryHint(entry: QuickEntry.parse(title))
+                .padding(.top, DoneSpace.s6)
             HStack(spacing: DoneSpace.s8) {
                 Menu {
                     Button("Inbox") { projectID = nil }
@@ -151,7 +153,8 @@ struct MenuBarView: View {
     }
 
     private func add() {
-        guard let task = model.addTask(title, projectID: projectID) else { return }
+        let draft = TaskDraft(title: title, projectID: projectID).applying(QuickEntry.parse(title))
+        guard let task = model.addTask(draft) else { return }
         title = ""
         addedTo = model.listName(for: task)
     }
