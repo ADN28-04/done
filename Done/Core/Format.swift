@@ -127,6 +127,11 @@ enum Format {
     }
 
     /// Graduation en heures : 0, « 1 h », « 2 h »…
+    /// Rang en toutes lettres abrégées : « 1er », « 2e », « 3e ».
+    static func ordinal(_ number: Int) -> String {
+        number == 1 ? "1er" : "\(number)e"
+    }
+
     static func hours(_ minutes: Double) -> String {
         minutes == 0 ? "0" : "\(Int((minutes / 60).rounded())) h"
     }

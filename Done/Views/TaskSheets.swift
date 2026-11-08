@@ -115,7 +115,13 @@ struct TaskEditorSheet: View {
             VStack(spacing: 0) {
                 ForEach(steps) { step in
                     HStack(spacing: DoneSpace.s12) {
-                        TaskCheckbox(isDone: false) { model.complete(step) }
+                        TaskCheckbox(isDone: model.finishing.contains(step.id)) {
+                            if model.finishing.contains(step.id) {
+                                model.cancelFinishing(step.id)
+                            } else {
+                                model.completeSoon(step)
+                            }
+                        }
                         Text(step.title)
                             .doneText(.body)
                             .foregroundStyle(DoneColor.textPrimary)

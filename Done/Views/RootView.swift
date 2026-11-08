@@ -178,6 +178,8 @@ private struct Sidebar: View {
     @State private var deletingProject: Project?
 
     @State private var removingTag: String?
+    /// Augmente quand le plan du jour vient d'être bouclé : le soleil d'« Aujourd'hui » fait un éclat.
+    @State private var planCelebrations = 0
 
     @AppStorage(SettingsKey.sidebarProjectsCollapsed) private var projectsCollapsed = false
     @AppStorage(SettingsKey.sidebarTagsCollapsed) private var tagsCollapsed = false
@@ -228,8 +230,17 @@ private struct Sidebar: View {
         VStack(alignment: .leading, spacing: DoneSpace.s2) {
             NavItem(title: "Focus", icon: Image("DoneGlyph"), isSelected: screen == .focus) { screen = .focus }
                 .help("Focus (⌘1)")
-            NavItem(title: "Aujourd'hui", icon: Image(systemName: "sun.max"), isSelected: screen == .today) { screen = .today }
+            NavItem(
+                title: "Aujourd'hui",
+                icon: Image(systemName: "sun.max"),
+                iconColor: DoneColor.sunText,
+                burstCount: planCelebrations,
+                isSelected: screen == .today
+            ) { screen = .today }
                 .help("Aujourd'hui (⌘6)")
+                .onChange(of: model.isPlanFinished) { _, finished in
+                    if finished { planCelebrations += 1 }
+                }
             NavItem(title: "Plan du jour", icon: Image(systemName: "calendar"), counter: planCounter, isSelected: screen == .plan) { screen = .plan }
                 .help("Plan du jour (⌘2)")
             NavItem(title: "Calendrier", icon: Image(systemName: "calendar.day.timeline.left"), isSelected: screen == .calendar) { screen = .calendar }

@@ -76,6 +76,12 @@ enum WorkWeek {
 
 /// Ce que l'écran Aujourd'hui montre en plus du plan et des réunions.
 enum DayAgenda {
+    /// Plan du jour bouclé : au moins une tâche en est sortie cochée et il n'y reste aucune tâche
+    /// ouverte. Un plan vidé sans rien cocher ne compte pas.
+    static func isPlanFinished(plan: [String], done: [String], isOpen: (String) -> Bool) -> Bool {
+        !done.isEmpty && !plan.contains(where: isOpen)
+    }
+
     /// Échéances du jour et retards qui ne sont pas dans le plan, les retards d'abord.
     static func dueOrLate(in tasks: [TodoTask], plan: [String], today: Date) -> [TodoTask] {
         WorkWeek.dueTasks(on: today, in: tasks, today: today).filter { !plan.contains($0.id) }

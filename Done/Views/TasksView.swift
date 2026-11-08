@@ -105,6 +105,11 @@ struct TaskListView: View {
                 }
                 .padding(.top, DoneSpace.s16)
                 .padding(.bottom, DoneSpace.s4)
+                // Une tâche cochée glisse hors de la liste au lieu de disparaître d'un coup.
+                .animation(
+                    DoneMotion.motion(DoneMotion.travel, reduced: reduceMotion),
+                    value: sections.flatMap { $0.rows.map(\.id) } + completed.map(\.id)
+                )
             }
             .scrollIndicators(.never)
         }
@@ -182,19 +187,16 @@ struct TaskListView: View {
     private func taskRow(_ task: TodoTask, depth: Int) -> some View {
         let isHovered = hovered == task.id
         let inPlan = model.planIDs.contains(task.id)
+        let finishing = model.finishing.contains(task.id)
         return HStack(spacing: DoneSpace.s12) {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(DoneColor.textDisabled)
                 .frame(width: 10)
                 .opacity(isHovered ? 1 : 0)
-            TaskCheckbox(isDone: false) { model.complete(task) }
+            TaskCheckbox(isDone: finishing, bursts: true) { toggle(task) }
             VStack(alignment: .leading, spacing: DoneSpace.s2) {
-                Text(task.title)
-                    .doneText(.bodyStrong)
-                    .foregroundStyle(task.isBlocked ? DoneColor.textSecondary : DoneColor.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                TaskTitle(title: task.title, isFinishing: finishing, isMuted: task.isBlocked)
                 if let line = details(task) {
                     Text(line)
                         .doneText(.caption)
@@ -203,11 +205,15 @@ struct TaskListView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            if inPlan {
-                StateChip(kind: .active, title: "Aujourd'hui")
-                    .help("Dans le plan du jour")
+            TaskRowTrailing(isFinishing: finishing) {
+                HStack(spacing: DoneSpace.s12) {
+                    if inPlan {
+                        StateChip(kind: .active, title: "Aujourd'hui")
+                            .help("Dans le plan du jour")
+                    }
+                    TaskChips(task: task, hiding: currentTag)
+                }
             }
-            TaskChips(task: task, hiding: currentTag)
         }
         .padding(.leading, DoneSpace.s4 + CGFloat(depth) * 28)
         .padding(.trailing, DoneSpace.s12)
@@ -229,6 +235,18 @@ struct TaskListView: View {
         }
         .contextMenu { menu(for: task) }
         .help("Cliquer pour ouvrir la tâche")
+        // Les pétales passent par-dessus les lignes voisines.
+        .zIndex(finishing ? 1 : 0)
+        .transition(taskRowTransition(reduced: reduceMotion))
+    }
+
+    /// Cocher laisse une seconde à la ligne pour le montrer ; recliquer pendant ce temps annule.
+    private func toggle(_ task: TodoTask) {
+        if model.finishing.contains(task.id) {
+            model.cancelFinishing(task.id)
+        } else {
+            model.completeSoon(task)
+        }
     }
 
     /// Étapes et notes, en une ligne. L'échéance, la durée et le blocage sont dans les puces.

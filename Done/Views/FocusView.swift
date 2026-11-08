@@ -230,10 +230,25 @@ struct SuggestionView: View {
 
     @ViewBuilder
     private var planEmpty: some View {
-        if model.index.all.isEmpty {
+        if model.isPlanFinished {
+            planFinished
+        } else if model.index.all.isEmpty {
             noTasks
         } else {
             noPlan
+        }
+    }
+
+    /// Tout le plan du jour est coché : l'encadré de réussite, puis de quoi continuer si on le veut.
+    private var planFinished: some View {
+        VStack(spacing: 0) {
+            Eyebrow(text: "Plan du jour")
+            NoticeBox(text: "Plan du jour terminé. Tout ce qui était prévu est fait.", tone: .success)
+                .frame(maxWidth: 520)
+                .padding(.top, DoneSpace.s16)
+            Button("Ajouter au plan", action: openPlan)
+                .buttonStyle(DoneButtonStyle())
+                .padding(.top, DoneSpace.s24)
         }
     }
 

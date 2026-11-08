@@ -18,6 +18,9 @@ final class AppModel {
     /// Notes « où j'en suis » des tâches quittées en cours de route.
     private(set) var resumeNotes = ResumeNotes()
     var errorMessage: String?
+    /// Tâches cochées dans une liste, pas encore enregistrées : leur ligne garde une seconde pour
+    /// montrer la case, l'éclat et le trait, puis la tâche est cochée et part vers « Fait aujourd'hui ».
+    private(set) var finishing: Set<String> = []
 
     private static let lastReviewKey = "review.lastDay"
     private static let carryOverKey = "review.carryOver"
@@ -33,6 +36,7 @@ final class AppModel {
     /// connecteur Claude l'a réécrit : Done le relit avant d'y toucher.
     @ObservationIgnored private var fileStamp: TaskStorage.Stamp?
     @ObservationIgnored private var watcher: FolderWatcher?
+    @ObservationIgnored private var finishingTimers: [String: Task<Void, Never>] = [:]
 
     init(context: ModelContext, storage: TaskStorage = .standard, planFiles: PlanFiles? = nil) {
         self.context = context
@@ -73,6 +77,12 @@ final class AppModel {
     }
 
     var planIDs: [String] { todayPlan?.taskIDs ?? [] }
+
+    /// Plan du jour bouclé : tout ce qui y était prévu est coché.
+    var isPlanFinished: Bool {
+        guard let plan = todayPlan else { return false }
+        return DayAgenda.isPlanFinished(plan: plan.taskIDs, done: plan.doneIDs) { index[$0] != nil }
+    }
 
     var projects: [Project] { store.sortedProjects }
 
@@ -228,6 +238,39 @@ final class AppModel {
             if !plan.doneIDs.contains(task.id) { plan.doneIDs.append(task.id) }
             save()
         }
+    }
+
+    // MARK: Coche différée
+
+    /// Coche la tâche après `delay`, le temps que sa ligne le montre. Recliquer pendant ce temps
+    /// l'annule (`cancelFinishing`) ; quitter Done l'enregistre aussitôt (`flushFinishing`).
+    /// Les autres façons de cocher (minuteur, Rappels, Claude) restent immédiates.
+    func completeSoon(_ task: TodoTask, delay: Duration = .seconds(1)) {
+        guard task.isOpen, !finishing.contains(task.id) else { return }
+        finishing.insert(task.id)
+        finishingTimers[task.id] = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            self?.finishNow(task.id)
+        }
+    }
+
+    func cancelFinishing(_ id: String) {
+        finishingTimers.removeValue(forKey: id)?.cancel()
+        finishing.remove(id)
+    }
+
+    /// Enregistre tout de suite les coches en attente : à la fermeture de Done.
+    func flushFinishing() {
+        for id in finishing {
+            finishNow(id)
+        }
+    }
+
+    private func finishNow(_ id: String) {
+        finishingTimers.removeValue(forKey: id)?.cancel()
+        guard finishing.remove(id) != nil, let task = store[id], task.isOpen else { return }
+        complete(task)
     }
 
     /// Rouvre une tâche cochée par erreur.

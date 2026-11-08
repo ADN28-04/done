@@ -63,7 +63,8 @@ final class FocusSession {
             focusedSeconds: focusedSeconds,
             projectName: projectName,
             outcome: outcome,
-            interruptions: interruptions.map(\.reason)
+            interruptions: interruptions.map(\.reason),
+            plannedSeconds: plannedSeconds
         )
     }
 }

@@ -43,6 +43,8 @@ struct SessionFact {
     let projectName: String
     let outcome: SessionOutcome
     let interruptions: [InterruptionReason]
+    /// Durée prévue, rallonges comprises : un pomodoro est une session qui l'a atteinte.
+    var plannedSeconds: Double = 0
 }
 
 /// Pause due avant de passer à une autre tâche principale, posée à la fin d'une session

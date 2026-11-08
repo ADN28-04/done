@@ -37,6 +37,11 @@ struct TodayView: View {
                             }
                         }
                         .padding(.bottom, DoneSpace.s8)
+                        // Une tâche cochée glisse vers « Fait aujourd'hui » au lieu de disparaître d'un coup.
+                        .animation(
+                            DoneMotion.motion(DoneMotion.travel, reduced: reduceMotion),
+                            value: plan.map(\.id) + due.map(\.id) + done.map(\.id)
+                        )
                     }
                     .scrollIndicators(.never)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -155,11 +160,13 @@ struct TodayView: View {
                     Button("Lancer le focus", action: openFocus)
                         .buttonStyle(DoneButtonStyle(kind: .primary, compact: true))
                 }
-                Button(plan.isEmpty ? "Choisir mes tâches" : "Modifier le plan", action: openPlan)
+                Button(plan.isEmpty ? (model.isPlanFinished ? "Ajouter au plan" : "Choisir mes tâches") : "Modifier le plan", action: openPlan)
                     .buttonStyle(DoneButtonStyle(compact: true))
             }
             .padding(.leading, DoneSpace.s2)
-            if plan.isEmpty {
+            if plan.isEmpty, model.isPlanFinished {
+                NoticeBox(text: "Plan du jour terminé. Tout ce qui était prévu est fait.", tone: .success)
+            } else if plan.isEmpty {
                 emptyLine("Pas encore de plan pour aujourd'hui.")
             } else {
                 card {
@@ -230,12 +237,13 @@ struct TodayView: View {
     }
 
     private func row(_ task: TodoTask, number: Int? = nil) -> some View {
-        HStack(spacing: DoneSpace.s12) {
+        let finishing = model.finishing.contains(task.id)
+        return HStack(spacing: DoneSpace.s12) {
             if let number {
                 NumberTile(position: number)
             }
-            TaskCheckbox(isDone: false) { model.complete(task) }
-            TaskRowContent(task: task)
+            TaskCheckbox(isDone: finishing, bursts: true) { toggle(task) }
+            TaskRowContent(task: task, isFinishing: finishing)
         }
         .padding(.horizontal, DoneSpace.s12)
         .frame(minHeight: 48)
@@ -248,6 +256,18 @@ struct TodayView: View {
             } else if hovered == task.id {
                 hovered = nil
             }
+        }
+        // Les pétales passent par-dessus les lignes voisines.
+        .zIndex(finishing ? 1 : 0)
+        .transition(taskRowTransition(reduced: reduceMotion))
+    }
+
+    /// Cocher laisse une seconde à la ligne pour le montrer ; recliquer pendant ce temps annule.
+    private func toggle(_ task: TodoTask) {
+        if model.finishing.contains(task.id) {
+            model.cancelFinishing(task.id)
+        } else {
+            model.completeSoon(task)
         }
     }
 

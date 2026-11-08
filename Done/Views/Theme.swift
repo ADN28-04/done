@@ -618,10 +618,13 @@ struct DoneStepper: View {
     }
 }
 
-/// Choix exclusif : piste bg.sunken, segment choisi sur une surface.
+/// Choix exclusif : piste bg.sunken, segment choisi sur une surface, qui glisse vers la nouvelle
+/// option (dur-base, ease-in-out). Avec « Réduire les animations », il change de place sans glisser.
 struct DoneSegmented<Value: Hashable>: View {
     @Binding var selection: Value
     let options: [(value: Value, title: String)]
+    @Namespace private var segment
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: DoneSpace.s2) {
@@ -629,7 +632,7 @@ struct DoneSegmented<Value: Hashable>: View {
                 let option = options[index]
                 let isOn = selection == option.value
                 Button {
-                    selection = option.value
+                    withAnimation(reduceMotion ? nil : DoneMotion.move) { selection = option.value }
                 } label: {
                     Text(option.title)
                         .font(.sans(13, isOn ? .semibold : .medium))
@@ -642,6 +645,7 @@ struct DoneSegmented<Value: Hashable>: View {
                                 RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
                                     .fill(DoneColor.surfaceDefault)
                                     .shadow(color: DoneColor.shadowCard, radius: 1, y: 1)
+                                    .matchedGeometryEffect(id: "segment", in: segment)
                             }
                         }
                         .contentShape(Rectangle())
@@ -657,53 +661,112 @@ struct DoneSegmented<Value: Hashable>: View {
 
 // MARK: Tâches
 
-/// Case à cocher de tâche : carré de 18, rayon xs, contour 1,5. La coche apparaît en filigrane
-/// au survol ; cochée, plein action.primary.
+/// Case à cocher de tâche : carré de 18, rayon xs, contour 1,5. La coche apparaît en filigrane au
+/// survol ; cochée, plein action.primary. Au moment où l'on coche, la case se tasse, rebondit et la
+/// coche se trace ; dans une ligne de tâche (`bursts`), huit pétales partent aussi. Rouvrir ne rejoue
+/// rien. Avec « Réduire les animations », la case change en fondu.
 struct TaskCheckbox: View {
     let isDone: Bool
+    /// Ligne de tâche : l'éclat de tournesol accompagne la coche.
+    var bursts = false
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovered = false
+    /// Augmente à chaque coche faite ici : rejoue le rebond, le tracé et l'éclat.
+    @State private var celebrations = 0
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
-        Button(action: action) {
-            shape
-                .fill(isDone ? DoneColor.actionPrimary : (isEnabled ? DoneColor.surfaceDefault : DoneColor.actionDisabled))
-                .overlay {
-                    if !isDone {
-                        shape.strokeBorder(isEnabled ? DoneColor.borderControl : DoneColor.borderSubtle, lineWidth: 1.5)
-                    }
-                }
-                .overlay {
-                    if isDone || (hovered && isEnabled) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(isDone ? DoneColor.actionOnPrimary : DoneColor.borderControl)
-                    }
-                }
+        Button {
+            // Seule une coche faite ici se fête : une case qui arrive déjà cochée ne bouge pas.
+            if !isDone, !reduceMotion { celebrations += 1 }
+            action()
+        } label: {
+            CheckboxFace(progress: Double(celebrations), isDone: isDone, isEnabled: isEnabled, hovered: hovered)
+                .animation(.linear(duration: DoneMotion.base), value: celebrations)
+                .animation(DoneMotion.motion(DoneMotion.hover, reduced: reduceMotion), value: isDone)
                 .frame(width: 18, height: 18)
                 .contentShape(Rectangle())
         }
         .buttonStyle(DonePressStyle())
+        .background {
+            if bursts {
+                SunBurst(count: celebrations)
+            }
+        }
         .onHover { hovered = $0 }
         .help(isDone ? "Rouvrir" : "Cocher")
     }
 }
 
-/// Puce d'état : hauteur 22, rayon chip, marge 8, icône 10, texte 12 Medium. Une forme en plus de la couleur ; fond léger,
-/// jamais de plein ni de contour, pour que la ligne reste calme.
+/// Une image de la case. `progress` avance d'un entier par coche fêtée ; sa partie décimale est
+/// l'avancée du rebond (0,6, puis 1,14, puis 1) et du tracé de la coche (60 ms après, en dur-fast).
+private struct CheckboxFace: View, Animatable {
+    var progress: Double
+    let isDone: Bool
+    let isEnabled: Bool
+    let hovered: Bool
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
+        let t = progress - progress.rounded(.down)
+        let celebrating = isDone && t > 0
+        shape
+            .fill(isDone ? DoneColor.actionPrimary : (isEnabled ? DoneColor.surfaceDefault : DoneColor.actionDisabled))
+            .overlay {
+                if !isDone {
+                    shape.strokeBorder(isEnabled ? DoneColor.borderControl : DoneColor.borderSubtle, lineWidth: 1.5)
+                }
+            }
+            .overlay {
+                if isDone || (hovered && isEnabled) {
+                    // Coche de 10, en gras.
+                    CheckMarkShape()
+                        .trim(from: 0, to: celebrating ? Self.drawn(t) : 1)
+                        .stroke(isDone ? DoneColor.actionOnPrimary : DoneColor.borderControl, style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+                        .frame(width: 10, height: 10)
+                }
+            }
+            .scaleEffect(celebrating ? Self.scale(t) : 1)
+    }
+
+    /// Rebond d-pop : de 0,6 à 1,14 sur 60 % du temps, puis retour à 1.
+    private static func scale(_ t: Double) -> CGFloat {
+        t < 0.6 ? 0.6 + 0.54 * easeOut(t / 0.6) : 1.14 - 0.14 * easeOut((t - 0.6) / 0.4)
+    }
+
+    /// Part de la coche tracée : de 60 ms à 220 ms sur les 260 ms du rebond.
+    private static func drawn(_ t: Double) -> CGFloat {
+        let elapsed = t * DoneMotion.base
+        return easeOut(min(max((elapsed - 0.06) / DoneMotion.fast, 0), 1))
+    }
+
+    private static func easeOut(_ x: Double) -> Double {
+        1 - (1 - x) * (1 - x) * (1 - x)
+    }
+}
+
+/// Puce d'état : hauteur 22, rayon chip, marge 8, icône 10, texte 12 Medium. Une icône double toujours
+/// la couleur ; fond léger, jamais de plein ni de contour, pour que la ligne reste calme.
 struct StateChip: View {
     enum Kind {
-        /// Tâche du plan du jour : point state.active sur teinte active.
+        /// « Aujourd'hui », tâche du plan du jour : soleil, sunText sur sunTint.
         case active
         /// Ne peut pas avancer.
         case blocked
         /// Échéance dépassée : teinte d'alerte.
         case risk
-        /// Fait : texte seul, recule visuellement.
+        /// Fait un autre jour : coche et texte seuls, recule visuellement.
         case done
+        /// « Fait », tout juste coché : coche, sunText sur sunTint. L'appelant la fait arriver en
+        /// rebondissant (DoneMotion.pop).
+        case doneToday
     }
 
     let kind: Kind
@@ -726,7 +789,9 @@ struct StateChip: View {
     private var icon: some View {
         switch kind {
         case .active:
-            Circle().fill(DoneColor.stateActive).frame(width: 5, height: 5)
+            Image(systemName: "sun.max").font(.system(size: 10, weight: .semibold))
+        case .doneToday:
+            Image(systemName: "checkmark").font(.system(size: 10, weight: .semibold))
         case .blocked:
             Image(systemName: "nosign").font(.system(size: 10, weight: .semibold))
         case .risk:
@@ -738,7 +803,7 @@ struct StateChip: View {
 
     private var background: Color {
         switch kind {
-        case .active: DoneColor.stateActiveTint
+        case .active, .doneToday: DoneColor.sunTint
         case .blocked: DoneColor.stateBlocked
         case .risk: DoneColor.stateRiskTint
         case .done: .clear
@@ -747,7 +812,7 @@ struct StateChip: View {
 
     private var foreground: Color {
         switch kind {
-        case .active: DoneColor.stateActiveText
+        case .active, .doneToday: DoneColor.sunText
         case .blocked: DoneColor.stateOnBlocked
         case .risk: DoneColor.stateRiskText
         case .done: DoneColor.stateOnDone
@@ -820,6 +885,10 @@ struct PriorityChip: View {
 struct NavItem: View {
     let title: String
     let icon: Image
+    /// Couleur propre de l'icône : le soleil d'« Aujourd'hui » reste en sunText, même au repos.
+    var iconColor: Color?
+    /// Pour une icône qui fête une réussite : augmente d'un à chaque éclat (plan du jour bouclé).
+    var burstCount: Int?
     var counter: String?
     let isSelected: Bool
     var isDropTarget = false
@@ -835,12 +904,12 @@ struct NavItem: View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         Button(action: action) {
             HStack(spacing: DoneSpace.s8) {
-                icon
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 15, height: 15)
-                    .frame(width: 16, height: 16)
+                iconView
+                    .background {
+                        if let burstCount {
+                            SunBurst(count: burstCount, distance: 16, scale: 0.55)
+                        }
+                    }
                 Text(title)
                     .font(isSelected ? .sans(14, .semibold) : .done(.body))
                     .lineLimit(1)
@@ -871,6 +940,21 @@ struct NavItem: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
+    }
+
+    @ViewBuilder
+    private var iconView: some View {
+        let image = icon
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 15, height: 15)
+            .frame(width: 16, height: 16)
+        if let iconColor {
+            image.foregroundStyle(iconColor)
+        } else {
+            image
+        }
     }
 }
 
@@ -1009,10 +1093,11 @@ struct ProgressBar: View {
     }
 }
 
-/// Encadré de message, sans contour : information (teinte active) ou erreur (teinte d'alerte, la seule couleur chaude).
+/// Encadré de message, sans contour : information en vert, réussite en tournesol (plan du jour
+/// terminé), erreur en brique. Arrive en fondu (dur-base).
 struct NoticeBox: View {
     enum Tone {
-        case info, error
+        case info, success, error
     }
 
     let text: String
@@ -1021,16 +1106,41 @@ struct NoticeBox: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s8) {
-            Image(systemName: tone == .info ? "info.circle" : "exclamationmark.triangle")
+            Image(systemName: symbol)
                 .font(.system(size: 11, weight: .semibold))
             Text(text)
                 .doneText(.callout)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .foregroundStyle(tone == .info ? DoneColor.stateActiveText : DoneColor.stateRiskText)
+        .foregroundStyle(foreground)
         .padding(.horizontal, DoneSpace.s12)
         .padding(.vertical, DoneSpace.s8)
-        .background(tone == .info ? DoneColor.stateActiveTint : DoneColor.stateRiskTint, in: shape)
+        .background(background, in: shape)
+        .doneArrive(animation: DoneMotion.appear)
+    }
+
+    private var symbol: String {
+        switch tone {
+        case .info: "info.circle"
+        case .success: "sun.max"
+        case .error: "exclamationmark.triangle"
+        }
+    }
+
+    private var foreground: Color {
+        switch tone {
+        case .info: DoneColor.stateActiveText
+        case .success: DoneColor.sunText
+        case .error: DoneColor.stateRiskText
+        }
+    }
+
+    private var background: Color {
+        switch tone {
+        case .info: DoneColor.stateActiveTint
+        case .success: DoneColor.sunTint
+        case .error: DoneColor.stateRiskTint
+        }
     }
 }

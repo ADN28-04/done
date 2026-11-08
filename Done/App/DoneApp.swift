@@ -24,6 +24,8 @@ struct DoneApp: App {
         model.updateMeetingReminders()
         DoNotDisturb.shared.onError = { [weak model] message in model?.errorMessage = message }
         SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }
+        // Une tâche cochée juste avant de quitter reste cochée.
+        SystemBridge.onTerminate { [weak model] in model?.flushFinishing() }
         // Saisie flottante, par le raccourci global choisi dans les réglages.
         QuickCapturePanel.shared.configure(model: model)
         // Boîte d'arrivée Rappels, si elle est activée dans les réglages.

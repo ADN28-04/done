@@ -31,6 +31,19 @@ enum Stats {
         calendar.dateInterval(of: .weekOfYear, for: date) ?? DateInterval(start: date, duration: 7 * 86_400)
     }
 
+    // MARK: Pomodoros
+
+    /// Pomodoros du jour : sessions dont le minuteur est allé au bout, rallonges comprises. Une tâche
+    /// cochée avant la fin ou une session arrêtée ne compte pas. Une seconde de marge pour l'arrondi.
+    static func pomodoros(_ sessions: [SessionFact], on day: Date) -> Int {
+        sessions.filter { session in
+            calendar.isDate(session.startedAt, inSameDayAs: day)
+                && session.plannedSeconds > 0
+                && session.focusedSeconds >= session.plannedSeconds - 1
+        }
+        .count
+    }
+
     // MARK: Focus
 
     static func totalMinutes(_ sessions: [SessionFact]) -> Double {

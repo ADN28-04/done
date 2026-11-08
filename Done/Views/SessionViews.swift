@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// Minuteur en cours ou en pause.
@@ -184,10 +185,13 @@ struct InterruptionView: View {
     }
 }
 
-/// Fin du minuteur, ou action cochée en avance : carte de transition, comme la fin de pomodoro du design system.
+/// Fin du minuteur, ou action cochée en avance : carte de fin de pomodoro du design system (PomodoroDone),
+/// seul élément surélevé de Done. Elle monte de 12 en arrivant ; l'anneau se referme, la coche se trace,
+/// l'éclat part, puis la pastille de la série du jour rebondit. Rien ne se rejoue.
 struct OutcomeView: View {
     @Environment(AppModel.self) private var model
     @Environment(FocusEngine.self) private var engine
+    @Query(sort: \FocusSession.startedAt) private var sessions: [FocusSession]
     var onBlocked: () -> Void
     @FocusState private var noteFocused: Bool
 
@@ -203,21 +207,15 @@ struct OutcomeView: View {
             .padding(DoneSpace.s24)
             .frame(width: 520)
             .doneRaised()
+            .doneArrive(rise: 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
-    /// Anneau pomodoro.focus coché et titre de la carte.
-    private func header(_ title: String, subtitle: String) -> some View {
-        HStack(spacing: DoneSpace.s16) {
-            ZStack {
-                Circle()
-                    .strokeBorder(DoneColor.pomodoroFocus, lineWidth: 3)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(DoneColor.pomodoroFocus)
-            }
-            .frame(width: 56, height: 56)
+    /// Anneau qui se referme et titre de la carte ; pour un pomodoro terminé, la série du jour.
+    private func header(_ title: String, subtitle: String, pomodoros: Int? = nil) -> some View {
+        HStack(spacing: DoneSpace.s20) {
+            ClosingRing()
             VStack(alignment: .leading, spacing: DoneSpace.s2) {
                 Text(title)
                     .doneText(.displayM)
@@ -227,8 +225,17 @@ struct OutcomeView: View {
                     .foregroundStyle(DoneColor.textSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                if let pomodoros, pomodoros > 0 {
+                    PomodoroSeries(count: pomodoros)
+                        .padding(.top, DoneSpace.s8)
+                }
             }
         }
+    }
+
+    /// Minuteurs menés au bout aujourd'hui, celui qui vient de finir compris.
+    private var pomodorosToday: Int {
+        Stats.pomodoros(sessions.map(\.fact), on: .now)
     }
 
     // MARK: Étape cochée avant la fin
@@ -293,7 +300,7 @@ struct OutcomeView: View {
 
     @ViewBuilder
     private func sessionEnded(_ current: FocusEngine.Current) -> some View {
-        header("Pomodoro terminé", subtitle: "\(Format.minutes(engine.stepElapsed / 60)) sur « \(current.action.title) »")
+        header("Pomodoro terminé", subtitle: "\(Format.minutes(engine.stepElapsed / 60)) sur « \(current.action.title) »", pomodoros: pomodorosToday)
         ResumeNoteField(taskID: current.action.id, placeholder: "Pas fini ? Note où tu en es pour reprendre plus vite", focused: $noteFocused)
             .padding(.top, DoneSpace.s20)
         HStack(spacing: DoneSpace.s8) {
@@ -323,6 +330,92 @@ struct OutcomeView: View {
                 .doneText(.caption)
                 .foregroundStyle(DoneColor.textSecondary)
                 .padding(.top, DoneSpace.s4)
+        }
+    }
+}
+
+/// Anneau de 56 de la carte de fin : 260 ms après l'arrivée de la carte, il se referme (de 85 % à
+/// 100 %, en 520 ms), puis la coche se trace et huit pétales partent. Avec « Réduire les animations »,
+/// il arrive déjà fermé et coché.
+private struct ClosingRing: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var closed = false
+    @State private var ticked = false
+    @State private var bursts = 0
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(DoneColor.pomodoroTrack, lineWidth: 5)
+            Circle()
+                .trim(from: 0, to: closed ? 1 : 0.85)
+                .stroke(DoneColor.pomodoroFocus, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            CheckMarkShape()
+                .trim(from: 0, to: ticked ? 1 : 0)
+                .stroke(DoneColor.pomodoroFocus, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                .frame(width: 20, height: 20)
+        }
+        .frame(width: 48, height: 48)
+        .frame(width: 56, height: 56)
+        .background {
+            SunBurst(count: bursts, distance: 44)
+        }
+        .accessibilityHidden(true)
+        .task {
+            guard !reduceMotion else {
+                closed = true
+                ticked = true
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(260))
+            withAnimation(.easeOut(duration: 0.52)) { closed = true }
+            try? await Task.sleep(for: .milliseconds(520))
+            withAnimation(DoneMotion.hover) { ticked = true }
+            bursts += 1
+        }
+    }
+}
+
+/// Série du jour : une pastille sun par pomodoro fait (8 au plus), une pastille vide pour le prochain,
+/// et la même chose en mots, en sunText. La pastille du pomodoro qui vient de finir arrive en
+/// rebondissant, après l'éclat.
+private struct PomodoroSeries: View {
+    let count: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = false
+
+    var body: some View {
+        let dots = min(count, 8)
+        HStack(spacing: DoneSpace.s6) {
+            ForEach(0..<dots, id: \.self) { index in
+                let isNew = index == dots - 1
+                Circle()
+                    .fill(DoneColor.sun)
+                    .frame(width: 10, height: 10)
+                    .scaleEffect(isNew && !shown ? 0.6 : 1)
+                    .opacity(isNew && !shown ? 0 : 1)
+            }
+            if count < 8 {
+                Circle()
+                    .strokeBorder(DoneColor.borderDefault, lineWidth: 1.5)
+                    .frame(width: 10, height: 10)
+            }
+            Text("\(Format.ordinal(count)) pomodoro aujourd'hui")
+                .font(.sans(12, .medium))
+                .foregroundStyle(DoneColor.sunText)
+                .padding(.leading, DoneSpace.s4)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(count) pomodoro\(count > 1 ? "s" : "") aujourd'hui")
+        .task {
+            guard !reduceMotion else {
+                shown = true
+                return
+            }
+            // Après l'arrivée de la carte, l'anneau, la coche et le départ de l'éclat.
+            try? await Task.sleep(for: .milliseconds(940))
+            withAnimation(DoneMotion.pop) { shown = true }
         }
     }
 }
