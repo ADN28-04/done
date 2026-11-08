@@ -1,0 +1,166 @@
+/* Done, direction Jardin : rendu web des composants SwiftUI de Done/Views/Theme.swift et Components.swift.
+   Écrit à la main, mesures du code assouplies (rayons, puces, case). Les valeurs viennent de tokens.css (tokens.json). */
+
+.d-preview { margin: 0; padding: var(--s16); background: var(--bgCanvas); color: var(--textPrimary); font-family: var(--font-sans); font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
+.d-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s12); }
+.d-col { display: flex; flex-direction: column; gap: var(--s8); }
+.d-tnum { font-variant-numeric: tabular-nums; }
+.d-ico { width: 11px; height: 11px; flex: none; display: block; }
+.d-display { font-family: var(--font-display); font-weight: 600; font-optical-sizing: auto; }
+
+/* Mouvement : les keyframes communes. */
+@keyframes d-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@keyframes d-rise { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes d-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes d-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes d-strike { from { background-size: 0 1.5px; } to { background-size: 100% 1.5px; } }
+@keyframes d-petal { 0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d, 34px))) scale(1); } }
+@keyframes d-glow { 0% { transform: scale(.4); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* Bouton : DoneButtonStyle. Hauteur 32, rayon 10, padding 14 ; compact 26, padding 10. */
+.d-btn { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--control-height); padding: 0 14px; border-radius: var(--sm); border: var(--border-hairline) solid var(--borderDefault); background: var(--surfaceDefault); color: var(--textPrimary); font: 500 14px/20px var(--font-sans); white-space: nowrap; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.d-btn:hover { background: var(--surfaceHover); }
+.d-btn:active { transform: scale(.97); }
+.d-btn--primary { border: 0; background: var(--actionPrimary); color: var(--actionOnPrimary); font-weight: 600; }
+.d-btn--primary:hover { background: var(--actionPrimaryHover); }
+.d-btn--primary:active { background: var(--actionPrimaryPressed); }
+.d-btn--plain { border: 0; background: transparent; color: var(--textSecondary); padding: 0 8px; }
+.d-btn--plain:hover { background: transparent; color: var(--textPrimary); }
+.d-btn--plain:active { background: var(--surfaceHover); }
+.d-btn--compact { height: var(--control-compact); padding: 0 10px; font-size: 13px; }
+.d-btn--plain.d-btn--compact { padding: 0 8px; }
+.d-btn:disabled { cursor: default; transform: none; color: var(--textDisabled); background: transparent; border-color: var(--borderSubtle); }
+.d-btn--primary:disabled { background: var(--actionDisabled); }
+.d-btn--plain:disabled { background: transparent; }
+.d-btn--full { display: flex; width: 100%; }
+
+/* Bouton à icône : DoneIconButtonStyle, 32 × 32. */
+.d-iconbtn { box-sizing: border-box; width: var(--control-height); height: var(--control-height); display: inline-flex; align-items: center; justify-content: center; border-radius: var(--sm); border: var(--border-hairline) solid var(--borderDefault); background: var(--surfaceDefault); color: var(--textPrimary); padding: 0; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.d-iconbtn:hover { background: var(--surfaceHover); }
+.d-iconbtn:active { transform: scale(.94); }
+.d-iconbtn:disabled { transform: none; color: var(--textDisabled); border-color: var(--borderSubtle); background: var(--surfaceDefault); }
+.d-iconbtn svg { width: 13px; height: 13px; }
+
+/* Stepper : deux boutons secondaires compacts. */
+.d-stepper { display: inline-flex; gap: var(--s4); }
+
+/* Sélecteur : DoneSegmented. Piste bgSunken, segment choisi sur surface, qui glisse. */
+.d-seg { position: relative; display: inline-flex; gap: var(--s2); padding: 2px; border-radius: var(--sm); background: var(--bgSunken); }
+.d-seg__thumb { position: absolute; top: 2px; bottom: 2px; left: 0; width: 0; border-radius: var(--xs); background: var(--surfaceDefault); box-shadow: var(--shadowCard); transition: transform var(--dur-base) var(--ease-in-out), width var(--dur-base) var(--ease-in-out); }
+.d-seg__opt { position: relative; height: var(--tile-size); padding: 0 var(--s12); border: 0; border-radius: var(--xs); background: transparent; color: var(--textSecondary); font: 500 13px/24px var(--font-sans); cursor: pointer; white-space: nowrap; transition: color var(--dur-fast) var(--ease-out); }
+.d-seg__opt[aria-pressed="true"] { color: var(--textPrimary); font-weight: 600; }
+.d-seg:not(.has-thumb) .d-seg__opt[aria-pressed="true"] { background: var(--surfaceDefault); box-shadow: var(--shadowCard); }
+
+/* Champ : doneField. Hauteur 32, rayon 10, contour borderControl, focus 2 focusRing. */
+.d-field { box-sizing: border-box; height: var(--control-height); padding: 0 var(--s8); border-radius: var(--sm); border: var(--border-hairline) solid var(--borderControl); background: var(--surfaceDefault); color: var(--textPrimary); font: 400 14px/20px var(--font-sans); outline: none; min-width: 0; transition: border-color var(--dur-fast) var(--ease-out); }
+.d-field::placeholder { color: var(--textSecondary); }
+.d-field:focus, .d-field.is-focused { border: var(--border-focus) solid var(--focusRing); padding: 0 7px; }
+
+/* Cartes : doneCard (liseré, sans ombre) et doneRaised. */
+.d-card { box-sizing: border-box; background: var(--surfaceDefault); border: var(--border-hairline) solid var(--borderSubtle); border-radius: var(--md); padding: var(--s16); }
+.d-card--lg { border-radius: var(--lg); }
+.d-card--raised { border-radius: var(--lg); box-shadow: var(--shadowRaised); }
+.d-card--arrive { animation: d-rise var(--dur-slow) var(--ease-out) both; }
+.d-hairline { height: 1px; background: var(--borderSubtle); border: 0; margin: 0; }
+.d-eyebrow { font: 600 12px/16px var(--font-sans); color: var(--textSecondary); }
+
+/* Case à cocher : TaskCheckbox. 18, rayon 5, contour 1,5 ; cochée, elle rebondit et la coche se trace. */
+.d-check { box-sizing: border-box; width: var(--checkbox-size); height: var(--checkbox-size); flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--xs); border: var(--border-checkbox) solid var(--borderControl); background: var(--surfaceDefault); color: transparent; padding: 0; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.d-check svg { width: 10px; height: 10px; }
+.d-check svg path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.d-check:hover { color: var(--borderControl); }
+.d-check:active { transform: scale(.88); }
+.d-check[aria-checked="true"] { border-color: var(--actionPrimary); background: var(--actionPrimary); color: var(--actionOnPrimary); }
+.d-check.is-popping { animation: d-pop var(--dur-base) var(--ease-spring); }
+.d-check.is-popping svg path { animation: d-draw var(--dur-fast) var(--ease-out) 60ms both; }
+.d-check:disabled { transform: none; background: var(--actionDisabled); border-color: var(--borderSubtle); }
+
+/* Puces : hauteur 22, rayon 8, jamais de contour. */
+.d-chip { box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; height: var(--chip-height); padding: 0 8px; border-radius: var(--chip); font: 500 12px/16px var(--font-sans); white-space: nowrap; }
+.d-chip svg { width: 10px; height: 10px; }
+.d-chip--today { background: var(--sunTint); color: var(--sunText); }
+.d-chip--active { background: var(--stateActiveTint); color: var(--stateActiveText); }
+.d-chip--active .d-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--stateActive); }
+.d-chip--blocked { background: var(--stateBlocked); color: var(--stateOnBlocked); }
+.d-chip--risk { background: var(--stateRiskTint); color: var(--stateRiskText); }
+.d-chip--done { background: var(--sunTint); color: var(--sunText); }
+.d-chip--past { padding: 0; background: none; color: var(--stateOnDone); }
+.d-chip.is-popping { animation: d-pop var(--dur-base) var(--ease-spring); }
+.d-info { display: inline-flex; align-items: center; gap: var(--s4); height: var(--chip-height); color: var(--textSecondary); font: 500 12px/16px var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.d-info svg { width: 10px; height: 10px; }
+.d-info--alert { color: var(--stateRiskText); }
+.d-tag { display: inline-flex; align-items: center; gap: var(--s4); height: var(--chip-height); color: var(--textSecondary); font: 500 12px/16px var(--font-sans); white-space: nowrap; }
+.d-tag svg { width: 10px; height: 10px; }
+.d-prio { display: inline-flex; align-items: center; height: var(--chip-height); color: var(--stateActiveText); font: 500 12px/16px var(--font-sans); font-variant-numeric: tabular-nums; }
+.d-prio--p1 { padding: 0 var(--s8); border-radius: var(--chip); background: var(--stateActiveTint); font-weight: 600; }
+
+/* Navigation : NavItem. Hauteur 32, rayon 10, icône 16, compteur à droite. */
+.d-nav { box-sizing: border-box; display: flex; align-items: center; gap: var(--s8); height: var(--control-height); padding: 0 var(--s8); border-radius: var(--sm); color: var(--textPrimary); font: 400 14px/20px var(--font-sans); cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out); }
+.d-nav:hover { background: var(--surfaceHover); }
+.d-nav.is-selected { background: var(--surfaceSelected); font-weight: 600; }
+.d-nav.is-drop { box-shadow: inset 0 0 0 var(--border-focus) var(--focusRing); }
+.d-nav__icon { width: 16px; height: 16px; flex: none; display: flex; align-items: center; justify-content: center; }
+.d-nav__icon svg { width: 15px; height: 15px; }
+.d-nav__icon--sun { color: var(--sunText); }
+.d-nav__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-nav__count { color: var(--textSecondary); font: 500 12px/16px var(--font-sans); font-variant-numeric: tabular-nums; }
+.d-nav__chev { width: 14px; display: flex; justify-content: center; color: var(--textSecondary); }
+.d-nav__chev svg { width: 9px; height: 9px; }
+.d-sidebar { width: var(--sidebar-width); box-sizing: border-box; background: var(--bgSunken); border-right: 1px solid var(--borderSubtle); padding: var(--s12) 10px; }
+.d-sidebar .d-eyebrow { padding: 18px var(--s8) 6px; }
+
+/* Réunion : MeetingBlock, rayon 10. */
+.d-meeting { box-sizing: border-box; display: flex; flex-direction: column; gap: 1px; padding: var(--s6) var(--s8); border-radius: var(--sm); color: var(--textPrimary); }
+.d-meeting__title { font: 500 13px/18px var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-meeting__time { font: 500 12px/16px var(--font-sans); font-variant-numeric: tabular-nums; opacity: .85; }
+.d-meeting--upcoming { background-color: var(--meetingBg); background-image: repeating-linear-gradient(135deg, var(--meetingHatch) 0 1.5px, transparent 1.5px 6px); }
+.d-meeting--now { background: var(--meetingNow); color: var(--meetingOnNow); }
+.d-meeting--now .d-meeting__time { opacity: 1; }
+.d-meeting--past { background: var(--stateDone); color: var(--textDisabled); }
+
+/* Anneau : ProgressRing. Part restante depuis midi, sens horaire ; le trait glisse d'une seconde à l'autre. */
+.d-ring { position: relative; display: inline-block; }
+.d-ring > svg { display: block; transform: rotate(-90deg); overflow: visible; }
+.d-ring__track { fill: none; stroke: var(--pomodoroTrack); }
+.d-ring__fill { fill: none; stroke: var(--pomodoroFocus); stroke-linecap: round; transition: stroke-dasharray 1s linear, stroke var(--dur-base) var(--ease-out); }
+.d-ring--break .d-ring__fill { stroke: var(--pomodoroBreak); }
+.d-ring--paused .d-ring__fill { stroke: var(--pomodoroPaused); }
+.d-ring__center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* Éclat de tournesol : huit pétales qui partent du centre, une fois. */
+.d-burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.d-burst::before { content: ""; position: absolute; left: -28px; top: -28px; width: 56px; height: 56px; border-radius: 50%; background: var(--sunTint); opacity: 0; }
+.d-burst i { position: absolute; left: -4px; top: -7px; width: 8px; height: 14px; border-radius: 4px; background: var(--sun); opacity: 0; transform-origin: 4px 7px; }
+.d-burst.is-on::before { animation: d-glow var(--dur-celebrate) var(--ease-out); }
+.d-burst.is-on i { animation: d-petal var(--dur-celebrate) var(--ease-out) both; }
+
+/* Barre : ProgressBar, hauteur 6, capsule. */
+.d-bar { height: 6px; border-radius: 3px; background: var(--pomodoroTrack); overflow: hidden; }
+.d-bar__fill { height: 100%; border-radius: 3px; background: var(--stateActive); transition: width var(--dur-slow) var(--ease-out); }
+
+/* Encadré : NoticeBox, sans contour. */
+.d-notice { box-sizing: border-box; display: flex; align-items: baseline; gap: var(--s8); padding: var(--s8) var(--s12); border-radius: var(--sm); background: var(--stateActiveTint); color: var(--stateActiveText); font: 400 13px/18px var(--font-sans); animation: d-fade-in var(--dur-base) var(--ease-out); }
+.d-notice svg { width: 11px; height: 11px; flex: none; transform: translateY(1px); }
+.d-notice--success { background: var(--sunTint); color: var(--sunText); }
+.d-notice--error { background: var(--stateRiskTint); color: var(--stateRiskText); }
+
+/* Ligne de tâche : TaskRowContent dans sa ligne de 48, rayon 14. */
+.d-task { box-sizing: border-box; display: flex; align-items: center; gap: var(--s12); min-height: var(--row-height); padding: 6px 10px; border-radius: var(--md); transition: background-color var(--dur-fast) var(--ease-out), opacity var(--dur-slow) var(--ease-out); }
+.d-task:hover, .d-task.is-hover { background: var(--surfaceHover); }
+.d-task__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.d-task__title { align-self: flex-start; font: 500 14px/20px var(--font-sans); color: var(--textPrimary); background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0 1.5px; transition: color var(--dur-base) var(--ease-out); }
+.d-task__meta { font: 400 12px/16px var(--font-sans); color: var(--textSecondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-task__chips { display: flex; align-items: center; gap: var(--s12); }
+.d-task--step { padding-left: calc(10px + var(--step-indent)); }
+.d-task--done .d-task__title { color: var(--textSecondary); font-weight: 400; background-size: 100% 1.5px; }
+.d-task.is-finishing .d-task__title { animation: d-strike var(--dur-base) var(--ease-out) 80ms both; }
+.d-tile { box-sizing: border-box; width: var(--tile-size); height: var(--tile-size); flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--chip); background: var(--stateActive); color: var(--stateOnActive); font: 600 12px/16px var(--font-sans); font-variant-numeric: tabular-nums; }
+.d-tile--empty { background: transparent; border: 1px solid var(--borderDefault); color: var(--textSecondary); }
+
+/* Réduire les animations : on garde les fondus, on retire le mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  .d-btn, .d-iconbtn, .d-check { transform: none !important; }
+  .d-check.is-popping, .d-chip.is-popping, .d-card--arrive { animation: d-fade-in var(--dur-fast) linear; }
+  .d-burst.is-on i, .d-burst.is-on::before { animation: none; }
+  .d-ring__fill, .d-seg__thumb { transition: none; }
+}

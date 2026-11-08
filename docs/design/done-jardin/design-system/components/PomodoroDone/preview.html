@@ -1,0 +1,50 @@
+<!-- @dsCard group="Pomodoro" height=330 -->
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>PomodoroDone</title></head>
+<body class="d-preview">
+<div class="d-card d-card--raised d-card--arrive" id="card" style="width:520px;max-width:100%;padding:24px">
+  <div style="display:flex;gap:20px;align-items:center">
+    <div class="d-ring" style="width:56px;height:56px;flex:none">
+      <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+        <circle class="d-ring__track" cx="28" cy="28" r="24" stroke-width="5"/>
+        <circle class="d-ring__fill" id="fill" cx="28" cy="28" r="24" stroke-width="5" stroke-dasharray="128 151" style="transition:stroke-dasharray 520ms cubic-bezier(0.2,0.8,0.2,1)"/>
+      </svg>
+      <div class="d-ring__center"><svg id="tick" width="20" height="20" viewBox="0 0 12 12" fill="none" stroke="var(--pomodoroFocus)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="M2.2 6.4l2.4 2.4 5.2-5.6" style="stroke-dasharray:1;stroke-dashoffset:1"/></svg></div>
+      <span class="d-burst" id="burst" style="--d:44px" aria-hidden="true"><i style="--a:0deg"></i><i style="--a:45deg"></i><i style="--a:90deg"></i><i style="--a:135deg"></i><i style="--a:180deg"></i><i style="--a:225deg"></i><i style="--a:270deg"></i><i style="--a:315deg"></i></span>
+    </div>
+    <div style="min-width:0">
+      <div class="d-display" style="font-size:23px;line-height:28px">Pomodoro terminé</div>
+      <div style="font:400 13px/18px var(--font-sans);color:var(--textSecondary);margin-top:2px">25 min sur « Relire la spec du connecteur »</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px" aria-label="3 pomodoros aujourd'hui">
+        <i style="width:10px;height:10px;border-radius:50%;background:var(--sun)"></i><i style="width:10px;height:10px;border-radius:50%;background:var(--sun)"></i><i id="new" style="width:10px;height:10px;border-radius:50%;background:var(--sun)"></i><i style="width:10px;height:10px;border-radius:50%;border:1.5px solid var(--borderDefault);box-sizing:border-box"></i>
+        <span style="font:500 12px/16px var(--font-sans);color:var(--sunText);margin-left:4px">3e pomodoro aujourd'hui</span>
+      </div>
+    </div>
+  </div>
+  <div class="d-row" style="margin-top:20px;gap:8px">
+    <button class="d-btn d-btn--primary">Cocher la tâche</button><button class="d-btn">Encore 5 min</button><button class="d-btn">Pause</button><button class="d-btn d-btn--plain">Arrêter</button>
+  </div>
+</div>
+<button class="d-btn d-btn--plain d-btn--compact" id="replay" style="margin-top:12px">Rejouer l'animation</button>
+<script>
+(function () {
+  var card = document.getElementById('card'), fill = document.getElementById('fill'), tick = document.querySelector('#tick path'), burst = document.getElementById('burst'), dot = document.getElementById('new');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function play() {
+    card.classList.remove('d-card--arrive'); burst.classList.remove('is-on'); dot.style.animation = 'none';
+    fill.style.transition = 'none'; fill.setAttribute('stroke-dasharray', '128 151');
+    tick.style.transition = 'none'; tick.style.strokeDashoffset = 1;
+    void card.offsetWidth;
+    card.classList.add('d-card--arrive');
+    if (reduce) { fill.setAttribute('stroke-dasharray', '151 151'); tick.style.strokeDashoffset = 0; return; }
+    setTimeout(function () { fill.style.transition = 'stroke-dasharray 520ms cubic-bezier(0.2,0.8,0.2,1)'; fill.setAttribute('stroke-dasharray', '151 151'); }, 260);
+    setTimeout(function () { tick.style.transition = 'stroke-dashoffset 200ms cubic-bezier(0.2,0.8,0.2,1)'; tick.style.strokeDashoffset = 0; burst.classList.add('is-on'); }, 780);
+    setTimeout(function () { dot.style.animation = 'd-pop 260ms cubic-bezier(0.34,1.56,0.64,1)'; }, 900);
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  play();
+})();
+</script>
+</body>
+</html>
