@@ -129,18 +129,21 @@ enum DoneSpace {
     static let s64: CGFloat = 64
 }
 
-/// Rayons doux : assez ronds pour être amicaux, jamais en pilule sauf la barre de progression.
+/// Rayons : de grands rectangles doux pour ce qui regroupe, la pilule pour tout ce qui se clique.
 enum DoneRadius {
-    /// Case à cocher, segment choisi du sélecteur.
-    static let xs: CGFloat = 5
-    /// Puces d'état, de priorité et de réussite.
-    static let chip: CGFloat = 8
-    /// Boutons, champs, réunions, navigation, tuile numérotée, encadrés.
-    static let sm: CGFloat = 10
-    /// Lignes de tâche, cartes.
-    static let md: CGFloat = 14
-    /// Panneaux, feuilles, carte de fin de pomodoro, carte de la ligne de temps.
-    static let lg: CGFloat = 20
+    /// Case à cocher.
+    static let xs: CGFloat = 6
+    /// Champs de formulaire, tuiles numérotées, réunions, segments.
+    static let sm: CGFloat = 12
+    /// Lignes de tâche au survol, cartes de note, encadrés.
+    static let md: CGFloat = 18
+    /// Cartes widget, feuilles, carte de fin de pomodoro.
+    static let lg: CGFloat = 24
+    /// Capsule : boutons, puces, étiquettes, recherche, barre de saisie, boutons du rail. Un rayon plus
+    /// grand que la demi-hauteur donne une capsule.
+    static let pill: CGFloat = 999
+    /// Puces d'état, de priorité et de réussite : en capsule, comme toutes les puces.
+    static let chip: CGFloat = pill
 }
 
 // MARK: Mouvement
@@ -489,16 +492,16 @@ extension View {
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
     }
 
-    /// Carte surélevée (shadow.raised : 0 14 32 et 0 2 6) : carte de fin de pomodoro, saisie flottante.
+    /// Carte surélevée (shadow.raised : 0 20 50 et 0 4 10) : carte de fin de pomodoro, saisie flottante.
     func doneRaised(radius: CGFloat = DoneRadius.lg) -> some View {
         background(DoneColor.surfaceDefault, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(DoneColor.borderSubtle, lineWidth: 1))
-            .shadow(color: DoneColor.shadowRaised, radius: 16, y: 14)
-            .shadow(color: DoneColor.shadowRaisedNear, radius: 3, y: 2)
+            .shadow(color: DoneColor.shadowRaised, radius: 25, y: 20)
+            .shadow(color: DoneColor.shadowRaisedNear, radius: 5, y: 4)
     }
 
-    /// Champ de saisie : hauteur 32, rayon sm, contour border.control, contour focus.ring de 2 au focus.
-    func doneField(focused: Bool, height: CGFloat? = 32) -> some View {
+    /// Champ de saisie : hauteur 34, rayon sm, contour border.control, contour focus.ring de 2 au focus.
+    func doneField(focused: Bool, height: CGFloat? = 34) -> some View {
         textFieldStyle(.plain)
             .font(.done(.body))
             .foregroundStyle(DoneColor.textPrimary)
@@ -542,7 +545,7 @@ struct Hatching: View {
 
 // MARK: Boutons
 
-/// Boutons : hauteur 32, rayon sm, padding 14. Un seul principal par vue.
+/// Boutons : hauteur 34 (compact 28), rayon sm, padding 14. Un seul principal par vue.
 struct DoneButtonStyle: ButtonStyle {
     enum Kind {
         /// action.primary : pilule d'encre, inversée en sombre.
@@ -579,7 +582,7 @@ private struct DoneButtonBody: View {
             .lineLimit(1)
             .foregroundStyle(foreground)
             .padding(.horizontal, kind == .plain ? 8 : (compact ? 10 : 14))
-            .frame(height: compact ? 26 : 32)
+            .frame(height: compact ? 28 : 34)
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .background(background, in: shape)
             .overlay {
@@ -617,7 +620,7 @@ private struct DoneButtonBody: View {
     }
 }
 
-/// Bouton carré à icône, 32 × 32 : nouvelle tâche, semaine précédente ou suivante.
+/// Bouton carré à icône, 34 × 34 : nouvelle tâche, semaine précédente ou suivante.
 struct DoneIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         DoneIconButtonBody(configuration: configuration)
@@ -634,7 +637,7 @@ private struct DoneIconButtonBody: View {
         configuration.label
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(isEnabled ? DoneColor.textPrimary : DoneColor.textDisabled)
-            .frame(width: 32, height: 32)
+            .frame(width: 34, height: 34)
             .background(isEnabled && (hovered || configuration.isPressed) ? DoneColor.surfaceHover : DoneColor.surfaceDefault, in: shape)
             .overlay(shape.strokeBorder(isEnabled ? DoneColor.borderDefault : DoneColor.borderSubtle, lineWidth: 1))
             .contentShape(shape)
@@ -687,7 +690,7 @@ struct DoneSegmented<Value: Hashable>: View {
                             if isOn {
                                 RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
                                     .fill(DoneColor.surfaceDefault)
-                                    .shadow(color: DoneColor.shadowCard, radius: 1, y: 1)
+                                    .shadow(color: DoneColor.shadowControl, radius: 1, y: 1)
                                     .matchedGeometryEffect(id: "segment", in: segment)
                             }
                         }
@@ -979,7 +982,7 @@ struct ListShortcutHints: View {
 
 // MARK: Navigation
 
-/// Élément de navigation : hauteur 32, rayon sm, icône 16, compteur en chiffres tabulaires à droite.
+/// Élément de navigation : hauteur 34, rayon sm, icône 16, compteur en chiffres tabulaires à droite.
 /// Un projet qui a des sous-projets porte un chevron pour les replier.
 /// Actif : surface.selected et graisse Semibold.
 struct NavItem: View {
@@ -1032,7 +1035,7 @@ struct NavItem: View {
             }
             .foregroundStyle(isEnabled ? DoneColor.textPrimary : DoneColor.textDisabled)
             .padding(.horizontal, DoneSpace.s8)
-            .frame(height: 32)
+            .frame(height: 34)
             .background(isSelected ? DoneColor.surfaceSelected : (hovered ? DoneColor.surfaceHover : Color.clear), in: shape)
             .overlay(shape.strokeBorder(DoneColor.focusRing, lineWidth: isDropTarget ? 2 : 0))
             .contentShape(shape)
@@ -1191,11 +1194,11 @@ struct DoneAppIcon: View {
 }
 
 /// Anneau du minuteur : la part restante, depuis midi, dans le sens horaire.
-/// Diamètre 280 et trait 8 en session ; braise en concentration, cobalt en pause, gris à l'arrêt.
+/// Diamètre 280 et trait 6 en session, fin comme le logo ; braise en concentration, cobalt en pause, gris à l'arrêt.
 struct ProgressRing: View {
     let fraction: Double
     var color: Color = DoneColor.pomodoroFocus
-    var lineWidth: CGFloat = 8
+    var lineWidth: CGFloat = 6
 
     var body: some View {
         ZStack {

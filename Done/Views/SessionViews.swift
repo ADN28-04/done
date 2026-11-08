@@ -36,7 +36,7 @@ struct SessionView: View {
                         .padding(.top, DoneSpace.s8)
                 }
 
-                // Anneau de 280, trait 8 : vert en concentration, gris à l'arrêt.
+                // Anneau de 280, trait 6 : braise en concentration, gris à l'arrêt.
                 ZStack {
                     ProgressRing(fraction: engine.remainingFraction, color: paused ? DoneColor.pomodoroPaused : DoneColor.pomodoroFocus)
                     VStack(spacing: DoneSpace.s4) {
