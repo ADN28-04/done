@@ -20,12 +20,15 @@ struct RootView: View {
     @State private var choseInitialScreen = false
     @State private var revealSidebar = false
     @State private var showCapture = false
+    /// Barre latérale réduite en rail d'icônes.
+    @AppStorage(SettingsKey.sidebarRail) private var sidebarRail = false
+    @State private var railHovered = false
 
     var body: some View {
         ZStack(alignment: .leading) {
             HStack(spacing: 0) {
                 if !inSession {
-                    Sidebar(screen: $screen)
+                    sidebarColumn
                         .transition(sidebarTransition)
                 }
                 content
@@ -39,21 +42,33 @@ struct RootView: View {
                     .onHover { inside in
                         if inside { revealSidebar = true }
                     }
-                if revealSidebar {
-                    Sidebar(screen: $screen)
-                        .shadow(color: DoneColor.shadowRaised, radius: 14, x: 4)
-                        .onHover { inside in
-                            if !inside { revealSidebar = false }
-                        }
-                        .transition(sidebarTransition)
-                }
+            }
+            // En session ou en rail, la barre complète passe par-dessus tant que la souris y reste.
+            if (inSession || sidebarRail) && revealSidebar {
+                Sidebar(screen: $screen)
+                    .shadow(color: DoneColor.shadowRaised, radius: 14, x: 4)
+                    .onHover { inside in
+                        if !inside { revealSidebar = false }
+                    }
+                    .transition(sidebarTransition)
             }
         }
         .ignoresSafeArea(.container, edges: .top)
         .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: inSession)
         .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: revealSidebar)
-        .background { ShortcutKeys(screen: $screen) { showCapture = true } }
+        .animation(DoneMotion.motion(DoneMotion.move, reduced: reduceMotion), value: sidebarRail)
+        .background {
+            ShortcutKeys(screen: $screen, onCapture: { showCapture = true }, onToggleSidebar: toggleSidebar)
+        }
         .onChange(of: inSession) { revealSidebar = false }
+        .onChange(of: sidebarRail) { revealSidebar = false }
+        // Survol du rail : la barre complète s'ouvre après un court instant, pas au simple passage de la souris.
+        .task(id: railHovered) {
+            guard railHovered, sidebarRail, !inSession else { return }
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled, railHovered else { return }
+            revealSidebar = true
+        }
         .onAppear {
             if !choseInitialScreen {
                 if model.index.all.isEmpty {
@@ -70,6 +85,22 @@ struct RootView: View {
         }
     }
 
+    /// La barre complète, ou le rail d'icônes s'il a été choisi.
+    @ViewBuilder
+    private var sidebarColumn: some View {
+        if sidebarRail {
+            SidebarRail(screen: $screen)
+                .onHover { railHovered = $0 }
+        } else {
+            Sidebar(screen: $screen)
+        }
+    }
+
+    private func toggleSidebar() {
+        guard !inSession else { return }
+        sidebarRail.toggle()
+    }
+
     /// La barre latérale glisse depuis la gauche ; avec « Réduire les animations », elle apparaît en fondu.
     private var sidebarTransition: AnyTransition {
         reduceMotion ? .opacity : .move(edge: .leading)
@@ -83,7 +114,7 @@ struct RootView: View {
 
     private var content: some View {
         VStack(spacing: 0) {
-            TopBar(screen: screen, inSession: inSession) { showCapture = true }
+            TopBar(screen: screen, inSession: inSession, isRail: sidebarRail, onToggleSidebar: toggleSidebar) { showCapture = true }
             if let message = model.errorMessage {
                 ErrorBanner(message: message) { model.errorMessage = nil }
                     .padding(.horizontal, DoneSpace.s32)
@@ -133,6 +164,7 @@ struct RootView: View {
 private struct ShortcutKeys: View {
     @Binding var screen: RootView.Screen
     let onCapture: () -> Void
+    let onToggleSidebar: () -> Void
 
     var body: some View {
         ZStack {
@@ -154,6 +186,8 @@ private struct ShortcutKeys: View {
                 .keyboardShortcut(",")
             Button("Nouvelle tâche", action: onCapture)
                 .keyboardShortcut("n")
+            Button("Réduire ou déplier la barre latérale", action: onToggleSidebar)
+                .keyboardShortcut("s", modifiers: [.control, .command])
         }
         .buttonStyle(.plain)
         .opacity(0)
@@ -164,6 +198,39 @@ private struct ShortcutKeys: View {
 }
 
 // MARK: Barre latérale
+
+/// Barre latérale réduite : un rail de 56 avec les icônes des écrans. Les projets et les étiquettes
+/// sont dans la barre complète, qui passe par-dessus au survol.
+private struct SidebarRail: View {
+    @Binding var screen: RootView.Screen
+
+    var body: some View {
+        VStack(spacing: DoneSpace.s2) {
+            item(.focus, "Focus (⌘1)", Image("DoneGlyph"))
+            item(.today, "Aujourd'hui (⌘6)", Image(systemName: "sun.max"), color: DoneColor.sunText)
+            item(.plan, "Plan du jour (⌘2)", Image(systemName: "calendar"))
+            item(.calendar, "Calendrier (⌘5)", Image(systemName: "calendar.day.timeline.left"))
+            item(.list(.inbox), "Inbox (⌘3)", Image(systemName: "tray"))
+            item(.notes, "Notes (⌘7)", Image(systemName: "doc.text"))
+            Spacer(minLength: DoneSpace.s16)
+            item(.stats, "Stats (⌘4)", Image(systemName: "chart.bar"))
+            item(.settings, "Réglages (⌘,)", Image(systemName: "gearshape"))
+        }
+        // Les feux de la fenêtre occupent le haut.
+        .padding(.top, 52)
+        .padding(.bottom, DoneSpace.s12)
+        .frame(width: 56)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(DoneColor.bgSunken)
+        .overlay(alignment: .trailing) {
+            Rectangle().fill(DoneColor.borderSubtle).frame(width: 1)
+        }
+    }
+
+    private func item(_ target: RootView.Screen, _ title: String, _ icon: Image, color: Color? = nil) -> some View {
+        NavRailItem(title: title, icon: icon, iconColor: color, isSelected: screen == target) { screen = target }
+    }
+}
 
 /// Navigation à gauche : Focus, Aujourd'hui, Plan du jour, Calendrier et l'Inbox ; puis les projets
 /// (avec leurs sous-projets) et les étiquettes, en sections repliables ; en bas, Stats et Réglages.
@@ -495,13 +562,26 @@ private struct TopBar: View {
     @Environment(FocusEngine.self) private var engine
     let screen: RootView.Screen
     let inSession: Bool
+    let isRail: Bool
+    let onToggleSidebar: () -> Void
     let onCapture: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             HStack(spacing: DoneSpace.s12) {
-                // Place des feux de la fenêtre quand la barre latérale est masquée.
-                Color.clear.frame(width: 80)
+                // À gauche, la bascule de la barre latérale. En rail, les feux de la fenêtre débordent
+                // sur cette zone : le bouton se range après eux. En session, la place reste aux feux.
+                HStack(spacing: 0) {
+                    if !inSession {
+                        if isRail { Spacer(minLength: 0) }
+                        Button(action: onToggleSidebar) {
+                            Image(systemName: "sidebar.left")
+                        }
+                        .buttonStyle(DoneIconButtonStyle())
+                        .help(isRail ? "Déplier la barre latérale (⌃⌘S)" : "Réduire la barre latérale (⌃⌘S)")
+                    }
+                }
+                .frame(width: 80, alignment: .leading)
                 Spacer(minLength: 0)
                 center(now: context.date)
                 Spacer(minLength: 0)

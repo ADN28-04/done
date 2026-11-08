@@ -958,6 +958,45 @@ struct NavItem: View {
     }
 }
 
+/// Élément du rail de navigation (barre latérale réduite) : icône de 16 dans une case de 40 × 32,
+/// rayon sm. Actif en surfaceSelected, survol en surfaceHover. Le titre et le raccourci passent dans l'aide.
+struct NavRailItem: View {
+    let title: String
+    let icon: Image
+    /// Couleur propre de l'icône : le soleil d'« Aujourd'hui » reste en sunText.
+    var iconColor: Color?
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var hovered = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
+        Button(action: action) {
+            iconView
+                .frame(width: 40, height: 32)
+                .background(isSelected ? DoneColor.surfaceSelected : (hovered ? DoneColor.surfaceHover : Color.clear), in: shape)
+                .contentShape(shape)
+                .animation(DoneMotion.hover, value: hovered)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .help(title)
+        .accessibilityLabel(title)
+    }
+
+    @ViewBuilder
+    private var iconView: some View {
+        let image = icon
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 15, height: 15)
+            .frame(width: 16, height: 16)
+        image.foregroundStyle(iconColor ?? DoneColor.textPrimary)
+    }
+}
+
 // MARK: Réunions
 
 /// Bloc réunion, rayon sm. Hachuré à venir (temps pris), plein vert en cours, gris une fois passé.
