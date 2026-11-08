@@ -120,15 +120,15 @@ enum DoneRadius {
 
 // MARK: Typographie
 
-/// Échelle typographique, en une seule famille : Archivo. Les titres d'affichage sont en largeur
-/// semi-étroite, le texte en largeur normale, les nombres en chiffres tabulaires et le minuteur en Light.
-/// Fichiers dans Done/Fonts, chargés par `FontLoader`.
+/// Échelle typographique, en deux familles. Fraunces (version douce, SemiBold) pour les trois titres
+/// d'affichage seulement ; Archivo pour tout le reste, nombres compris, en chiffres tabulaires.
+/// Fraunces ne descend jamais sous displayM. Fichiers dans Done/Fonts, chargés par `FontLoader`.
 enum DoneTextStyle {
-    /// 44/48, titre d'écran majeur (l'action proposée).
+    /// 46/52 Fraunces, l'action proposée. Une seule chose forte par écran.
     case displayXL
-    /// 32/36, titre d'écran.
+    /// 34/40 Fraunces, titre d'écran.
     case displayL
-    /// 22/28, titre de section, de feuille.
+    /// 23/28 Fraunces, titre de feuille et de carte, tâche en session.
     case displayM
     /// 17/24, titre de panneau.
     case title
@@ -142,7 +142,7 @@ enum DoneTextStyle {
     case caption
     /// 12/16 SemiBold, étiquette de section en casse normale.
     case label
-    /// 56/60, minuteur.
+    /// 60/64 Regular, minuteur.
     case numericXL
     /// 28/32, totaux.
     case numericL
@@ -153,9 +153,9 @@ enum DoneTextStyle {
 
     var size: CGFloat {
         switch self {
-        case .displayXL: 44
-        case .displayL: 32
-        case .displayM: 22
+        case .displayXL: 46
+        case .displayL: 34
+        case .displayM: 23
         case .title: 17
         case .body, .bodyStrong, .numericM: 14
         case .callout: 13
@@ -167,8 +167,8 @@ enum DoneTextStyle {
 
     var lineHeight: CGFloat {
         switch self {
-        case .displayXL: 48
-        case .displayL: 36
+        case .displayXL: 52
+        case .displayL: 40
         case .displayM: 28
         case .title: 24
         case .body, .bodyStrong, .numericM: 20
@@ -183,20 +183,18 @@ enum DoneTextStyle {
     var tracking: CGFloat {
         switch self {
         case .numericXL: -0.02
-        case .displayXL: -0.015
-        case .displayL, .numericL: -0.01
-        case .displayM: -0.005
+        case .displayXL, .numericL: -0.01
+        case .displayL: -0.005
         default: 0
         }
     }
 
     var fontName: String {
         switch self {
-        case .displayXL, .displayL, .displayM: "ArchivoSemiCondensed-SemiBold"
+        case .displayXL, .displayL, .displayM: "FrauncesSoft-SemiBold"
         case .title, .label: "Archivo-SemiBold"
         case .bodyStrong, .numericL, .numericM, .numericS: "Archivo-Medium"
-        case .body, .callout, .caption: "Archivo-Regular"
-        case .numericXL: "Archivo-Light"
+        case .body, .callout, .caption, .numericXL: "Archivo-Regular"
         }
     }
 
