@@ -6,6 +6,8 @@ enum Stats {
         let day: Date
         let minutes: Double
         let sessions: Int
+        /// Minuteurs menés au bout ce jour-là (`pomodoros(_:on:)`).
+        var pomodoros = 0
     }
 
     struct ProjectFocus: Identifiable {
@@ -55,8 +57,14 @@ enum Stats {
         return (0..<7).compactMap { offset in
             guard let day = calendar.date(byAdding: .day, value: offset, to: week.start) else { return nil }
             let items = sessions.filter { calendar.isDate($0.startedAt, inSameDayAs: day) }
-            return DayFocus(day: day, minutes: totalMinutes(items), sessions: items.count)
+            return DayFocus(day: day, minutes: totalMinutes(items), sessions: items.count, pomodoros: pomodoros(items, on: day))
         }
+    }
+
+    /// La meilleure journée de la semaine : le plus de focus. Aucune sans focus ; la première en cas d'égalité.
+    static func bestDay(_ days: [DayFocus]) -> Date? {
+        guard let best = days.max(by: { $0.minutes < $1.minutes }), best.minutes > 0 else { return nil }
+        return days.first { $0.minutes == best.minutes }?.day
     }
 
     static func byProject(_ sessions: [SessionFact]) -> [ProjectFocus] {
