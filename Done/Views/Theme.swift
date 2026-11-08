@@ -314,81 +314,94 @@ private struct SunBurstFrame: View, Animatable {
 
 // MARK: Typographie
 
-/// Échelle typographique, en deux familles. Fraunces (version douce, SemiBold) pour les trois titres
-/// d'affichage seulement ; Archivo pour tout le reste, nombres compris, en chiffres tabulaires.
-/// Fraunces ne descend jamais sous displayM. Fichiers dans Done/Fonts, chargés par `FontLoader`.
+/// Échelle typographique, en trois familles libres (licences OFL dans docs/fonts) :
+/// - Newsreader (Display pour displayXL et displayL, Text pour displayM et noteTitle), Medium, pour les
+///   titres ; l'italique pour la salutation de l'accueil. Jamais sous noteTitle (17), jamais pour un nombre.
+/// - Nunito Sans pour l'interface : Regular pour le texte, SemiBold pour les libellés et les titres de
+///   tâche, Bold pour title et label, Light pour les grands chiffres. Ses chiffres sont à chasse fixe.
+/// - Courier Prime pour noteMono seulement : le corps des notes dans la mosaïque.
+/// Fichiers dans Done/Fonts, chargés par `FontLoader`.
 enum DoneTextStyle {
-    /// 46/52 Fraunces, l'action proposée. Une seule chose forte par écran.
+    /// 46/50 Newsreader Display, titre d'accueil et action proposée en session. Une seule chose forte par écran.
     case displayXL
-    /// 34/40 Fraunces, titre d'écran.
+    /// 32/38 Newsreader Display, prochaine action, titres d'écran.
     case displayL
-    /// 23/28 Fraunces, titre de feuille et de carte, tâche en session.
+    /// 22/28 Newsreader Text, titres de feuille et de carte surélevée, note ouverte.
     case displayM
-    /// 17/24, titre de panneau.
+    /// 17/22 Newsreader Text, titre d'une carte de note dans la mosaïque.
+    case noteTitle
+    /// 16/22 Bold, titre de panneau, tâche parente.
     case title
     /// 14/20, texte courant.
     case body
-    /// 14/20 Medium, titre de tâche.
+    /// 14/20 SemiBold, titre de tâche, libellé de pilule.
     case bodyStrong
     /// 13/18, texte d'appoint.
     case callout
     /// 12/16, métadonnées.
     case caption
-    /// 12/16 SemiBold, étiquette de section en casse normale.
+    /// 12/16 Bold, en-tête de carte et étiquette de section, en casse normale.
     case label
-    /// 60/64 Regular, minuteur.
+    /// 60/64 Light, minuteur.
     case numericXL
-    /// 28/32, totaux.
+    /// 44/48 Light, grand chiffre d'une carte, totaux.
     case numericL
-    /// 14/20, heures et durées en ligne.
+    /// 14/20 SemiBold, valeurs en ligne.
     case numericM
-    /// 12/16, puces de durée et de date.
+    /// 12/16 SemiBold, dates, durées, heures, compteurs.
     case numericS
+    /// 13/19 Courier Prime, corps des notes rapides et du journal dans la mosaïque. Jamais pour l'interface.
+    case noteMono
 
     var size: CGFloat {
         switch self {
         case .displayXL: 46
-        case .displayL: 34
-        case .displayM: 23
-        case .title: 17
+        case .displayL: 32
+        case .displayM: 22
+        case .noteTitle: 17
+        case .title: 16
         case .body, .bodyStrong, .numericM: 14
-        case .callout: 13
+        case .callout, .noteMono: 13
         case .caption, .label, .numericS: 12
         case .numericXL: 60
-        case .numericL: 28
+        case .numericL: 44
         }
     }
 
     var lineHeight: CGFloat {
         switch self {
-        case .displayXL: 52
-        case .displayL: 40
+        case .displayXL: 50
+        case .displayL: 38
         case .displayM: 28
-        case .title: 24
+        case .noteTitle, .title: 22
         case .body, .bodyStrong, .numericM: 20
         case .callout: 18
+        case .noteMono: 19
         case .caption, .label, .numericS: 16
         case .numericXL: 64
-        case .numericL: 32
+        case .numericL: 48
         }
     }
 
     /// Interlettrage, en em.
     var tracking: CGFloat {
         switch self {
-        case .numericXL: -0.02
-        case .displayXL, .numericL: -0.01
-        case .displayL: -0.005
+        case .displayXL, .numericXL, .numericL: -0.02
+        case .displayL: -0.015
+        case .displayM: -0.01
         default: 0
         }
     }
 
     var fontName: String {
         switch self {
-        case .displayXL, .displayL, .displayM: "FrauncesSoft-SemiBold"
-        case .title, .label: "Archivo-SemiBold"
-        case .bodyStrong, .numericL, .numericM, .numericS: "Archivo-Medium"
-        case .body, .callout, .caption, .numericXL: "Archivo-Regular"
+        case .displayXL, .displayL: "NewsreaderDisplay-Medium"
+        case .displayM, .noteTitle: "NewsreaderText-Medium"
+        case .title, .label: "NunitoSans-Bold"
+        case .bodyStrong, .numericM, .numericS: "NunitoSans-SemiBold"
+        case .body, .callout, .caption: "NunitoSans-Regular"
+        case .numericXL, .numericL: "NunitoSans-Light"
+        case .noteMono: "CourierPrime-Regular"
         }
     }
 
@@ -399,8 +412,8 @@ enum DoneTextStyle {
         }
     }
 
-    /// Les styles numériques prennent les chiffres tabulaires d'Archivo : les colonnes et le minuteur
-    /// ne bougent pas en largeur.
+    /// Les chiffres de Nunito Sans sont déjà à chasse fixe ; `monospacedDigit` le garantit pour les
+    /// styles numériques : les colonnes et le minuteur ne bougent pas en largeur.
     var font: Font {
         let font = Font.custom(fontName, fixedSize: size)
         return isNumeric ? font.monospacedDigit() : font
@@ -408,18 +421,25 @@ enum DoneTextStyle {
 }
 
 extension Font {
+    /// Graisses hors échelle. Nunito Sans n'a pas de Medium : `medium` et `semibold` donnent SemiBold,
+    /// `bold` donne Bold (navigation active).
     enum TextWeight {
-        case regular, medium, semibold
+        case regular, medium, semibold, bold
     }
 
     static func done(_ style: DoneTextStyle) -> Font { style.font }
 
-    /// Archivo hors échelle : boutons, navigation active. Ajouter `.monospacedDigit()` pour un nombre.
+    /// Un titre d'affichage en italique (Newsreader Display Medium Italic) : la salutation de l'accueil.
+    static func doneItalic(_ style: DoneTextStyle) -> Font {
+        .custom("NewsreaderDisplay-MediumItalic", fixedSize: style.size)
+    }
+
+    /// Nunito Sans hors échelle : boutons, puces, navigation. Ajouter `.monospacedDigit()` pour un nombre.
     static func sans(_ size: CGFloat, _ weight: TextWeight = .regular) -> Font {
         let name = switch weight {
-        case .regular: "Archivo-Regular"
-        case .medium: "Archivo-Medium"
-        case .semibold: "Archivo-SemiBold"
+        case .regular: "NunitoSans-Regular"
+        case .medium, .semibold: "NunitoSans-SemiBold"
+        case .bold: "NunitoSans-Bold"
         }
         return .custom(name, fixedSize: size)
     }
