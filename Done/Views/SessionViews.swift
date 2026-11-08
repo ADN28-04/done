@@ -35,7 +35,7 @@ struct SessionView: View {
                         .padding(.top, DoneSpace.s8)
                 }
 
-                // Anneau de 280, trait 12 : Indigo en concentration, gris à l'arrêt.
+                // Anneau de 280, trait 8 : vert en concentration, gris à l'arrêt.
                 ZStack {
                     ProgressRing(fraction: engine.remainingFraction, color: paused ? DoneColor.pomodoroPaused : DoneColor.pomodoroFocus)
                     VStack(spacing: DoneSpace.s4) {
@@ -115,7 +115,7 @@ private struct ReasonMenu: View {
                 Button { onPick(reason) } label: {
                     Text(reason.label)
                         .doneText(.callout)
-                        .foregroundStyle(hovered == reason ? Color.white : DoneColor.textPrimary)
+                        .foregroundStyle(hovered == reason ? DoneColor.actionOnPrimary : DoneColor.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, DoneSpace.s8)
                         .frame(height: 28)
@@ -207,7 +207,7 @@ struct OutcomeView: View {
         }
     }
 
-    /// Anneau Indigo coché et titre de la carte.
+    /// Anneau pomodoro.focus coché et titre de la carte.
     private func header(_ title: String, subtitle: String) -> some View {
         HStack(spacing: DoneSpace.s16) {
             ZStack {

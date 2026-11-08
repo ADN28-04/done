@@ -515,7 +515,7 @@ private struct TopBar: View {
     }
 }
 
-/// Pastille de réunion : pleine Indigo pendant une réunion, hachurée pour la prochaine.
+/// Pastille de réunion : pleine (meeting.now) pendant une réunion, hachurée pour la prochaine.
 struct MeetingPill: View {
     struct Content {
         let text: String

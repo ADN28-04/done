@@ -3,61 +3,69 @@ import SwiftUI
 
 // MARK: Couleurs
 
-/// Design system Done v5 : couleurs nommées par rôle, en clair et en sombre.
-/// Référence : docs/design-system.md et docs/design/Done-Design-System-v5.html.
-/// Le code ne référence jamais une couleur de marque (Papier, Graphite, Indigo…) directement.
+/// Design system Done v6 « Jardin » : couleurs nommées par rôle, en clair et en sombre.
+/// Référence : docs/design/done-jardin/design-system (README.md et tokens.json).
+/// Le code ne référence jamais une couleur de marque (Crème, Encre, Vert profond, Tournesol, Brique)
+/// directement. En sombre, le vert s'éclaircit et ce qui est posé dessus passe en vert nuit.
 enum DoneColor {
     // Fonds et surfaces
-    static let bgCanvas = dynamic(0xF6F6F7, 0x17181C)
-    static let bgSunken = dynamic(0xEEEFF2, 0x131417)
-    static let surfaceDefault = dynamic(0xFFFFFF, 0x1F2025)
-    static let surfaceHover = dynamic(0xF0F1F4, 0x26272D)
-    static let surfaceSelected = dynamic(0xE7E9F4, 0x272B45)
+    static let bgCanvas = dynamic(0xF7F3E8, 0x161914)
+    static let bgSunken = dynamic(0xEFE9DA, 0x11140F)
+    static let surfaceDefault = dynamic(0xFFFDF7, 0x1E221B)
+    static let surfaceHover = dynamic(0xF3EEE0, 0x272C23)
+    static let surfaceSelected = dynamic(0xE2EDE3, 0x243529)
 
     // Bordures
-    static let borderSubtle = dynamic(0xE4E5EA, 0x2E3036)
-    static let borderDefault = dynamic(0xD2D4DB, 0x3D3F46)
-    static let borderControl = dynamic(0x8A8E99, 0x858A96)
+    static let borderSubtle = dynamic(0xE6DFCD, 0x2E3329)
+    static let borderDefault = dynamic(0xD5CDB8, 0x3E4537)
+    static let borderControl = dynamic(0x8A8473, 0x858C7C)
 
     // Textes
-    static let textPrimary = dynamic(0x1C1E26, 0xE6E7EB)
-    static let textSecondary = dynamic(0x5E626D, 0x9EA2AD)
-    static let textDisabled = dynamic(0xB0B3BC, 0x565A63)
+    static let textPrimary = dynamic(0x23281F, 0xECEADF)
+    static let textSecondary = dynamic(0x5C6354, 0xA7AC9C)
+    static let textDisabled = dynamic(0xB4AF9F, 0x585E51)
 
     // Actions
-    static let actionPrimary = dynamic(0x4553A0, 0x5A68C0)
-    static let actionPrimaryHover = dynamic(0x3A4690, 0x5260B8)
-    static let actionPrimaryPressed = dynamic(0x313B7C, 0x4A57A8)
-    static let actionOnPrimary = dynamic(0xFFFFFF, 0xFFFFFF)
-    static let actionDisabled = dynamic(0xE8E9EE, 0x26272D)
-    static let focusRing = dynamic(0x4553A0, 0xAAB4F2)
+    static let actionPrimary = dynamic(0x2F6B4F, 0x7CC39C)
+    static let actionPrimaryHover = dynamic(0x285E45, 0x8DCDA9)
+    static let actionPrimaryPressed = dynamic(0x204F3A, 0x6BB38C)
+    static let actionOnPrimary = dynamic(0xFFFFFF, 0x0F2419)
+    static let actionDisabled = dynamic(0xEBE5D6, 0x272C23)
+    static let focusRing = dynamic(0x2F6B4F, 0x8DCDA9)
 
     // États
-    static let stateActive = dynamic(0x4F5CB0, 0x5A68C0)
-    static let stateOnActive = dynamic(0xFFFFFF, 0xFFFFFF)
-    static let stateActiveText = dynamic(0x3A4690, 0xAAB4F2)
-    static let stateActiveTint = dynamic(0xE7E9F4, 0x23263B)
-    static let stateBlocked = dynamic(0xECEDF0, 0x26272D)
-    static let stateOnBlocked = dynamic(0x1C1E26, 0xE6E7EB)
-    static let stateWaiting = dynamic(0x8A8E99, 0x858A96)
+    static let stateActive = dynamic(0x3B7A5B, 0x7CC39C)
+    static let stateOnActive = dynamic(0xFFFFFF, 0x0F2419)
+    static let stateActiveText = dynamic(0x1F5138, 0xA6DBBB)
+    static let stateActiveTint = dynamic(0xDCEBDF, 0x21362A)
+    static let stateBlocked = dynamic(0xECE6D7, 0x2A2F25)
+    static let stateOnBlocked = dynamic(0x23281F, 0xECEADF)
+    static let stateWaiting = dynamic(0x8A8473, 0x858C7C)
     static let stateRisk = dynamic(0xC2463F, 0xE06A63)
-    static let stateRiskTint = dynamic(0xF8E6E5, 0x3A2224)
+    static let stateRiskTint = dynamic(0xF8E3DE, 0x3A2320)
     static let stateRiskText = dynamic(0xA3332E, 0xF0A29D)
-    static let stateDone = dynamic(0xEEEFF2, 0x1C1D21)
-    static let stateOnDone = dynamic(0x5E626D, 0x9EA2AD)
+    static let stateDone = dynamic(0xEFE9DA, 0x1B1F18)
+    static let stateOnDone = dynamic(0x5C6354, 0xA7AC9C)
+
+    // Joie : réservée aux réussites (Aujourd'hui, Fait, plan terminé, fin de pomodoro).
+    // `sun` en plein ou en forme, jamais en texte ; `sunText` sur `sunTint` pour les mots.
+    static let sun = dynamic(0xF6C343, 0xF6C343)
+    static let onSun = dynamic(0x3D2A00, 0x3D2A00)
+    static let sunTint = dynamic(0xFBECC2, 0x3A3016)
+    static let sunText = dynamic(0x6B4A05, 0xF2CF6E)
 
     // Réunions
-    static let meetingBg = dynamic(0xEFF0F3, 0x222328)
-    static let meetingHatch = dynamic(0x4553A0, 0xAAB4F2, lightAlpha: 0.14, darkAlpha: 0.14)
-    static let meetingNow = dynamic(0x4553A0, 0x5A68C0)
-    static let meetingOnNow = dynamic(0xFFFFFF, 0xFFFFFF)
+    static let meetingBg = dynamic(0xEEE8D8, 0x23281F)
+    static let meetingHatch = dynamic(0x2F6B4F, 0x7CC39C, lightAlpha: 0.16, darkAlpha: 0.16)
+    static let meetingNow = dynamic(0x2F6B4F, 0x7CC39C)
+    static let meetingOnNow = dynamic(0xFFFFFF, 0x0F2419)
 
     // Pomodoro
-    static let pomodoroFocus = dynamic(0x4553A0, 0x8F9BE8)
-    static let pomodoroBreak = dynamic(0x6F7BC2, 0xAAB4F2)
-    static let pomodoroBreakBg = dynamic(0xEDEFF8, 0x1D2033)
-    static let pomodoroTrack = dynamic(0xE4E5EA, 0x2E3036)
-    static let pomodoroPaused = dynamic(0xB0B3BC, 0x565A63)
+    static let pomodoroFocus = dynamic(0x2F6B4F, 0x8DCDA9)
+    static let pomodoroBreak = dynamic(0xB07A12, 0xF2CF6E)
+    static let pomodoroBreakBg = dynamic(0xFBF1D6, 0x24210F)
+    static let pomodoroTrack = dynamic(0xE6DFCD, 0x2E3329)
+    static let pomodoroPaused = dynamic(0xB4AF9F, 0x585E51)
 
     // Ombres : réservées aux éléments surélevés. En sombre, les contours font le travail.
     static let shadowCard = dynamic(0x1C1E26, 0x000000, lightAlpha: 0.06, darkAlpha: 0.35)
@@ -275,7 +283,7 @@ extension View {
             .shadow(color: DoneColor.shadowRaisedNear, radius: 3, y: 2)
     }
 
-    /// Champ de saisie : hauteur 32, rayon 6, contour border.control, contour Indigo de 2 au focus.
+    /// Champ de saisie : hauteur 32, rayon 6, contour border.control, contour focus.ring de 2 au focus.
     func doneField(focused: Bool, height: CGFloat? = 32) -> some View {
         textFieldStyle(.plain)
             .font(.done(.body))
@@ -323,7 +331,7 @@ struct Hatching: View {
 /// Boutons : hauteur 32, rayon 6, padding 14. Un seul principal par vue.
 struct DoneButtonStyle: ButtonStyle {
     enum Kind {
-        /// Indigo en clair, Indigo 400 en sombre.
+        /// action.primary : vert profond en clair, vert clair en sombre.
         case primary
         /// Surface et contour border.default.
         case secondary
@@ -513,7 +521,7 @@ struct TaskCheckbox: View {
 /// jamais de plein ni de contour, pour que la ligne reste calme.
 struct StateChip: View {
     enum Kind {
-        /// Tâche du plan du jour : point Indigo sur teinte active.
+        /// Tâche du plan du jour : point state.active sur teinte active.
         case active
         /// Ne peut pas avancer.
         case blocked
@@ -692,7 +700,7 @@ struct NavItem: View {
 
 // MARK: Réunions
 
-/// Bloc réunion, rayon 6. Hachuré à venir (temps pris), plein Indigo en cours, gris une fois passé.
+/// Bloc réunion, rayon 6. Hachuré à venir (temps pris), plein vert en cours, gris une fois passé.
 struct MeetingBlock: View {
     let meeting: Meeting
     let now: Date
@@ -765,7 +773,7 @@ struct DoneAppIcon: View {
 }
 
 /// Anneau du minuteur : la part restante, depuis midi, dans le sens horaire.
-/// Diamètre 280 et trait 8 en session ; Indigo en concentration, couleur de pause, gris à l'arrêt.
+/// Diamètre 280 et trait 8 en session ; vert en concentration, ocre en pause, gris à l'arrêt.
 struct ProgressRing: View {
     let fraction: Double
     var color: Color = DoneColor.pomodoroFocus
