@@ -14,6 +14,9 @@ struct TodayView: View {
     @State private var editing: TodoTask?
     @State private var meetingRequest: MeetingRequest?
     @State private var showDone = false
+    /// Les listes ont le focus : ↑ ↓ parcourent le plan puis les échéances, Espace coche, ↩ ouvre.
+    @FocusState private var listFocused: Bool
+    @State private var selectedID: String?
     @State private var hovered: String?
     @State private var openedNote: NoteRef?
 
@@ -28,28 +31,57 @@ struct TodayView: View {
                 HStack(alignment: .top, spacing: DoneSpace.s32) {
                     timeline(now: now)
                         .frame(width: 320)
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: DoneSpace.s24) {
-                            planSection(plan)
-                            dueSection(due)
-                            if !done.isEmpty {
-                                doneSection(done)
+                    let order = (plan + due).map(\.id)
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: DoneSpace.s24) {
+                                planSection(plan)
+                                dueSection(due)
+                                if !done.isEmpty {
+                                    doneSection(done)
+                                }
                             }
+                            .padding(.bottom, DoneSpace.s8)
+                            // Une tâche cochée glisse vers « Fait aujourd'hui » au lieu de disparaître d'un coup.
+                            .animation(
+                                DoneMotion.motion(DoneMotion.travel, reduced: reduceMotion),
+                                value: plan.map(\.id) + due.map(\.id) + done.map(\.id)
+                            )
                         }
-                        .padding(.bottom, DoneSpace.s8)
-                        // Une tâche cochée glisse vers « Fait aujourd'hui » au lieu de disparaître d'un coup.
-                        .animation(
-                            DoneMotion.motion(DoneMotion.travel, reduced: reduceMotion),
-                            value: plan.map(\.id) + due.map(\.id) + done.map(\.id)
-                        )
+                        .scrollIndicators(.never)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .focusable()
+                        .focusEffectDisabled()
+                        .focused($listFocused)
+                        .onKeyPress(keys: [.upArrow, .downArrow]) { press in
+                            selectedID = ListSelection.step(selectedID, by: press.key == .upArrow ? -1 : 1, in: order)
+                            if let selectedID { proxy.scrollTo(selectedID) }
+                            return .handled
+                        }
+                        .onKeyPress(.space) {
+                            guard let selectedID, let task = model.store[selectedID] else { return .ignored }
+                            toggle(task)
+                            return .handled
+                        }
+                        .onKeyPress(.return) {
+                            guard let selectedID, let task = model.store[selectedID] else { return .ignored }
+                            editing = task
+                            return .handled
+                        }
+                        .onChange(of: order) { old, new in
+                            selectedID = ListSelection.keep(selectedID, old: old, new: new)
+                        }
+                        .onChange(of: listFocused) {
+                            if listFocused, selectedID == nil { selectedID = order.first }
+                        }
                     }
-                    .scrollIndicators(.never)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 .padding(.top, DoneSpace.s20)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // À l'ouverture, les listes ont le focus : les raccourcis marchent tout de suite.
+        .onAppear { listFocused = true }
         .padding(.horizontal, DoneSpace.s40)
         .padding(.top, DoneSpace.s4)
         .padding(.bottom, DoneSpace.s24)
@@ -75,11 +107,12 @@ struct TodayView: View {
         var parts = [Format.longDay(now).capitalizedFirst, plural(meetings, "réunion")]
         if focus > 0 { parts.append("\(Format.minutes(focus)) de focus") }
         return VStack(alignment: .leading, spacing: DoneSpace.s4) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s16) {
                 Text("Aujourd'hui")
                     .doneText(.displayL)
                     .foregroundStyle(DoneColor.textPrimary)
                 Spacer()
+                ListShortcutHints(canMove: false)
                 Button {
                     openedNote = NoteRef(id: NoteBook.shared.ensureJournal(for: now).id)
                 } label: {
@@ -247,9 +280,13 @@ struct TodayView: View {
         }
         .padding(.horizontal, DoneSpace.s12)
         .frame(minHeight: 48)
-        .background(hovered == task.id ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
+        .background(rowBackground(task.id), in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
         .contentShape(Rectangle())
-        .onTapGesture { editing = task }
+        .onTapGesture {
+            selectedID = task.id
+            listFocused = true
+            editing = task
+        }
         .onHover { inside in
             if inside {
                 hovered = task.id
@@ -260,6 +297,12 @@ struct TodayView: View {
         // Les pétales passent par-dessus les lignes voisines.
         .zIndex(finishing ? 1 : 0)
         .transition(taskRowTransition(reduced: reduceMotion))
+    }
+
+    /// Ligne choisie au clavier en surface.selected, survol en surface.hover.
+    private func rowBackground(_ id: String) -> Color {
+        if listFocused, selectedID == id { return DoneColor.surfaceSelected }
+        return hovered == id ? DoneColor.surfaceHover : Color.clear
     }
 
     /// Cocher laisse une seconde à la ligne pour le montrer ; recliquer pendant ce temps annule.

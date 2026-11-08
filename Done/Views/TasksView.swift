@@ -11,6 +11,9 @@ struct TaskListView: View {
 
     @State private var newTitle = ""
     @FocusState private var addFocused: Bool
+    /// La liste a le focus : ↑ ↓, Espace, ↩ et ⌘↑ ⌘↓ agissent sur la ligne choisie.
+    @FocusState private var listFocused: Bool
+    @State private var selectedID: String?
     @State private var hovered: String?
     @State private var dropTarget: String?
     @State private var showCompleted = false
@@ -57,11 +60,18 @@ struct TaskListView: View {
         let tasks = model.topLevelTasks(in: current)
         let sections = sections(of: tasks)
         let completed = model.completedTasks(in: current, limit: 30)
+        let order = sections.flatMap { $0.rows.map(\.task) }
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: DoneSpace.s4) {
-                Text(model.listName(current))
-                    .doneText(.displayL)
-                    .foregroundStyle(DoneColor.textPrimary)
+                HStack(alignment: .firstTextBaseline, spacing: DoneSpace.s16) {
+                    Text(model.listName(current))
+                        .doneText(.displayL)
+                        .foregroundStyle(DoneColor.textPrimary)
+                    Spacer(minLength: 0)
+                    if !order.isEmpty {
+                        ListShortcutHints()
+                    }
+                }
                 Text(subtitle(count: tasks.count))
                     .doneText(.body)
                     .foregroundStyle(DoneColor.textSecondary)
@@ -72,48 +82,86 @@ struct TaskListView: View {
             }
             addField
                 .padding(.top, DoneSpace.s20)
-            ScrollView {
-                VStack(alignment: .leading, spacing: DoneSpace.s20) {
-                    if tasks.isEmpty && sections.allSatisfy({ $0.subproject == nil }) {
-                        emptyState
-                    } else {
-                        ForEach(sections) { group in
-                            VStack(alignment: .leading, spacing: DoneSpace.s8) {
-                                if let subproject = group.subproject {
-                                    subprojectHeader(subproject, count: group.rows.filter { $0.depth == 0 }.count)
-                                }
-                                if group.rows.isEmpty {
-                                    Text("Aucune tâche ouverte.")
-                                        .doneText(.callout)
-                                        .foregroundStyle(DoneColor.textSecondary)
-                                        .padding(.leading, DoneSpace.s6)
-                                } else {
-                                    VStack(spacing: DoneSpace.s2) {
-                                        ForEach(group.rows) { row in
-                                            taskRow(row.task, depth: row.depth)
-                                        }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: DoneSpace.s20) {
+                        if tasks.isEmpty && sections.allSatisfy({ $0.subproject == nil }) {
+                            emptyState
+                        } else {
+                            ForEach(sections) { group in
+                                VStack(alignment: .leading, spacing: DoneSpace.s8) {
+                                    if let subproject = group.subproject {
+                                        subprojectHeader(subproject, count: group.rows.filter { $0.depth == 0 }.count)
                                     }
-                                    .padding(DoneSpace.s6)
-                                    .doneCard(radius: DoneRadius.lg)
+                                    if group.rows.isEmpty {
+                                        Text("Aucune tâche ouverte.")
+                                            .doneText(.callout)
+                                            .foregroundStyle(DoneColor.textSecondary)
+                                            .padding(.leading, DoneSpace.s6)
+                                    } else {
+                                        VStack(spacing: DoneSpace.s2) {
+                                            ForEach(group.rows) { row in
+                                                taskRow(row.task, depth: row.depth)
+                                            }
+                                        }
+                                        .padding(DoneSpace.s6)
+                                        .doneCard(radius: DoneRadius.lg)
+                                    }
                                 }
                             }
                         }
+                        if !completed.isEmpty {
+                            completedSection(completed)
+                        }
                     }
-                    if !completed.isEmpty {
-                        completedSection(completed)
-                    }
+                    .padding(.top, DoneSpace.s16)
+                    .padding(.bottom, DoneSpace.s4)
+                    // Une tâche cochée glisse hors de la liste au lieu de disparaître d'un coup.
+                    .animation(
+                        DoneMotion.motion(DoneMotion.travel, reduced: reduceMotion),
+                        value: sections.flatMap { $0.rows.map(\.id) } + completed.map(\.id)
+                    )
                 }
-                .padding(.top, DoneSpace.s16)
-                .padding(.bottom, DoneSpace.s4)
-                // Une tâche cochée glisse hors de la liste au lieu de disparaître d'un coup.
-                .animation(
-                    DoneMotion.motion(DoneMotion.travel, reduced: reduceMotion),
-                    value: sections.flatMap { $0.rows.map(\.id) } + completed.map(\.id)
-                )
+                .scrollIndicators(.never)
+                .focusable()
+                .focusEffectDisabled()
+                .focused($listFocused)
+                .onKeyPress(keys: [.upArrow, .downArrow]) { press in
+                    let offset = press.key == .upArrow ? -1 : 1
+                    if press.modifiers.contains(.command) {
+                        guard let selectedID else { return .ignored }
+                        model.shift(selectedID, by: offset)
+                    } else {
+                        selectedID = ListSelection.step(selectedID, by: offset, in: order.map(\.id))
+                    }
+                    if let selectedID { proxy.scrollTo(selectedID) }
+                    return .handled
+                }
+                .onKeyPress(.space) {
+                    guard let task = order.first(where: { $0.id == selectedID }) else { return .ignored }
+                    toggle(task)
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    guard let task = order.first(where: { $0.id == selectedID }) else { return .ignored }
+                    editing = task
+                    return .handled
+                }
+                .onKeyPress(.escape) {
+                    addFocused = true
+                    return .handled
+                }
+                .onChange(of: order.map(\.id)) { old, new in
+                    selectedID = ListSelection.keep(selectedID, old: old, new: new)
+                }
+                .onChange(of: listFocused) {
+                    if listFocused, selectedID == nil { selectedID = order.first?.id }
+                }
             }
-            .scrollIndicators(.never)
         }
         .frame(maxWidth: 820, maxHeight: .infinity, alignment: .topLeading)
+        // À l'ouverture, la liste a le focus : les raccourcis marchent tout de suite.
+        .onAppear { listFocused = true }
         .padding(.horizontal, DoneSpace.s40)
         .padding(.top, DoneSpace.s4)
         .padding(.bottom, DoneSpace.s24)
@@ -160,6 +208,11 @@ struct TaskListView: View {
                 .textFieldStyle(.plain)
                 .focused($addFocused)
                 .onSubmit(addTask)
+                // ↓ depuis le champ : la liste prend la main.
+                .onKeyPress(.downArrow) {
+                    listFocused = true
+                    return .handled
+                }
             Button("Détails…") { showDetails = true }
                 .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
                 .help("Saisir la tâche avec sa priorité, son type, son échéance, ses notes et ses étapes")
@@ -227,13 +280,17 @@ struct TaskListView: View {
         .padding(.leading, DoneSpace.s4 + CGFloat(depth) * 28)
         .padding(.trailing, DoneSpace.s12)
         .frame(minHeight: 48)
-        .background(isHovered ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
+        .background(rowBackground(task.id, hovered: isHovered), in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous)
                 .strokeBorder(DoneColor.focusRing, lineWidth: dropTarget == task.id ? 2 : 0)
         )
         .contentShape(Rectangle())
-        .onTapGesture { editing = task }
+        .onTapGesture {
+            selectedID = task.id
+            listFocused = true
+            editing = task
+        }
         .onHover { inside in setHovered(task.id, inside) }
         .draggable(task.id)
         .dropDestination(for: String.self) { ids, _ in
@@ -247,6 +304,12 @@ struct TaskListView: View {
         // Les pétales passent par-dessus les lignes voisines.
         .zIndex(finishing ? 1 : 0)
         .transition(taskRowTransition(reduced: reduceMotion))
+    }
+
+    /// Ligne choisie au clavier (liste avec le focus) en surface.selected, survol en surface.hover.
+    private func rowBackground(_ id: String, hovered: Bool) -> Color {
+        if listFocused, selectedID == id { return DoneColor.surfaceSelected }
+        return hovered ? DoneColor.surfaceHover : Color.clear
     }
 
     /// Cocher laisse une seconde à la ligne pour le montrer ; recliquer pendant ce temps annule.

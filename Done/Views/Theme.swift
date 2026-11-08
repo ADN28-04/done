@@ -877,6 +877,63 @@ struct PriorityChip: View {
     }
 }
 
+// MARK: Raccourcis
+
+/// Touche dessinée, comme le « ⌘K » d'une recherche : 11 Medium en texte secondaire, sur surface, contour
+/// borderDefault, rayon xs, 18 de haut. Montre un raccourci sans prendre la parole.
+struct KeyCap: View {
+    let key: String
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: DoneRadius.xs, style: .continuous)
+        Text(key)
+            .font(.sans(11, .medium).monospacedDigit())
+            .foregroundStyle(DoneColor.textSecondary)
+            .padding(.horizontal, DoneSpace.s4)
+            .frame(minWidth: 18, minHeight: 18)
+            .background(DoneColor.surfaceDefault, in: shape)
+            .overlay(shape.strokeBorder(DoneColor.borderDefault, lineWidth: 1))
+            .fixedSize()
+    }
+}
+
+/// Un raccourci et ce qu'il fait : des touches dessinées, puis le verbe en caption secondaire.
+struct ShortcutHint: View {
+    let keys: [String]
+    let label: String
+
+    var body: some View {
+        HStack(spacing: DoneSpace.s2) {
+            ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
+                KeyCap(key: key)
+            }
+            Text(label)
+                .doneText(.caption)
+                .foregroundStyle(DoneColor.textSecondary)
+                .padding(.leading, DoneSpace.s4)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Les raccourcis d'une liste de tâches, à droite de son titre.
+struct ListShortcutHints: View {
+    /// ⌘↑ ⌘↓ pour déplacer : dans une liste rangée à la main, pas sur Aujourd'hui.
+    var canMove = true
+
+    var body: some View {
+        HStack(spacing: DoneSpace.s16) {
+            ShortcutHint(keys: ["↑", "↓"], label: "Choisir")
+            ShortcutHint(keys: ["Espace"], label: "Cocher")
+            ShortcutHint(keys: ["↩"], label: "Ouvrir")
+            if canMove {
+                ShortcutHint(keys: ["⌘", "↑", "↓"], label: "Déplacer")
+            }
+        }
+        .help("Raccourcis de la liste, quand elle a le focus : Tab depuis le champ d'ajout, Échap pour y revenir")
+    }
+}
+
 // MARK: Navigation
 
 /// Élément de navigation : hauteur 32, rayon sm, icône 16, compteur en chiffres tabulaires à droite.

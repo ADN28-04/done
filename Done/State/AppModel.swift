@@ -289,6 +289,11 @@ final class AppModel {
         }
     }
 
+    /// Monte ou descend une tâche d'un cran parmi ses sœurs ouvertes (⌘↑, ⌘↓).
+    func shift(_ id: String, by offset: Int) {
+        commit { $0.shift(id, by: offset) }
+    }
+
     /// Place `id` juste avant `target` parmi les tâches de même niveau, ou en fin de liste.
     func move(_ id: String, before target: String?) {
         commit { $0.move(id, before: target) }

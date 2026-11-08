@@ -558,6 +558,19 @@ struct TaskStore: Codable, Equatable {
         }
     }
 
+    /// Monte (-1) ou descend (+1) une tâche d'un cran parmi ses sœurs encore ouvertes : ⌘↑ et ⌘↓.
+    mutating func shift(_ id: String, by offset: Int) {
+        guard let task = self[id], offset != 0 else { return }
+        let open = siblings(parentID: task.parentID, projectID: task.projectID).filter(\.isOpen)
+        guard let index = open.firstIndex(where: { $0.id == id }), open.indices.contains(index + offset) else { return }
+        if offset < 0 {
+            move(id, before: open[index + offset].id)
+        } else {
+            let after = index + offset + 1
+            move(id, before: after < open.count ? open[after].id : nil)
+        }
+    }
+
     /// Tâches de même niveau, ouvertes et terminées, dans l'ordre.
     func siblings(parentID: String?, projectID: String?) -> [TodoTask] {
         tasks
