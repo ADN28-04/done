@@ -70,6 +70,37 @@ final class AppModel {
 
     var rules: Rules { Rules.current }
 
+    /// Ouverture précédente de Done (avant ce lancement), pour la salutation de Ma journée.
+    let previousOpen: Date? = AppModel.recordOpening()
+
+    /// Lit la dernière ouverture enregistrée, puis enregistre celle-ci.
+    nonisolated private static func recordOpening() -> Date? {
+        let defaults = UserDefaults.standard
+        let previous = defaults.object(forKey: SettingsKey.lastOpen) as? Date
+        defaults.set(Date.now, forKey: SettingsKey.lastOpen)
+        return previous
+    }
+
+    /// Mémoire des salutations affichées.
+    var greetingMemory: DayGreeting.Memory {
+        let defaults = UserDefaults.standard
+        return DayGreeting.Memory(
+            day: defaults.string(forKey: SettingsKey.greetingDay),
+            last: defaults.string(forKey: SettingsKey.greetingLast),
+            previous: defaults.string(forKey: SettingsKey.greetingPrevious)
+        )
+    }
+
+    /// Retient la salutation affichée aujourd'hui.
+    func rememberGreeting(_ text: String, on day: Date) {
+        let memory = greetingMemory.recording(text, today: Format.dayKey(day))
+        guard memory != greetingMemory else { return }
+        let defaults = UserDefaults.standard
+        defaults.set(memory.day, forKey: SettingsKey.greetingDay)
+        defaults.set(memory.last, forKey: SettingsKey.greetingLast)
+        defaults.set(memory.previous, forKey: SettingsKey.greetingPrevious)
+    }
+
     // MARK: Lecture
 
     var todayPlan: DayPlan? {

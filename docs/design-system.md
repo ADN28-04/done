@@ -19,7 +19,7 @@ L'esprit : un tableau de bord calme et moderne, où la journée tient sur un seu
 
 - Interface en français, textes courts et directs, sans point d'exclamation. Verbes à l'infinitif sur les boutons : « Lancer le focus », « Capturer », « Découper… ».
 - Le titre d'accueil dit la journée en une phrase de faits : « Bonjour Camille, trois tâches et deux réunions aujourd'hui. » Nombres en lettres jusqu'à dix. Pas de « Bravo », pas de « Super ».
-- La salutation suit le moment de la journée, et sa formule change d'un jour à l'autre (« Bon matin », « Rebonjour », « Belle soirée ») : de la chaleur sans adjectif sur le travail.
+- La salutation, à la manière de Claude, dépend de la situation (congé, retour, deuxième ouverture, plan bouclé), du jour (lundi matin, vendredi, week-end) et du moment (très tôt, matin, midi, après-midi, fin de journée, soir, nuit) : « Salut Adnan, », « Un café d'abord ? », « Deuxième mi-temps. », « Il se fait tard, Adnan. ». Le prénom n'est pas partout. Après un point ou une question, la phrase de faits prend une majuscule. La formule reste la même tout un moment de la journée, et jamais celle de la veille (`DayGreeting`).
 - Casse de phrase partout : « Plan du jour », « Échéances et retards », « Toutes les notes ».
 - Formats : « 1 h 30 », « 45 min », « 14:00 », minuteur « 18:42 », date courte « mar. 3 nov. », dates relatives « Auj. », « Demain », « Hier » (`Format.chipDate`), rang « 1er », « 2e » (`Format.ordinal`).
 - Les textes d'aide donnent un vrai exemple : « Appeler le transporteur demain P2 ».

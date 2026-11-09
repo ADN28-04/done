@@ -1,41 +1,8 @@
 import Foundation
 
-/// Titre d'accueil de Ma journée : une salutation qui suit le moment de la journée, puis une phrase de
-/// faits sur ce qui reste à faire. Nombres en lettres jusqu'à dix, pas de point d'exclamation, pas de
-/// « Bravo ». La formule de salut change d'un jour à l'autre, mais reste la même toute une demi-journée.
+/// Titre d'accueil de Ma journée : une salutation (`DayGreeting`), puis une phrase de faits sur ce qui
+/// reste à faire. Nombres en lettres jusqu'à dix, pas de point d'exclamation, pas de « Bravo ».
 enum DaySummary {
-    /// Moment de la journée, d'après l'heure.
-    enum Moment: Equatable {
-        /// De 5 h à midi.
-        case morning
-        /// De midi à 18 h.
-        case afternoon
-        /// De 18 h à 22 h.
-        case evening
-        /// De 22 h à 5 h.
-        case night
-
-        init(hour: Int) {
-            switch hour {
-            case 5..<12: self = .morning
-            case 12..<18: self = .afternoon
-            case 18..<22: self = .evening
-            default: self = .night
-            }
-        }
-
-        /// Les formules possibles : la première est la plus simple. Chacune se lit devant un prénom
-        /// (« Bon matin Adnan, ») comme seule (« Bon matin, »).
-        var phrases: [String] {
-            switch self {
-            case .morning: ["Bonjour", "Bon matin", "Belle matinée", "Joli matin"]
-            case .afternoon: ["Bon après-midi", "Rebonjour", "Bel après-midi"]
-            case .evening: ["Bonsoir", "Belle soirée", "Bonne fin de journée"]
-            case .night: ["Bonsoir", "Belle nuit"]
-            }
-        }
-    }
-
     /// Ce que dit la phrase : les faits de la journée.
     struct Facts: Equatable {
         /// Jour d'absence : son libellé (« Congé »).
@@ -60,14 +27,11 @@ enum DaySummary {
         return fullName.split(whereSeparator: \.isWhitespace).first.map(String.init)
     }
 
-    /// « Bonjour Adnan, », ou « Bonjour, » sans prénom. La formule dépend du moment et du jour.
-    static func salutation(at date: Date, name: String?, calendar: Calendar = .current) -> String {
-        let moment = Moment(hour: calendar.component(.hour, from: date))
-        let phrases = moment.phrases
-        let day = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
-        let phrase = phrases[day % phrases.count]
-        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? phrase + "," : "\(phrase) \(trimmed),"
+    /// La phrase de faits telle qu'elle suit la salutation : en minuscule après une virgule, avec une
+    /// majuscule après un point ou une question (« Un café d'abord ? Trois tâches… »).
+    static func sentence(_ sentence: String, after salutation: String) -> String {
+        guard let last = salutation.trimmingCharacters(in: .whitespaces).last, last == "." || last == "?" else { return sentence }
+        return sentence.prefix(1).uppercased() + sentence.dropFirst()
     }
 
     /// La phrase de faits, en minuscule après la salutation, avec son point final.

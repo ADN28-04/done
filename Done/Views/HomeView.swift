@@ -152,12 +152,27 @@ struct HomeView: View {
             afternoonFree: calendar.component(.hour, from: now) < 12 && !meetings.contains { $0.end > noon }
         )
         let name = DaySummary.firstName(setting: firstName, fullName: NSFullUserName())
+        let context = DayGreeting.Context(
+            lastOpen: model.previousOpen,
+            absence: model.absence(on: now) != nil,
+            backFromLeave: previousWorkday(before: now).map { model.absence(on: $0) != nil } ?? false,
+            meetings: meetings.count,
+            planFinished: model.isPlanFinished
+        )
+        let salutation = DayGreeting.salutation(
+            at: now,
+            context: context,
+            previous: model.greetingMemory.avoid(today: Format.dayKey(now)),
+            name: name
+        )
         return HStack(alignment: .top, spacing: DoneSpace.s16) {
             Greeting(
                 date: now,
-                salutation: DaySummary.salutation(at: now, name: name),
-                summary: DaySummary.sentence(facts, at: now)
+                salutation: salutation,
+                summary: DaySummary.sentence(DaySummary.sentence(facts, at: now), after: salutation)
             )
+            // Retenue pour ne pas la répéter demain.
+            .task(id: salutation) { model.rememberGreeting(salutation, on: now) }
             Spacer(minLength: DoneSpace.s16)
             HStack(spacing: 10) {
                 GlobalSearchBox(focusRequest: $searchRequested)
@@ -172,6 +187,18 @@ struct HomeView: View {
                 .help("Nouvelle tâche avec tous ses détails (⌘N)")
             }
         }
+    }
+
+    /// Le jour ouvré d'avant : la veille, ou le vendredi un lundi.
+    private func previousWorkday(before date: Date) -> Date? {
+        let calendar = Calendar.current
+        var day = calendar.startOfDay(for: date)
+        for _ in 0..<7 {
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { return nil }
+            day = previous
+            if (2...6).contains(calendar.component(.weekday, from: day)) { return day }
+        }
+        return nil
     }
 
     // MARK: Grille

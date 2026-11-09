@@ -256,7 +256,7 @@ struct SettingsView: View {
         if let name = DaySummary.firstName(setting: "", fullName: NSFullUserName()) {
             return "Pour la salutation de Ma journée. Vide, Done prend celui de ton compte macOS : \(name)."
         }
-        return "Pour la salutation de Ma journée. Vide, elle dit simplement « Bonjour, »."
+        return "Pour la salutation de Ma journée. Vide, elle s'en passe : « Salut, », « Un café d'abord ? »."
     }
 
     private func textRow(_ title: String, text: Binding<String>) -> some View {

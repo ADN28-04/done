@@ -11,7 +11,7 @@ import SwiftUI
 /// deux lignes au plus, 820 de large au plus.
 struct Greeting: View {
     let date: Date
-    /// « Bonjour Adnan, » : `DaySummary.salutation`.
+    /// « Salut Adnan, », « Un café d'abord ? » : `DayGreeting.salutation`.
     let salutation: String
     /// « trois tâches et deux réunions aujourd'hui. » : `DaySummary.sentence`.
     let summary: String
@@ -677,8 +677,11 @@ struct Rail: View {
 #Preview("Salutation") {
     Greeting(
         date: .now,
-        salutation: DaySummary.salutation(at: .now, name: "Camille"),
-        summary: DaySummary.sentence(.init(openTasks: 3, hasPlan: true, meetingsLeft: 2))
+        salutation: DayGreeting.salutation(at: .now, name: "Camille"),
+        summary: DaySummary.sentence(
+            DaySummary.sentence(.init(openTasks: 3, hasPlan: true, meetingsLeft: 2)),
+            after: DayGreeting.salutation(at: .now, name: "Camille")
+        )
     )
     .padding(36)
     .frame(width: 1000)

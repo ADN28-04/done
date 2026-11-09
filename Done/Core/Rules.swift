@@ -28,6 +28,12 @@ enum SettingsKey {
     static let sidebarFoldedProjects = "sidebar.foldedProjects"
     /// Prénom de la salutation de Ma journée ; vide, Done prend celui du compte macOS.
     static let firstName = "home.firstName"
+    /// Dernière ouverture de Done : « Rebonjour », « Content de te revoir ».
+    static let lastOpen = "home.lastOpen"
+    /// Dernières salutations affichées (`DayGreeting.Memory`), pour ne pas répéter celle de la veille.
+    static let greetingDay = "home.greeting.day"
+    static let greetingLast = "home.greeting.last"
+    static let greetingPrevious = "home.greeting.previous"
 }
 
 /// Règles de choix et de durée. Les valeurs par défaut viennent de docs/spec.md.
