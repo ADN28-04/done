@@ -23,6 +23,8 @@ struct HomeView: View {
     @State private var meetingRequest: MeetingRequest?
     @State private var openedNote: NoteRef?
     @State private var planDropTarget = false
+    /// Augmente quand le plan du jour se boucle : l'éclat au bout de sa barre.
+    @State private var planBursts = 0
     /// Créneau cliqué sur la ligne de temps : réunion ou bloc de travail.
     @State private var slotChoice: SlotChoice?
     @State private var blockPick: SlotChoice?
@@ -90,6 +92,9 @@ struct HomeView: View {
                 }
                 .onChange(of: listFocused) {
                     if listFocused, selectedID == nil { selectedID = order.first }
+                }
+                .onChange(of: model.isPlanFinished) { _, finished in
+                    if finished { planBursts += 1 }
                 }
                 HomeCaptureBar()
             }
@@ -335,7 +340,12 @@ struct HomeView: View {
         return WidgetCard(title: "Plan du jour", link: total == 0 ? "Choisir" : "Modifier", onLink: { showPlan = true }) {
             VStack(alignment: .leading, spacing: DoneSpace.s12) {
                 if total > 0 {
+                    // La barre avance à chaque tâche cochée ; quand elle se remplit, un petit éclat à son bout.
                     ProgressBar(fraction: Double(doneTasks.count) / Double(total))
+                        .animation(DoneMotion.motion(DoneMotion.arrive, reduced: reduceMotion), value: doneTasks.count)
+                        .overlay(alignment: .trailing) {
+                            SunBurst(count: planBursts, distance: 18, scale: 0.55)
+                        }
                 }
                 if plan.isEmpty, model.isPlanFinished {
                     NoticeBox(text: "Plan du jour terminé. Tout ce qui était prévu est fait.", tone: .success)

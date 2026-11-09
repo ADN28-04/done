@@ -56,10 +56,10 @@ Newsreader ne descend jamais sous `noteTitle` (17) et ne sert jamais aux nombres
 Le mouvement dit « c'est fait » ; il ne décore pas.
 
 - Ce qui arrive ralentit en se posant (`ease-out`). Ce qui se déplace accélère puis freine (`ease-in-out`). Seules les réussites rebondissent (`ease-spring`), une seule fois.
-- Rien ne bouge sans action de la personne, sauf l'anneau du minuteur et l'heure courante.
-- Avec « Réduire les animations » (macOS), on garde les fondus et on retire échelles, rebonds et éclats.
+- Rien ne bouge sans action de la personne, sauf l'anneau du minuteur, l'heure courante et deux mouvements d'ambiance très lents : les halos qui dérivent et le soleil de la date qui fait un tour à l'ouverture.
+- Avec « Réduire les animations » (macOS), on garde les fondus et on retire échelles, rebonds, éclats et ambiance.
 
-Durées : `dur-instant` (90 ms) pour l'appui, `dur-fast` (160 ms) pour le survol et les coches, `dur-base` (260 ms) pour les puces et les segments, `dur-slow` (420 ms) pour les cartes et les feuilles, `dur-celebrate` (900 ms) pour l'éclat.
+Durées : `dur-instant` (90 ms) pour l'appui, `dur-fast` (160 ms) pour le survol et les coches, `dur-base` (260 ms) pour les puces, les segments et le fondu entre écrans, `dur-slow` (420 ms) pour les cartes et les feuilles, `dur-celebrate` (900 ms) pour l'éclat ; pour l'ambiance, `dur-sun-turn` (4 s) et `dur-halo-drift` (22 et 26 s).
 
 | Token | CSS | SwiftUI |
 | --- | --- | --- |

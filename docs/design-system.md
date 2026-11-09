@@ -119,7 +119,7 @@ Dans le code, `.doneText(.style)` applique la police, l'interlignage et l'interl
 Le mouvement dit « c'est fait » ; il ne décore pas.
 
 - Ce qui arrive ralentit en se posant (ease-out). Ce qui se déplace accélère puis freine (ease-in-out). Seules les réussites rebondissent (ease-spring), et une seule fois.
-- Rien ne bouge sans action de la personne, sauf l'anneau du minuteur et l'heure courante.
+- Rien ne bouge sans action de la personne, sauf l'anneau du minuteur, l'heure courante et deux mouvements d'ambiance très lents, purement cosmétiques : les halos de la toile qui dérivent (hors session, fenêtre au premier plan) et le soleil de la date qui fait un tour à l'ouverture de Ma journée. Maquette validée : `docs/design/mymind/maquettes/ambiance-ma-journee.html`.
 - Avec « Réduire les animations » (macOS), il ne reste que des fondus : pas d'échelle, de rebond ni d'éclat. Chaque vue animée lit `accessibilityReduceMotion` ; `DoneMotion.motion(_:reduced:)` remplace un mouvement par `DoneMotion.fade`.
 
 `DoneMotion` reprend les tokens de durée et de courbe, avec les équivalents SwiftUI de la référence :
@@ -134,6 +134,9 @@ Le mouvement dit « c'est fait » ; il ne décore pas.
 | ease-out, `dur-slow` (420 ms) | `arrive` | `.smooth(duration: 0.42)` | Carte, feuille, fond de la pause |
 | ease-in-out, `dur-slow` | `travel` | `.easeInOut(duration: 0.42)` | Ligne qui quitte sa liste |
 | ease-out, `dur-celebrate` (900 ms) | `burst` | `.easeOut(duration: 0.9)` | Éclat des réussites |
+| ease-out, `dur-base` | `screen` | `.easeOut(duration: 0.26)` | Fondu léger quand on change d'écran (gardé avec « Réduire les animations ») |
+| ease-out, `dur-sun-turn` (4 s, après 0,3 s) | `sunTurn` | `.timingCurve(0.2, 0.8, 0.2, 1, duration: 4)` | Le soleil de la date fait un tour à l'ouverture de Ma journée |
+| `dur-halo-drift` (22 s et 26 s) | `haloDriftWarm`, `haloDriftPink` | `keyframeAnimator`, quatre `CubicKeyframe` | Chaque halo trace une petite ellipse (20 à 30 points, échelle de 1 à 1,07), en contretemps |
 
 Pièces communes, dans `Theme.swift` : `donePress` (appui, et `DonePressStyle` pour la case), `doneArrive` (fondu à l'apparition, avec une montée de 12 pour une carte), `CheckMarkShape` (coche à tracer avec `.trim`), `SunBurst` (halo `accentTint` et huit pétales braise, rose et jaune qui partent une fois chaque fois que son compteur augmente).
 
@@ -141,7 +144,9 @@ Les moments animés :
 
 - **Cocher une tâche** : la case se tasse, rebondit et sa coche se trace ; huit pétales partent ; le titre se barre de gauche à droite ; « Fait » remplace les puces en rebondissant ; une seconde plus tard, la ligne quitte sa liste en glissant vers le bas. Rouvrir ne rejoue rien.
 - **Fin de pomodoro** : la carte monte de 12 et apparaît ; l'anneau se referme ; la coche se trace et l'éclat part ; la pastille du pomodoro qui vient de finir rebondit.
-- **Plan du jour bouclé** : l'encadré de réussite arrive en fondu ; le soleil de Ma journée dans le rail fait un seul éclat.
+- **Plan du jour bouclé** : la barre du plan se remplit (`arrive`) et un petit éclat part de son bout ; l'encadré de réussite arrive en fondu ; le soleil de Ma journée dans le rail fait un seul éclat.
+- **Changer d'écran** : l'écran quitté s'efface pendant que le nouveau apparaît, en fondu léger (`screen`).
+- **Ambiance** : halos en dérive lente et tour du soleil de la date, immobiles avec « Réduire les animations », pendant une session et quand la fenêtre n'est pas au premier plan (halos).
 - **Pause** : le fond passe à `pomodoroBreakBg`, les halos s'effacent et la vue de pause arrive, ensemble, en `dur-slow`.
 - **Sélecteur** : le segment choisi glisse vers la nouvelle option.
 - **Pilules et boutons du rail** : ils se tassent à l'appui ; le survol change le fond en `dur-fast`.
@@ -187,7 +192,7 @@ Les moments animés :
   - `error` : triangle, `stateRiskText` sur `stateRiskTint`.
 - **Carte de note** (`NoteCard`, `NoteViews.swift`) : rayon `md`, marges 16 × 14. `TagPill` du type, titre en `noteTitle`, extrait sur trois lignes (`callout` secondaire, ou `noteMono` en `textPrimary` pour le journal et les notes simples), jusqu'à trois cases cliquables (de 14). Teinte selon le type : Journal `cardBlush` (étiquette `tagYellow`), Réunion `cardSlate` (`stateActiveText`), Personne `cardSage` (`successText`), Référence et page de projet `cardParchment` (`textSecondary`), Note (`accentText`) et Décision (`tagPink`) sur `surfaceDefault` avec un liseré. La tuile « Nouvelle note… » (`NewNoteTile`) est en pointillé `stateWaiting`.
 - **Mosaïque** (`MasonryLayout`) : chaque carte dans la colonne la plus courte, écart de 10 ; quatre colonnes au plus dans l'écran Notes (220 de large au moins), deux dans Ma journée.
-- **Toile** (`DoneCanvas`) : `bgCanvas` et les deux halos en dégradé radial (`haloWarm` centré à 210 du bord droit et 30 sous le haut, `haloPink` à 190 du bord gauche et 110 sous le bas). Pendant la pause, `pomodoroBreakBg`, sans halos.
+- **Toile** (`DoneCanvas`) : `bgCanvas` et les deux halos en dégradé radial (`haloWarm` centré à 210 du bord droit et 30 sous le haut, `haloPink` à 190 du bord gauche et 110 sous le bas), qui dérivent lentement hors session (`drifts`). Pendant la pause, `pomodoroBreakBg`, sans halos.
 
 ### Listes et lignes
 

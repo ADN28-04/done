@@ -200,7 +200,7 @@ struct RootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             // La lumière change en dur-slow, en même temps que l'anneau de la pause arrive.
-            DoneCanvas(isOnBreak: isOnBreak)
+            DoneCanvas(isOnBreak: isOnBreak, drifts: engine.phase == .idle)
         }
     }
 
@@ -209,8 +209,16 @@ struct RootView: View {
         screen == .home && engine.phase == .onBreak
     }
 
-    @ViewBuilder
+    /// L'écran choisi. Changer d'écran se fait en fondu léger (`DoneMotion.screen`), gardé avec
+    /// « Réduire les animations » : c'est un fondu.
     private var detail: some View {
+        Group { screenContent }
+            .transition(.opacity)
+            .animation(DoneMotion.screen, value: railSelection)
+    }
+
+    @ViewBuilder
+    private var screenContent: some View {
         switch screen {
         case .home:
             if engine.phase == .idle {

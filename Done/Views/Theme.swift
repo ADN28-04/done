@@ -185,6 +185,18 @@ enum DoneMotion {
     static let burst = Animation.easeOut(duration: celebrate)
     /// Ce qui reste d'un mouvement avec « Réduire les animations » : un fondu court.
     static let fade = Animation.easeOut(duration: fast)
+    /// ease-out, dur-base : le fondu léger quand on change d'écran (un fondu, gardé avec « Réduire les animations »).
+    static let screen = Animation.easeOut(duration: base)
+
+    // Ambiance : les seuls mouvements sans geste de la personne, avec l'anneau du minuteur et l'heure
+    // courante. Coupés par « Réduire les animations ».
+    /// dur-sun-turn : le soleil de la date fait un tour à l'ouverture de Ma journée.
+    static let sunTurnDuration: Double = 4
+    /// ease-out, dur-sun-turn, après 0,3 s.
+    static let sunTurn = Animation.timingCurve(0.2, 0.8, 0.2, 1, duration: sunTurnDuration).delay(0.3)
+    /// dur-halo-drift : chaque halo de la toile trace une petite ellipse, en contretemps.
+    static let haloDriftWarm: Double = 22
+    static let haloDriftPink: Double = 26
 
     /// L'animation demandée, ou un simple fondu si la personne a choisi de réduire les animations.
     static func motion(_ animation: Animation, reduced: Bool) -> Animation {
@@ -532,28 +544,39 @@ extension View {
 /// pause, le fond passe en pomodoroBreakBg et les halos s'effacent, en dur-slow.
 struct DoneCanvas: View {
     var isOnBreak = false
+    /// Les halos dérivent lentement, hors session : chacun trace une petite ellipse de 20 à 30 points,
+    /// en 22 et 26 s, en contretemps. Seulement quand la fenêtre est au premier plan, et jamais avec
+    /// « Réduire les animations ».
+    var drifts = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.controlActiveState) private var activeState
 
     var body: some View {
         GeometryReader { proxy in
             let width = max(proxy.size.width, 1)
             let height = max(proxy.size.height, 1)
+            let warmCenter = UnitPoint(x: (width - 210) / width, y: 30 / height)
+            let pinkCenter = UnitPoint(x: 190 / width, y: (height + 110) / height)
+            let moving = drifts && !reduceMotion && activeState != .inactive
             ZStack {
                 isOnBreak ? DoneColor.pomodoroBreakBg : DoneColor.bgCanvas
                 ZStack {
                     // Halo chaud : centré à 210 du bord droit et 30 sous le haut, effacé à 377.
                     RadialGradient(
                         colors: [DoneColor.haloWarm, DoneColor.haloWarm.opacity(0)],
-                        center: UnitPoint(x: (width - 210) / width, y: 30 / height),
+                        center: warmCenter,
                         startRadius: 0,
                         endRadius: 377
                     )
+                    .modifier(HaloDrift(orbit: .warm, anchor: warmCenter, isMoving: moving))
                     // Halo rose : centré à 190 du bord gauche et 110 sous le bas, effacé à 414.
                     RadialGradient(
                         colors: [DoneColor.haloPink, DoneColor.haloPink.opacity(0)],
-                        center: UnitPoint(x: 190 / width, y: (height + 110) / height),
+                        center: pinkCenter,
                         startRadius: 0,
                         endRadius: 414
                     )
+                    .modifier(HaloDrift(orbit: .pink, anchor: pinkCenter, isMoving: moving))
                 }
                 .opacity(isOnBreak ? 0 : 1)
             }
@@ -561,6 +584,63 @@ struct DoneCanvas: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+/// Dérive d'un halo : quatre étapes d'une petite ellipse (décalage et taille), reprises de la maquette
+/// `docs/design/mymind/maquettes/ambiance-ma-journee.html`, puis retour au départ.
+private struct HaloDrift: ViewModifier {
+    struct Step {
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var scale: CGFloat = 1
+    }
+
+    struct Orbit {
+        let duration: Double
+        /// Départ (0 %), puis 25, 50 et 75 % du tour.
+        let steps: [Step]
+
+        static let warm = Orbit(duration: DoneMotion.haloDriftWarm, steps: [
+            Step(), Step(x: -22, y: 14, scale: 1.04), Step(x: -8, y: 28, scale: 1.07), Step(x: 14, y: 10, scale: 1.03),
+        ])
+        static let pink = Orbit(duration: DoneMotion.haloDriftPink, steps: [
+            Step(scale: 1.03), Step(x: 18, y: -12), Step(x: 30, y: -4, scale: 1.06), Step(x: 8, y: -18, scale: 1.02),
+        ])
+    }
+
+    let orbit: Orbit
+    let anchor: UnitPoint
+    let isMoving: Bool
+
+    func body(content: Content) -> some View {
+        let steps = orbit.steps
+        let quarter = orbit.duration / 4
+        let anchor = anchor
+        content.keyframeAnimator(initialValue: steps[0], repeating: isMoving) { halo, step in
+            halo
+                .scaleEffect(step.scale, anchor: anchor)
+                .offset(x: step.x, y: step.y)
+        } keyframes: { _ in
+            KeyframeTrack(\.x) {
+                CubicKeyframe(steps[1].x, duration: quarter)
+                CubicKeyframe(steps[2].x, duration: quarter)
+                CubicKeyframe(steps[3].x, duration: quarter)
+                CubicKeyframe(steps[0].x, duration: quarter)
+            }
+            KeyframeTrack(\.y) {
+                CubicKeyframe(steps[1].y, duration: quarter)
+                CubicKeyframe(steps[2].y, duration: quarter)
+                CubicKeyframe(steps[3].y, duration: quarter)
+                CubicKeyframe(steps[0].y, duration: quarter)
+            }
+            KeyframeTrack(\.scale) {
+                CubicKeyframe(steps[1].scale, duration: quarter)
+                CubicKeyframe(steps[2].scale, duration: quarter)
+                CubicKeyframe(steps[3].scale, duration: quarter)
+                CubicKeyframe(steps[0].scale, duration: quarter)
+            }
+        }
     }
 }
 

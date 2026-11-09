@@ -15,6 +15,9 @@ struct Greeting: View {
     let salutation: String
     /// « trois tâches et deux réunions aujourd'hui. » : `DaySummary.sentence`.
     let summary: String
+    /// Tours du soleil de la date : un de plus à chaque ouverture de Ma journée.
+    @State private var sunTurns = 0.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let style = DoneTextStyle.displayXL
@@ -23,6 +26,12 @@ struct Greeting: View {
                 Image(systemName: "sun.max")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(DoneColor.accent)
+                    // À l'ouverture, le soleil fait un tour lent (dur-sun-turn). Immobile avec « Réduire les animations ».
+                    .rotationEffect(.degrees(sunTurns * 360))
+                    .onAppear {
+                        guard !reduceMotion else { return }
+                        withAnimation(DoneMotion.sunTurn) { sunTurns += 1 }
+                    }
                 Text("\(Self.capitalized(Format.longDay(date))) · semaine \(Calendar(identifier: .iso8601).component(.weekOfYear, from: date))")
                     .font(.sans(13, .semibold))
                     .foregroundStyle(DoneColor.textSecondary)
