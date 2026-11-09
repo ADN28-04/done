@@ -16,3 +16,7 @@ Aperçus HTML interactifs, validés avant d'être codés en SwiftUI. Ouvrir un f
 - `ambiance-ma-journee.html` : animations d'ambiance de Ma journée. Retenues : les halos en dérive lente
   (une petite ellipse en 22 et 26 secondes, en contretemps) et le soleil de la date qui fait un tour en 4 s
   à l'ouverture. Immobiles avec « Réduire les animations ».
+- `panneau-barre-de-menus.html` : panneau de la barre de menus, en clair et en sombre, dans ses neuf états
+  (prochaine action, bloc en cours, concentration, dernière minute, en pause, pause café, fin de pomodoro,
+  pas de plan, plan bouclé). Retenu tel quel, avec « Lancer le focus » et la fin de pomodoro dans le panneau,
+  et « Choisir le plan » qui ouvre Done sur le Plan du jour.

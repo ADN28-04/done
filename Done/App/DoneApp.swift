@@ -73,6 +73,8 @@ struct DoneApp: App {
                 .font(.done(.body))
                 .foregroundStyle(DoneColor.textPrimary)
                 .tint(DoneColor.stateActive)
+                // Pomodoros et focus du jour, sur la ligne « Aujourd'hui ».
+                .modelContainer(container)
         } label: {
             MenuBarLabel(engine: engine, model: model)
         }

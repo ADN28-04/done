@@ -153,6 +153,18 @@ final class AppModel {
     }
 
     /// Où la tâche est rangée : son projet, sinon sa première étiquette, sinon l'Inbox.
+    /// Sous une action proposée : sa liste pour une tâche seule, sinon « Tâche · étape 2 sur 4 ».
+    func actionContext(_ action: TodoTask, root: TodoTask) -> String {
+        guard action.id != root.id else { return listName(for: root) }
+        let steps = store.tasks
+            .filter { $0.parentID == action.parentID }
+            .sorted { $0.position < $1.position }
+        if let index = steps.firstIndex(where: { $0.id == action.id }), action.parentID == root.id {
+            return "\(root.title) · étape \(index + 1) sur \(steps.count)"
+        }
+        return root.title
+    }
+
     func listName(for task: TodoTask) -> String {
         if project(task.projectID) != nil { return projectName(task.projectID) }
         return task.tags.first ?? "Inbox"
@@ -490,6 +502,14 @@ final class AppModel {
 
     /// « Lancer le pomodoro » depuis le rappel quand rien n'est lancé : `RootView` démarre la prochaine action.
     var startNextRequest: UUID?
+
+    /// « Choisir le plan » depuis la barre de menus : `RootView` ouvre Ma journée, qui ouvre le Plan du
+    /// jour et remet la demande à faux.
+    var planRequested = false
+
+    func requestPlan() {
+        planRequested = true
+    }
 
     func requestStartNext() {
         startNextRequest = UUID()

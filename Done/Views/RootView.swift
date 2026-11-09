@@ -79,6 +79,10 @@ struct RootView: View {
             model.workBlockRequest = nil
             handle(request)
         }
+        // Barre de menus : « Choisir le plan » ouvre Ma journée, qui ouvre le Plan du jour.
+        .onChange(of: model.planRequested) { _, requested in
+            if requested { open(.home) }
+        }
         // Rappel quand rien n'est lancé : « Lancer le pomodoro » part sur la prochaine action du plan.
         .onChange(of: model.startNextRequest) { _, request in
             guard request != nil else { return }
@@ -159,15 +163,9 @@ struct RootView: View {
     /// action faisable, Ma journée s'ouvre seulement : sa carte dit quoi faire.
     private func startNextAction() {
         open(.home)
-        guard engine.phase == .idle else { return }
         let now = Date.now
-        let suggestion = Planner.suggest(plan: model.planIDs, index: model.index, meetings: model.meetingsToday, rules: model.rules, now: now)
-        guard suggestion.status == .ready, let action = suggestion.action, let root = suggestion.planTask else { return }
-        if engine.needsBreak(before: root, now: now), let pause = engine.breakDue?.remainingMinutes(now: now) {
-            engine.takeBreak(minutes: pause, mandatory: true)
-        } else {
-            engine.start(action: action, root: root, minutes: suggestion.minutes)
-        }
+        let proposal = WorkBlockPlan.propose(store: model.store, index: model.index, plan: model.planIDs, meetings: model.meetingsToday, rules: model.rules, now: now)
+        engine.start(proposal.suggestion, now: now)
     }
 
     private func open(_ target: Screen) {

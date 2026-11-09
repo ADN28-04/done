@@ -1,0 +1,566 @@
+<title>Panneau de la barre de menus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=Oswald:wght@600&display=swap">
+<style>
+/* Mise en page : en haut, les réglages de l'aperçu ; dessous, deux bureaux côte à côte (clair, sombre),
+   chacun avec sa barre de menus et le panneau de Done qui en descend ; puis les notes.
+   Couleurs et polices : les rôles du design system Mymind de Done (tokens.json). Le bureau et la page
+   suivent le thème du lecteur ; chaque panneau garde le sien (classes .light et .dark). */
+:root {
+  --page: #F1F3F7;
+  --pageText: #24272D;
+  --pageMuted: #5D6575;
+  --pageCard: #FFFFFF;
+  --pageLine: #E6E8EE;
+  --pageSelected: #E5EAF2;
+  --focusRing: #1573DD;
+
+  --bgCanvas: #F9FAFC;
+  --surface: #FFFFFF;
+  --bgSunken: #F1F3F7;
+  --borderSubtle: #E6E8EE;
+  --borderDefault: #D6DAE2;
+  --textPrimary: #24272D;
+  --textSecondary: #5D6575;
+  --textDisabled: #AFB5C1;
+  --surfaceSelected: #E5EAF2;
+  --actionPrimary: #24272D;
+  --onPrimary: #FFFFFF;
+  --accent: #FF5924;
+  --accentTint: #FFECE4;
+  --accentText: #B33A0C;
+  --stateActiveTint: #E7F0FC;
+  --stateActiveText: #0F5BB5;
+  --successTint: #E4EFDC;
+  --successText: #2D6B33;
+  --pomodoroFocus: #F4511F;
+  --pomodoroBreak: #1573DD;
+  --pomodoroBreakBg: #EEF4FC;
+  --pomodoroTrack: #E6E8EE;
+  --pomodoroPaused: #AFB5C1;
+  --meetingHatch: rgba(93, 101, 117, 0.22);
+  --haloWarm: rgba(255, 89, 36, 0.16);
+  --haloPink: rgba(240, 120, 160, 0.14);
+  --shadowCard: 0 1px 2px rgba(36, 39, 45, 0.05), 0 10px 30px rgba(36, 39, 45, 0.06);
+  --shadowPanel: 0 2px 6px rgba(36, 39, 45, 0.08), 0 22px 50px rgba(36, 39, 45, 0.18);
+  --wallA: #C9D3E2;
+  --wallB: #E8D9D2;
+  --menubar: rgba(255, 255, 255, 0.62);
+  --menubarText: #1D1F23;
+
+  --display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --sans: "Nunito Sans", "Avenir Next", system-ui, sans-serif;
+  --timer: "Oswald", "Avenir Next Condensed", Impact, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0B0C0E; --pageText: #EEF0F4; --pageMuted: #A3A9B6; --pageCard: #18191C; --pageLine: #2A2C31; --pageSelected: #232A36; --focusRing: #5AA2F0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0B0C0E; --pageText: #EEF0F4; --pageMuted: #A3A9B6; --pageCard: #18191C; --pageLine: #2A2C31; --pageSelected: #232A36; --focusRing: #5AA2F0;
+  color-scheme: dark;
+}
+/* Chaque bureau garde son thème, quel que soit celui du lecteur. */
+.light {
+  --bgCanvas: #F9FAFC; --surface: #FFFFFF; --bgSunken: #F1F3F7; --borderSubtle: #E6E8EE; --borderDefault: #D6DAE2;
+  --textPrimary: #24272D; --textSecondary: #5D6575; --textDisabled: #AFB5C1; --surfaceSelected: #E5EAF2;
+  --actionPrimary: #24272D; --onPrimary: #FFFFFF; --accent: #FF5924; --accentTint: #FFECE4; --accentText: #B33A0C;
+  --stateActiveTint: #E7F0FC; --stateActiveText: #0F5BB5; --successTint: #E4EFDC; --successText: #2D6B33;
+  --pomodoroFocus: #F4511F; --pomodoroBreak: #1573DD; --pomodoroBreakBg: #EEF4FC; --pomodoroTrack: #E6E8EE; --pomodoroPaused: #AFB5C1;
+  --meetingHatch: rgba(93, 101, 117, 0.22); --haloWarm: rgba(255, 89, 36, 0.16); --haloPink: rgba(240, 120, 160, 0.14);
+  --shadowCard: 0 1px 2px rgba(36, 39, 45, 0.05), 0 10px 30px rgba(36, 39, 45, 0.06);
+  --shadowPanel: 0 2px 6px rgba(36, 39, 45, 0.08), 0 22px 50px rgba(36, 39, 45, 0.18);
+  --wallA: #C9D3E2; --wallB: #E8D9D2; --menubar: rgba(255, 255, 255, 0.62); --menubarText: #1D1F23;
+  --focusRing: #1573DD;
+  color-scheme: light;
+}
+.dark {
+  --bgCanvas: #0F1012; --surface: #18191C; --bgSunken: #0B0C0E; --borderSubtle: #2A2C31; --borderDefault: #383B42;
+  --textPrimary: #EEF0F4; --textSecondary: #A3A9B6; --textDisabled: #4F5560; --surfaceSelected: #232A36;
+  --actionPrimary: #EEF0F4; --onPrimary: #15171A; --accent: #FF6A3D; --accentTint: #3A1D14; --accentText: #FF9B77;
+  --stateActiveTint: #16243A; --stateActiveText: #91C2F7; --successTint: #1B2B1D; --successText: #9FD6A5;
+  --pomodoroFocus: #FF6A3D; --pomodoroBreak: #5AA2F0; --pomodoroBreakBg: #101A27; --pomodoroTrack: #2A2C31; --pomodoroPaused: #4F5560;
+  --meetingHatch: rgba(163, 169, 182, 0.18); --haloWarm: rgba(255, 106, 61, 0.10); --haloPink: rgba(240, 120, 160, 0.08);
+  --shadowCard: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
+  --shadowPanel: 0 2px 6px rgba(0, 0, 0, 0.5), 0 22px 50px rgba(0, 0, 0, 0.55);
+  --wallA: #1B2230; --wallB: #2B1F22; --menubar: rgba(22, 23, 26, 0.72); --menubarText: #EEF0F4;
+  --focusRing: #5AA2F0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--page);
+  color: var(--pageText);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 20px;
+}
+h1 { margin: 0; font: 500 32px/38px var(--display); letter-spacing: -0.015em; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--pageMuted); max-width: 66ch; }
+
+/* Réglages de l'aperçu : pilules, comme dans Done. */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+.group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.group-label { font: 700 12px/16px var(--sans); color: var(--pageMuted); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 18px; background: var(--pageCard); border: 1px solid var(--pageLine); }
+.seg button {
+  font: 600 13px/26px var(--sans); color: var(--pageMuted);
+  border: 0; background: transparent; height: 26px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { color: var(--pageText); background: var(--pageSelected); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--focusRing); outline-offset: 2px; }
+
+/* Les deux bureaux. */
+.desks { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.desk {
+  position: relative; border-radius: 14px; overflow: hidden; min-height: 640px;
+  background: linear-gradient(150deg, var(--wallA), var(--wallB));
+  border: 1px solid var(--pageLine);
+}
+.desk-name { position: absolute; left: 14px; bottom: 12px; font: 700 12px/16px var(--sans); color: var(--menubarText); opacity: .7; }
+
+/* Barre de menus : à droite, l'élément de Done (choisi), puis des éléments du système, neutres. */
+.menubar {
+  height: 26px; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 12px;
+  background: var(--menubar); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  color: var(--menubarText); font: 600 13px/26px var(--sans);
+}
+.mb-item { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; border-radius: 5px; font-variant-numeric: tabular-nums; }
+.mb-item.done { background: color-mix(in srgb, var(--menubarText) 14%, transparent); }
+.mb-item svg { width: 16px; height: 16px; display: block; }
+.mb-dots { display: inline-flex; gap: 12px; opacity: .55; }
+.mb-dots i { width: 14px; height: 10px; border-radius: 3px; border: 1.5px solid currentColor; display: block; }
+
+/* Le panneau : 320 de large, sur la toile, un halo chaud discret en haut à droite. */
+.panel {
+  position: absolute; top: 32px; right: 64px; width: 320px; max-width: calc(100% - 24px);
+  background: var(--bgCanvas); color: var(--textPrimary);
+  border: 1px solid var(--borderSubtle); border-radius: 14px; box-shadow: var(--shadowPanel);
+  overflow: hidden; isolation: isolate;
+}
+.panel::before {
+  content: ""; position: absolute; z-index: -1; width: 360px; height: 360px; right: -170px; top: -210px; border-radius: 50%;
+  background: radial-gradient(circle, var(--haloWarm), transparent 65%);
+}
+.panel::after {
+  content: ""; position: absolute; z-index: -1; width: 380px; height: 380px; left: -200px; bottom: -260px; border-radius: 50%;
+  background: radial-gradient(circle, var(--haloPink), transparent 65%);
+}
+.panel-inner { display: grid; gap: 14px; padding: 14px 16px 10px; }
+
+.dateline { display: flex; align-items: center; gap: 6px; font: 600 12px/16px var(--sans); color: var(--textSecondary); }
+.dateline svg { width: 13px; height: 13px; color: var(--accent); flex: none; }
+
+/* Capture : pilule de 40 sur surface, comme la barre de saisie de Ma journée, en plus court. */
+.capture { display: grid; gap: 8px; }
+.capture-field {
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 14px;
+  background: var(--surface); border: 1px solid var(--borderSubtle); border-radius: 999px; box-shadow: var(--shadowCard);
+}
+.capture-field:focus-within { border-color: var(--focusRing); box-shadow: 0 0 0 1px var(--focusRing), var(--shadowCard); }
+.capture-field .plus { color: var(--textSecondary); font: 400 20px/20px var(--sans); }
+.capture-field input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--textPrimary);
+  font: 400 14px/20px var(--sans);
+}
+.capture-field input::placeholder { color: var(--textSecondary); }
+.send { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--actionPrimary); color: var(--onPrimary); display: grid; place-items: center; cursor: pointer; flex: none; }
+.send svg { width: 14px; height: 14px; }
+.capture-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; padding: 0 4px 0 14px; }
+.menu-link { font: 400 13px/18px var(--sans); color: var(--textSecondary); border: 0; background: none; padding: 0; cursor: pointer; }
+.menu-link b { font-weight: 600; color: var(--textPrimary); }
+.plain { font: 600 13px/18px var(--sans); color: var(--textSecondary); border: 0; background: none; padding: 4px 8px; border-radius: 999px; cursor: pointer; }
+.plain:hover { color: var(--textPrimary); background: var(--surfaceSelected); }
+.added { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--successTint); color: var(--successText); font: 600 12px/16px var(--sans); }
+.added svg { width: 10px; height: 10px; }
+
+/* Carte de l'état : comme une carte widget, en plus serré (rayon md, marges 16). */
+.card {
+  background: var(--surface); border: 1px solid var(--borderSubtle); border-radius: 18px; box-shadow: var(--shadowCard);
+  padding: 14px 16px 16px; display: grid; gap: 10px;
+}
+.card.break { background: var(--pomodoroBreakBg); }
+.card-head { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.eyebrow { font: 700 12px/16px var(--sans); color: var(--textSecondary); }
+.chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: 999px; font: 600 12px/16px var(--sans); white-space: nowrap; }
+.chip.accent { background: var(--accentTint); color: var(--accentText); }
+.chip.accent::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.chip.info { color: var(--stateActiveText); background: var(--stateActiveTint); }
+.action-title { margin: 0; font: 500 22px/28px var(--display); letter-spacing: -0.01em; text-wrap: balance; }
+.small-title { margin: 0; font: 600 14px/20px var(--sans); }
+.context { font: 400 12px/16px var(--sans); color: var(--textSecondary); }
+.infos { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font: 600 12px/16px var(--sans); color: var(--textSecondary); }
+.infos span { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.infos svg { width: 11px; height: 11px; }
+.prio { color: var(--stateActiveText); background: var(--stateActiveTint); padding: 0 7px; height: 20px; border-radius: 999px; }
+.meeting { display: flex; align-items: center; gap: 8px; font: 400 12px/16px var(--sans); color: var(--textSecondary); }
+.meeting i {
+  width: 12px; height: 12px; border-radius: 3px; flex: none; border: 1px solid var(--borderDefault);
+  background: repeating-linear-gradient(-45deg, var(--meetingHatch) 0 1.5px, transparent 1.5px 4px);
+}
+
+.btn {
+  font: 600 14px/20px var(--sans); height: 34px; padding: 0 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--borderDefault); background: var(--surface); color: var(--textPrimary);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
+}
+.btn.primary { background: var(--actionPrimary); color: var(--onPrimary); border-color: transparent; }
+.btn.full { width: 100%; }
+.btn .kbd { font: 600 12px/16px var(--sans); opacity: .6; }
+.row { display: flex; gap: 8px; }
+.row .btn { flex: 1; padding: 0 10px; }
+
+/* Minuteur, en petit : les chiffres du minuteur de session (Oswald SemiBold, cases fixes) et sa règle. */
+.timer { display: grid; gap: 8px; }
+.digits { font: 600 60px/60px var(--timer); color: var(--textPrimary); height: 60px; display: flex; }
+.digits .d { display: inline-block; width: 0.503em; text-align: center; }
+.digits .c { display: inline-block; width: 0.251em; text-align: center; }
+.digits.paused { color: var(--textSecondary); animation: blink 2.4s ease-in-out infinite; }
+.ruler { position: relative; height: 34px; }
+.r-track { position: absolute; left: 0; right: 0; top: 0; height: 8px; border-radius: 4px; background: var(--pomodoroTrack); }
+.r-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; transition: width 1s linear, background-color .42s ease-out; }
+.r-glow { position: absolute; left: 0; top: -4px; bottom: -4px; border-radius: 8px; opacity: 0; }
+.r-glow.on { opacity: .6; animation: glow 1.6s ease-in-out infinite alternate; }
+.r-tick { position: absolute; top: 13px; width: 1.5px; height: 7px; margin-left: -0.75px; border-radius: 1px; background: var(--textSecondary); }
+.r-label { position: absolute; top: 21px; transform: translateX(-50%); font: 600 11px/13px var(--sans); color: var(--textSecondary); font-variant-numeric: tabular-nums; }
+.r-label.first { transform: none; }
+.r-label.last { transform: translateX(-100%); }
+.timer-sub { font: 700 12px/16px var(--sans); color: var(--textSecondary); }
+@keyframes glow { from { opacity: .35; } to { opacity: .9; } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* Fin de pomodoro : anneau refermé avec la coche, série du jour. */
+.done-head { display: flex; align-items: center; gap: 12px; }
+.ring { width: 40px; height: 40px; flex: none; }
+.series { display: flex; align-items: center; gap: 5px; }
+.series i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: block; }
+.series i.next { background: transparent; border: 1.5px solid var(--borderDefault); }
+.series span { margin-left: 4px; font: 600 12px/16px var(--sans); color: var(--accentText); }
+.sun-big { width: 26px; height: 26px; color: var(--accent); flex: none; }
+
+/* Aujourd'hui : le plan et le focus du jour, en une ligne et une barre. */
+.today { display: grid; gap: 8px; padding: 0 2px; }
+.today-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.today-row .eyebrow { color: var(--textSecondary); }
+.today-figures { display: flex; align-items: center; gap: 10px; font: 600 12px/16px var(--sans); color: var(--textSecondary); font-variant-numeric: tabular-nums; }
+.dots { display: inline-flex; gap: 3px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: block; }
+.planbar { position: relative; height: 6px; border-radius: 3px; background: var(--pomodoroTrack); }
+.planbar b { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--textPrimary); opacity: .85; }
+.planbar.full b { background: var(--accent); opacity: 1; }
+
+.foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--borderSubtle); padding: 6px 8px 8px; }
+.foot .plain { display: inline-flex; gap: 6px; align-items: center; }
+.foot .plain .kbd { opacity: .6; }
+
+/* Notes sous les bureaux. */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.note { background: var(--pageCard); border: 1px solid var(--pageLine); border-radius: 16px; padding: 14px 16px; min-width: 0; }
+.note h2 { margin: 0 0 4px; font: 700 13px/18px var(--sans); }
+.note p, .note li { margin: 0; color: var(--pageMuted); font-size: 13px; line-height: 18px; }
+.note ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+@media (max-width: 480px) {
+  .panel { right: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .digits.paused, .r-glow.on { animation: none; }
+  .r-fill { transition: none; }
+}
+</style>
+
+<main class="page">
+  <header>
+    <h1>Panneau de la barre de menus</h1>
+    <p class="lede">Le panneau qui s'ouvre au clic sur Done, en haut de l'écran, au style Mymind. La capture reste en haut ; dessous, une carte dit ce qu'il y a à faire maintenant (prochaine action, bloc en cours, session, pause), puis la journée en une ligne. Choisis un état : les deux panneaux, clair et sombre, suivent. Le champ de saisie fonctionne : tape une tâche puis Entrée.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Réglages de l'aperçu">
+    <div class="group">
+      <span class="group-label" id="state-label">État</span>
+      <div class="seg" role="group" aria-labelledby="state-label" id="states">
+        <button type="button" id="s-idle" data-value="idle" aria-pressed="true">Prochaine action</button>
+        <button type="button" id="s-block" data-value="block" aria-pressed="false">Bloc en cours</button>
+        <button type="button" id="s-focus" data-value="focus" aria-pressed="false">Concentration</button>
+        <button type="button" id="s-last" data-value="last" aria-pressed="false">Dernière minute</button>
+        <button type="button" id="s-paused" data-value="paused" aria-pressed="false">En pause</button>
+        <button type="button" id="s-break" data-value="break" aria-pressed="false">Pause café</button>
+        <button type="button" id="s-outcome" data-value="outcome" aria-pressed="false">Fin de pomodoro</button>
+        <button type="button" id="s-noplan" data-value="noplan" aria-pressed="false">Pas de plan</button>
+        <button type="button" id="s-finished" data-value="finished" aria-pressed="false">Plan bouclé</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="desks" aria-label="Aperçu en clair et en sombre">
+    <div class="desk light" data-desk>
+      <div class="menubar" aria-hidden="true"><span class="mb-item done" data-mb></span><span class="mb-dots"><i></i><i></i><i></i></span><span>lun. 9 nov.  10:20</span></div>
+      <div class="panel" data-panel></div>
+      <span class="desk-name">Clair</span>
+    </div>
+    <div class="desk dark" data-desk>
+      <div class="menubar" aria-hidden="true"><span class="mb-item done" data-mb></span><span class="mb-dots"><i></i><i></i><i></i></span><span>lun. 9 nov.  10:20</span></div>
+      <div class="panel" data-panel></div>
+      <span class="desk-name">Sombre</span>
+    </div>
+  </section>
+
+  <section class="notes" aria-label="Ce qui change">
+    <div class="note">
+      <h2>Ce qui reste</h2>
+      <ul>
+        <li>La capture en haut, le curseur dedans à l'ouverture, Entrée ajoute et le champ reste prêt.</li>
+        <li>« Dans : Inbox » et « Détails… » pour la saisie complète.</li>
+        <li>Ouvrir Done (⌘O) et Quitter (⌘Q), en bas.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>Ce qui change</h2>
+      <ul>
+        <li>La capture devient une pilule, comme la barre de saisie de Ma journée.</li>
+        <li>Une carte d'état : la prochaine action ou le bloc en cours au repos, le minuteur en session, avec les grands chiffres et la règle de l'écran de session en petit.</li>
+        <li>Une ligne « Aujourd'hui » : pomodoros du jour, focus et avancée du plan.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>Nouveau, à valider</h2>
+      <ul>
+        <li>« Lancer le focus » depuis le panneau, sans ouvrir Done. La session démarre et Done reste en arrière-plan.</li>
+        <li>En fin de pomodoro, « Cocher la tâche », « Encore 5 min » ou « Pause » directement. Le reste (Bloqué, Arrêter là) reste dans Done.</li>
+        <li>La prochaine réunion sous la carte, quand elle tombe dans l'heure.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var state = 'idle';
+  var focusTotal = 25 * 60, focusLeft = 18 * 60 + 42;
+  var lastLeft = 48;
+  var pausedLeft = 12 * 60 + 5;
+  var breakTotal = 5 * 60, breakLeft = 3 * 60 + 10;
+  var added = null;
+  var draft = '';
+
+  var icons = {
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+    clock: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.2 1.4" stroke-linecap="round"/></svg>',
+    arrow: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>',
+    check: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.3 5 8.7l4.6-5.2"/></svg>',
+    glyph: '<svg viewBox="200 200 624 624" aria-hidden="true"><circle cx="512" cy="512" r="250" fill="none" stroke="currentColor" stroke-width="56" opacity=".3"/><path d="M512 262 A250 250 0 1 1 295.5 387" fill="none" stroke="currentColor" stroke-width="56" stroke-linecap="round"/><circle cx="387" cy="295.5" r="52" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1" fill="currentColor"/><rect x="9" y="3" width="3" height="10" rx="1" fill="currentColor"/></svg>',
+    cup: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h8v3.5A3.5 3.5 0 0 1 7.5 13h-1A3.5 3.5 0 0 1 3 9.5V6Z" fill="currentColor"/><path d="M11 7h1a1.6 1.6 0 0 1 0 3.2h-1"/><path d="M2.5 14.5h9" stroke-linecap="round"/></svg>'
+  };
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function clock(s) { s = Math.max(0, Math.ceil(s)); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+  function digits(text) {
+    return text.split('').map(function (ch) { return '<span class="' + (ch === ':' ? 'c' : 'd') + '">' + ch + '</span>'; }).join('');
+  }
+  function miniRing(fraction, trackOnly) {
+    var r = 6, c = 2 * Math.PI * r, len = Math.max(0, Math.min(1, fraction)) * c;
+    return '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="' + r + '" fill="none" stroke="currentColor" stroke-width="2" opacity="' + (trackOnly ? 1 : .3) + '"/>' +
+      (trackOnly ? '' : '<circle cx="8" cy="8" r="' + r + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="' + len.toFixed(2) + ' ' + c.toFixed(2) + '" transform="rotate(-90 8 8)"/>') + '</svg>';
+  }
+  function escapeHTML(s) { return s.replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
+
+  function ruler(total, left, color, glowing) {
+    var minutes = Math.round(total / 60), step = minutes > 30 ? 10 : 5, frac = Math.max(0, left / total);
+    var html = '<div class="ruler" aria-hidden="true"><div class="r-track">' +
+      '<div class="r-glow' + (glowing && !reduced ? ' on' : '') + '" style="width:' + (frac * 100) + '%;background:var(' + (color === '--pomodoroBreak' ? '--stateActiveTint' : '--accentTint') + ');' + (glowing ? '' : 'display:none') + '"></div>' +
+      '<div class="r-fill" style="width:' + (frac * 100) + '%;background:var(' + color + ')"></div></div>';
+    for (var k = 0; k <= minutes; k += 5) {
+      var x = (k * 60 / total) * 100;
+      html += '<span class="r-tick" style="left:' + x + '%"></span>';
+      if (k % step === 0) html += '<span class="r-label' + (k === 0 ? ' first' : (k === minutes ? ' last' : '')) + '" style="left:' + x + '%">' + k + '</span>';
+    }
+    return html + '</div>';
+  }
+
+  function timerBlock(left, total, opts) {
+    return '<div class="timer"><div class="digits' + (opts.paused ? ' paused' : '') + '" aria-label="Temps restant : ' + clock(left) + '">' + digits(clock(left)) + '</div>' +
+      ruler(total, left, opts.color, opts.glowing) +
+      '<div class="timer-sub">' + opts.sub + '</div></div>';
+  }
+
+  function captureHTML() {
+    var meta = added
+      ? '<span class="added">' + icons.check + 'Ajoutée dans Inbox</span><button type="button" class="plain" tabindex="-1">Détails…</button>'
+      : '<button type="button" class="menu-link">Dans : <b>Inbox</b> ⌄</button><button type="button" class="plain">Détails…</button>';
+    return '<div class="capture"><label class="capture-field"><span class="plus" aria-hidden="true">+</span>' +
+      '<input type="text" data-capture placeholder="Ce que tu as à faire" aria-label="Nouvelle tâche" value="' + escapeHTML(draft) + '">' +
+      '<button type="button" class="send" data-send aria-label="Ajouter">' + icons.arrow + '</button></label>' +
+      '<div class="capture-meta">' + meta + '</div></div>';
+  }
+
+  function cardHTML() {
+    switch (state) {
+      case 'idle':
+        return '<div class="card"><div class="card-head"><span class="eyebrow">Prochaine action</span><span class="chip accent">Tâche 1 sur 3</span></div>' +
+          '<div><p class="action-title">Relire la fiche produit et noter les corrections</p><div class="context">Boutique › Refonte · étape 2 sur 4</div></div>' +
+          '<div class="infos"><span>' + icons.clock + '25 min</span><span class="prio">P1</span></div>' +
+          '<button type="button" class="btn primary full">Lancer le focus</button>' +
+          '<div class="meeting"><i aria-hidden="true"></i>Point d\'équipe à 11:00, dans 40 min</div></div>';
+      case 'block':
+        return '<div class="card"><div class="card-head"><span class="eyebrow">Bloc de travail</span><span class="chip info">jusqu\'à 11:30</span></div>' +
+          '<div><p class="action-title">Préparer le bilan d\'octobre</p><div class="context">Reporting · Deepwork · étape 1 sur 3</div></div>' +
+          '<div class="infos"><span>' + icons.clock + '35 min, ce qui reste du bloc</span></div>' +
+          '<button type="button" class="btn primary full">Lancer le focus</button></div>';
+      case 'focus':
+        return '<div class="card"><div class="card-head"><span class="eyebrow">Boutique · Refonte</span></div>' +
+          '<p class="small-title">Relire la fiche produit et noter les corrections</p>' +
+          timerBlock(focusLeft, focusTotal, { color: '--pomodoroFocus', sub: 'sur 25 min' }) +
+          '<div class="row"><button type="button" class="btn">Pause</button><button type="button" class="btn">C\'est fait</button></div></div>';
+      case 'last':
+        return '<div class="card"><div class="card-head"><span class="eyebrow">Boutique · Refonte</span></div>' +
+          '<p class="small-title">Relire la fiche produit et noter les corrections</p>' +
+          timerBlock(lastLeft, focusTotal, { color: '--pomodoroFocus', sub: 'sur 25 min', glowing: true }) +
+          '<div class="row"><button type="button" class="btn">Pause</button><button type="button" class="btn">C\'est fait</button></div></div>';
+      case 'paused':
+        return '<div class="card"><div class="card-head"><span class="eyebrow">En pause</span></div>' +
+          '<p class="small-title">Relire la fiche produit et noter les corrections</p>' +
+          timerBlock(pausedLeft, focusTotal, { color: '--pomodoroPaused', sub: 'En pause', paused: true }) +
+          '<div class="row"><button type="button" class="btn primary">Reprendre</button><button type="button" class="btn">C\'est fait</button></div></div>';
+      case 'break':
+        return '<div class="card break"><div class="card-head"><span class="eyebrow">Pause</span></div>' +
+          timerBlock(breakLeft, breakTotal, { color: '--pomodoroBreak', sub: 'de pause, sur 5 min' }) +
+          '<div class="context">Ensuite : « Écrire l\'intro » · Préparer le bilan</div>' +
+          '<button type="button" class="btn full">Passer la pause</button></div>';
+      case 'outcome':
+        return '<div class="card"><div class="done-head"><svg class="ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--pomodoroFocus)" stroke-width="4"/><path d="M13.5 20.5l4.5 4.3 8.5-9.3" fill="none" stroke="var(--textPrimary)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+          '<div><p class="action-title">Pomodoro terminé</p><div class="context">25 min · Relire la fiche produit</div></div></div>' +
+          '<div class="series" aria-label="3e pomodoro aujourd\'hui"><i></i><i></i><i></i><i class="next"></i><span>3e pomodoro aujourd\'hui</span></div>' +
+          '<button type="button" class="btn primary full">Cocher la tâche <span class="kbd">⌘↩</span></button>' +
+          '<div class="row"><button type="button" class="btn">Encore 5 min</button><button type="button" class="btn">Pause</button></div></div>';
+      case 'noplan':
+        return '<div class="card"><div class="card-head"><span class="eyebrow">Prochaine action</span></div>' +
+          '<div><p class="action-title">Pas encore de plan</p><div class="context">Choisis les tâches du jour dans Done, ou lance la plus urgente.</div></div>' +
+          '<div class="row"><button type="button" class="btn primary">Choisir le plan</button></div></div>';
+      case 'finished':
+        return '<div class="card"><div class="done-head"><span class="sun-big">' + icons.sun + '</span>' +
+          '<div><p class="action-title">Plan du jour terminé</p><div class="context">Tout ce qui était prévu est fait.</div></div></div>' +
+          '<button type="button" class="btn full">Ajouter une tâche au plan</button></div>';
+    }
+    return '';
+  }
+
+  function todayHTML() {
+    var map = {
+      idle: [2, '55 min', 2, 5], block: [2, '55 min', 2, 5], focus: [2, '1 h 01', 2, 5], last: [2, '1 h 19', 2, 5],
+      paused: [2, '1 h 08', 2, 5], break: [3, '1 h 20', 3, 5], outcome: [3, '1 h 20', 2, 5], noplan: [0, '0 min', 0, 0], finished: [5, '2 h 05', 5, 5]
+    };
+    var t = map[state];
+    var dots = ''; for (var i = 0; i < Math.min(t[0], 5); i++) dots += '<i></i>';
+    var plan = t[3] === 0 ? 'Pas de plan' : 'Plan ' + t[2] + ' sur ' + t[3];
+    var frac = t[3] === 0 ? 0 : t[2] / t[3];
+    return '<div class="today"><div class="today-row"><span class="eyebrow">Aujourd\'hui</span>' +
+      '<span class="today-figures">' + (t[0] ? '<span class="dots" aria-label="' + t[0] + ' pomodoros">' + dots + '</span>' : '') + '<span>' + t[1] + ' de focus</span><span>' + plan + '</span></span></div>' +
+      '<div class="planbar' + (frac === 1 ? ' full' : '') + '"><b style="width:' + (frac * 100) + '%"></b></div></div>';
+  }
+
+  function menubarHTML() {
+    switch (state) {
+      case 'focus': return miniRing(focusLeft / focusTotal) + '<span>' + clock(focusLeft) + '</span>';
+      case 'last': return miniRing(lastLeft / focusTotal) + '<span>' + clock(lastLeft) + '</span>';
+      case 'paused': return icons.pause + '<span>' + clock(pausedLeft) + '</span>';
+      case 'break': return icons.cup + '<span>' + clock(breakLeft) + '</span>';
+      case 'outcome': return miniRing(1, true) + '<span>Fini</span>';
+      case 'finished': return icons.sun;
+      default: return icons.glyph;
+    }
+  }
+
+  function panelHTML() {
+    return '<div class="panel-inner">' +
+      '<div class="dateline">' + icons.sun + 'Lundi 9 novembre · semaine 46</div>' +
+      captureHTML() + cardHTML() + todayHTML() + '</div>' +
+      '<div class="foot"><button type="button" class="plain">Ouvrir Done <span class="kbd">⌘O</span></button><button type="button" class="plain">Quitter <span class="kbd">⌘Q</span></button></div>';
+  }
+
+  var panels = document.querySelectorAll('[data-panel]');
+  var menubars = document.querySelectorAll('[data-mb]');
+
+  function render(keepFocus) {
+    var active = document.activeElement;
+    var focusedPanel = keepFocus && active && active.matches && active.matches('[data-capture]') ? active.closest('[data-panel]') : null;
+    var caret = focusedPanel ? active.selectionStart : null;
+    panels.forEach(function (panel) { panel.innerHTML = panelHTML(); });
+    menubars.forEach(function (mb) { mb.innerHTML = menubarHTML(); });
+    if (focusedPanel) {
+      var input = focusedPanel.querySelector('[data-capture]');
+      input.focus();
+      if (caret !== null) input.setSelectionRange(caret, caret);
+    }
+  }
+
+  // Seuls les chiffres et les barres changent chaque seconde : on ne reconstruit pas les panneaux.
+  function tickRender() {
+    panels.forEach(function (panel) {
+      var left = state === 'break' ? breakLeft : (state === 'last' ? lastLeft : focusLeft);
+      var total = state === 'break' ? breakTotal : focusTotal;
+      var d = panel.querySelector('.digits');
+      if (d) { d.innerHTML = digits(clock(left)); d.setAttribute('aria-label', 'Temps restant : ' + clock(left)); }
+      var w = Math.max(0, left / total) * 100 + '%';
+      var fill = panel.querySelector('.r-fill'); if (fill) fill.style.width = w;
+      var glow = panel.querySelector('.r-glow'); if (glow) glow.style.width = w;
+    });
+    menubars.forEach(function (mb) { mb.innerHTML = menubarHTML(); });
+  }
+
+  setInterval(function () {
+    if (state === 'focus') { focusLeft = focusLeft > 1 ? focusLeft - 1 : 18 * 60 + 42; tickRender(); }
+    else if (state === 'last') { lastLeft = lastLeft > 1 ? lastLeft - 1 : 48; tickRender(); }
+    else if (state === 'break') { breakLeft = breakLeft > 1 ? breakLeft - 1 : 3 * 60 + 10; tickRender(); }
+  }, 1000);
+
+  document.getElementById('states').addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-value]');
+    if (!button) return;
+    state = button.dataset.value;
+    document.querySelectorAll('#states button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === button)); });
+    render(false);
+  });
+
+  // La capture : Entrée ajoute, la confirmation remplace « Dans : Inbox » jusqu'à la prochaine frappe.
+  document.addEventListener('input', function (event) {
+    if (!event.target.matches('[data-capture]')) return;
+    draft = event.target.value;
+    if (added) { added = null; render(true); }
+    panels.forEach(function (panel) {
+      var other = panel.querySelector('[data-capture]');
+      if (other !== event.target) other.value = draft;
+    });
+  });
+  function submit() {
+    if (!draft.trim()) return;
+    added = draft.trim();
+    draft = '';
+    render(true);
+  }
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' && event.target.matches && event.target.matches('[data-capture]')) { event.preventDefault(); submit(); }
+  });
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('[data-send]')) { event.preventDefault(); submit(); }
+  });
+
+  render(false);
+})();
+</script>

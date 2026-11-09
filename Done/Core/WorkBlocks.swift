@@ -107,6 +107,41 @@ enum WorkBlockPlan {
         let left = Int(block.end.timeIntervalSince(now) / 60)
         return left >= 5 ? min(minutes, left) : minutes
     }
+
+    /// Ce que Done propose maintenant, sur Ma journée comme dans la barre de menus.
+    struct Proposal {
+        let suggestion: Suggestion
+        /// Fin du bloc de travail en cours, quand la proposition en vient.
+        let blockEnd: Date?
+    }
+
+    /// La prochaine action du plan ; pendant un bloc de travail, sa tâche passe en tête, pour au plus
+    /// ce qui reste du bloc.
+    static func propose(
+        store: TaskStore,
+        index: TaskIndex,
+        plan: [String],
+        meetings: [Meeting],
+        rules: Rules,
+        now: Date,
+        ignoreMeetings: Bool = false
+    ) -> Proposal {
+        let block = store.currentWorkBlock(at: now)
+        let blockRoot = block.flatMap { store[$0.taskID] }.map { store.rootTask(of: $0) }
+        var suggestion = Planner.suggest(
+            plan: Self.plan(plan, leading: blockRoot?.id),
+            index: index,
+            meetings: meetings,
+            rules: rules,
+            now: now,
+            ignoreMeetings: ignoreMeetings
+        )
+        guard let block, let blockRoot, suggestion.status == .ready, suggestion.planTask?.id == blockRoot.id else {
+            return Proposal(suggestion: suggestion, blockEnd: nil)
+        }
+        suggestion.minutes = minutes(suggestion.minutes, in: block, now: now)
+        return Proposal(suggestion: suggestion, blockEnd: block.end)
+    }
 }
 
 /// Rappel d'un bloc de travail, 5 min avant : lancer le pomodoro, ou déplacer le bloc.

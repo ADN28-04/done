@@ -39,21 +39,16 @@ struct HomeView: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let now = context.date
             // Pendant un bloc de travail, sa tâche passe en tête, pour au plus ce qui reste du bloc.
-            let block = model.store.currentWorkBlock(at: now)
-            let blockRoot = block.flatMap { model.store[$0.taskID] }.map { model.store.rootTask(of: $0) }
-            let suggestion = Self.adjusted(
-                Planner.suggest(
-                    plan: WorkBlockPlan.plan(model.planIDs, leading: blockRoot?.id),
-                    index: model.index,
-                    meetings: model.meetingsToday,
-                    rules: model.rules,
-                    now: now,
-                    ignoreMeetings: ignoreMeetings
-                ),
-                block: block,
-                blockRoot: blockRoot,
-                now: now
+            let proposal = WorkBlockPlan.propose(
+                store: model.store,
+                index: model.index,
+                plan: model.planIDs,
+                meetings: model.meetingsToday,
+                rules: model.rules,
+                now: now,
+                ignoreMeetings: ignoreMeetings
             )
+            let suggestion = proposal.suggestion
             let plan = model.planIDs.compactMap { model.store[$0] }.filter(\.isOpen)
             // Une échéance déjà posée sur la ligne de temps (bloc de travail à venir) n'apparaît pas deux fois.
             let scheduled = model.store.scheduledTaskIDs(at: now)
@@ -95,6 +90,12 @@ struct HomeView: View {
                 }
                 .onChange(of: model.isPlanFinished) { _, finished in
                     if finished { planBursts += 1 }
+                }
+                // Demandé depuis la barre de menus, fenêtre ouverte ou non.
+                .onChange(of: model.planRequested, initial: true) { _, requested in
+                    guard requested else { return }
+                    model.planRequested = false
+                    showPlan = true
                 }
                 HomeCaptureBar()
             }
@@ -261,21 +262,20 @@ struct HomeView: View {
 
     // MARK: 1. Prochaine action
 
-    /// La proposition pendant un bloc de travail : la durée tient dans ce qui reste du bloc.
-    private static func adjusted(_ suggestion: Suggestion, block: WorkBlock?, blockRoot: TodoTask?, now: Date) -> Suggestion {
-        guard let block, suggestion.status == .ready, suggestion.planTask?.id == blockRoot?.id else { return suggestion }
-        var adjusted = suggestion
-        adjusted.minutes = WorkBlockPlan.minutes(suggestion.minutes, in: block, now: now)
-        return adjusted
-    }
-
     private func nextActionCard(suggestion: Suggestion, now: Date) -> some View {
-        let block = model.store.currentWorkBlock(at: now)
-        let blockRoot = block.flatMap { model.store[$0.taskID] }.map { model.store.rootTask(of: $0) }
+        let proposal = WorkBlockPlan.propose(
+            store: model.store,
+            index: model.index,
+            plan: model.planIDs,
+            meetings: model.meetingsToday,
+            rules: model.rules,
+            now: now,
+            ignoreMeetings: ignoreMeetings
+        )
         return NextActionCard(
             suggestion: suggestion,
             now: now,
-            blockEnd: blockRoot != nil && suggestion.planTask?.id == blockRoot?.id ? block?.end : nil,
+            blockEnd: proposal.blockEnd,
             ignoreMeetings: $ignoreMeetings,
             openPlan: { showPlan = true },
             openInbox: { open(.lists(.inbox)) }
@@ -284,12 +284,7 @@ struct HomeView: View {
 
     /// Lance la prochaine action proposée, ou la pause due avant de changer de tâche.
     private func startNext(_ suggestion: Suggestion, now: Date) {
-        guard suggestion.status == .ready, let action = suggestion.action, let root = suggestion.planTask else { return }
-        if engine.needsBreak(before: root, now: now), let pause = engine.breakDue?.remainingMinutes(now: now) {
-            engine.takeBreak(minutes: pause, mandatory: true)
-        } else {
-            engine.start(action: action, root: root, minutes: suggestion.minutes)
-        }
+        engine.start(suggestion, now: now)
     }
 
     // MARK: 2. Ligne de temps
@@ -801,14 +796,7 @@ private struct NextActionCard: View {
 
     /// La tâche de l'étape et sa place (« étape 2 sur 5 »), ou la liste de la tâche.
     private func contextLine(action: TodoTask, root: TodoTask) -> String {
-        guard action.id != root.id else { return model.listName(for: root) }
-        let steps = model.store.tasks
-            .filter { $0.parentID == action.parentID }
-            .sorted { $0.position < $1.position }
-        if let index = steps.firstIndex(where: { $0.id == action.id }), action.parentID == root.id {
-            return "\(root.title) · étape \(index + 1) sur \(steps.count)"
-        }
-        return root.title
+        model.actionContext(action, root: root)
     }
 
     /// Anneau de 86 en braise, la durée au centre ; un clic propose une autre durée.

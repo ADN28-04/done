@@ -111,6 +111,17 @@ final class FocusEngine {
 
     // MARK: Actions
 
+    /// Lance la prochaine action proposée, ou la pause due avant de changer de tâche principale.
+    /// Sans effet hors du repos ou sans action prête.
+    func start(_ suggestion: Suggestion, now: Date = .now) {
+        guard phase == .idle, suggestion.status == .ready, let action = suggestion.action, let root = suggestion.planTask else { return }
+        if needsBreak(before: root, now: now), let pause = breakDue?.remainingMinutes(now: now) {
+            takeBreak(minutes: pause, mandatory: true)
+        } else {
+            start(action: action, root: root, minutes: suggestion.minutes)
+        }
+    }
+
     func start(action: TodoTask, root: TodoTask, minutes: Int) {
         endBreak()
         let planned = TimeInterval(max(1, minutes) * 60)
