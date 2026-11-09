@@ -14,6 +14,11 @@ struct CalendarView: View {
     @State private var dropDay: Date?
     /// Jour d'où part une réunion qu'on glisse : sa colonne passe devant les autres.
     @State private var draggingDay: Date?
+    /// Créneau cliqué : réunion ou bloc de travail.
+    @State private var slotChoice: SlotChoice?
+    /// Créneau d'un bloc à réserver : le choix de la tâche.
+    @State private var blockPick: SlotChoice?
+    @State private var openedBlock: WorkBlock?
     @State private var absenceDay: Date?
     @State private var absenceDraft = ""
 
@@ -89,6 +94,21 @@ struct CalendarView: View {
         .onChange(of: model.store.meetingSeries) { fillShownWeek() }
         .sheet(item: $meetingRequest) { request in
             MeetingSheet(meeting: request.meeting, start: request.start, end: request.end)
+                .environment(model)
+        }
+        .slotChoice($slotChoice) { start in
+            meetingRequest = MeetingRequest(start: start, end: start.addingTimeInterval(3600))
+        } pickTask: { start in
+            blockPick = SlotChoice(start: start)
+        }
+        .sheet(item: $blockPick) { pick in
+            TaskPickerView(title: "Bloquer du temps pour une tâche") { task in
+                model.addWorkBlock(taskID: task.id, start: pick.start)
+            }
+            .environment(model)
+        }
+        .sheet(item: $openedBlock) { block in
+            WorkBlockSheet(blockID: block.id)
                 .environment(model)
         }
         .alert("Absence", isPresented: Binding(get: { absenceDay != nil }, set: { if !$0 { absenceDay = nil } })) {
@@ -263,18 +283,18 @@ struct CalendarView: View {
             hourHeight: hourHeight,
             sessions: sessions,
             moveDays: (-index)...(days.count - 1 - index),
-            onDragging: { dragging in draggingDay = dragging ? day : nil }
+            onDragging: { dragging in draggingDay = dragging ? day : nil },
+            onWorkBlock: { openedBlock = $0 }
         ) { meeting in
             meetingRequest = MeetingRequest(meeting: meeting)
         } onSlot: { start in
-            meetingRequest = MeetingRequest(start: start, end: start.addingTimeInterval(3600))
+            slotChoice = SlotChoice(start: start)
         }
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
             Rectangle().fill(DoneColor.borderSubtle).frame(width: 1)
         }
-        .background(dropDay == day ? DoneColor.stateActiveTint : Color.clear)
-        .modifier(DayDrop(day: day, now: now, dropDay: $dropDay) { move($0, to: $1, now: $2) })
+        // Une tâche déposée sur la grille y prend un bloc de travail ; sur les échéances, elle change de jour.
         // La colonne d'où part une réunion glissée passe devant les autres.
         .zIndex(draggingDay == day ? 1 : 0)
     }

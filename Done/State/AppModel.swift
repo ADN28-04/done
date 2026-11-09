@@ -418,6 +418,59 @@ final class AppModel {
         Notifier.shared.updateMeetingReminders(Array(reminders.prefix(40)))
     }
 
+    // MARK: Blocs de travail
+
+    func workBlock(_ id: String) -> WorkBlock? {
+        store.workBlocks.first { $0.id == id }
+    }
+
+    /// Réserve un pomodoro pour une tâche, à partir de `start` (ou jusqu'à `end`).
+    @discardableResult
+    func addWorkBlock(taskID: String, start: Date, end: Date? = nil) -> WorkBlock? {
+        var created: WorkBlock?
+        let rules = rules
+        commit { created = $0.addWorkBlock(taskID: taskID, start: start, end: end, rules: rules) }
+        return created
+    }
+
+    func updateWorkBlock(_ block: WorkBlock) {
+        commit { $0.updateWorkBlock(block) }
+    }
+
+    func deleteWorkBlock(_ id: String) {
+        commit { $0.deleteWorkBlock(id) }
+    }
+
+    /// Ce que demande un rappel de bloc, ou la fiche d'un bloc : `RootView` lance le pomodoro, ou ouvre
+    /// le bloc pour le déplacer.
+    struct WorkBlockRequest: Equatable {
+        enum Action: Equatable { case start, move }
+        let id = UUID()
+        let blockID: String
+        let action: Action
+    }
+
+    var workBlockRequest: WorkBlockRequest?
+
+    func requestWorkBlock(_ blockID: String, _ action: WorkBlockRequest.Action) {
+        workBlockRequest = WorkBlockRequest(blockID: blockID, action: action)
+    }
+
+    /// Reprogramme les rappels des blocs de travail (5 min avant), après chaque changement de bloc ou
+    /// de tâche qui en a un.
+    func updateWorkBlockReminders() {
+        let now = Date.now
+        let limit = now.addingTimeInterval(7 * 86_400)
+        let reminders = WorkBlockReminder.plan(store, now: now).filter { $0.fireDate < limit }
+        Notifier.shared.updateWorkBlockReminders(Array(reminders.sorted { $0.fireDate < $1.fireDate }.prefix(20)))
+    }
+
+    /// Les rappels de blocs changent avec les blocs, et avec les tâches tant qu'il y a des blocs
+    /// (une tâche cochée n'a plus de rappel, un titre changé change le texte).
+    private static func blocksNeedReminders(_ next: TaskStore, _ current: TaskStore) -> Bool {
+        next.workBlocks != current.workBlocks || (!next.workBlocks.isEmpty && next.tasks != current.tasks)
+    }
+
     // MARK: Bilan du soir
 
     var isReviewDue: Bool {
@@ -556,9 +609,11 @@ final class AppModel {
     /// rappels de réunion, notes de reprise et plan du jour suivent.
     private func adopt(_ loaded: TaskStore) {
         let meetingsChanged = loaded.meetings != store.meetings
+        let blocksChanged = Self.blocksNeedReminders(loaded, store)
         store = loaded
         index = TaskIndex(store.openTasks)
         if meetingsChanged { updateMeetingReminders() }
+        if blocksChanged { updateWorkBlockReminders() }
         let open = Set(store.openTasks.map(\.id))
         updateResumeNotes { $0.keepOnly(open) }
         // Une tâche du plan cochée par Claude en sort, et compte parmi les tâches faites du jour.
@@ -590,10 +645,12 @@ final class AppModel {
             change(&next)
             guard next != store else { return }
             let meetingsChanged = next.meetings != store.meetings
+            let blocksChanged = Self.blocksNeedReminders(next, store)
             store = next
             index = TaskIndex(store.openTasks)
             persist()
             if meetingsChanged { updateMeetingReminders() }
+            if blocksChanged { updateWorkBlockReminders() }
         }
     }
 

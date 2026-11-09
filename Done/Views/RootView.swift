@@ -24,6 +24,8 @@ struct RootView: View {
     @State private var searchRequested = false
     /// Augmente quand le plan du jour vient d'être bouclé : éclat sur le bouton Ma journée du rail.
     @State private var planCelebrations = 0
+    /// Bloc de travail à déplacer, ouvert depuis son rappel.
+    @State private var blockToMove: WorkBlock?
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -71,6 +73,16 @@ struct RootView: View {
         .onChange(of: model.isPlanFinished) { _, finished in
             if finished { planCelebrations += 1 }
         }
+        // Rappel d'un bloc de travail, ou sa fiche : lancer le pomodoro, ou ouvrir le bloc pour le déplacer.
+        .onChange(of: model.workBlockRequest) { _, request in
+            guard let request else { return }
+            model.workBlockRequest = nil
+            handle(request)
+        }
+        .sheet(item: $blockToMove) { block in
+            WorkBlockSheet(blockID: block.id)
+                .environment(model)
+        }
         .sheet(isPresented: $showCapture) {
             CaptureSheet()
                 .environment(model)
@@ -111,6 +123,29 @@ struct RootView: View {
         case .lists: .lists
         case .stats: .stats
         case .settings: .settings
+        }
+    }
+
+    /// « Lancer le pomodoro » : la session part sur la prochaine action de la tâche du bloc, pour un
+    /// pomodoro selon son type (ou la pause due avant de changer de tâche principale). « Déplacer… » :
+    /// le calendrier s'ouvre avec la fiche du bloc.
+    private func handle(_ request: AppModel.WorkBlockRequest) {
+        guard let block = model.workBlock(request.blockID) else { return }
+        switch request.action {
+        case .move:
+            open(.calendar)
+            blockToMove = block
+        case .start:
+            open(.home)
+            guard engine.phase == .idle, let task = model.store[block.taskID], task.isOpen else { return }
+            let now = Date.now
+            let root = model.index.root(of: task)
+            if engine.needsBreak(before: root, now: now), let pause = engine.breakDue?.remainingMinutes(now: now) {
+                engine.takeBreak(minutes: pause, mandatory: true)
+                return
+            }
+            let action = Planner.nextAction(for: task, in: model.index, rules: model.rules, now: now) ?? task
+            engine.start(action: action, root: root, minutes: Planner.minutes(for: action, root: root, rules: model.rules))
         }
     }
 

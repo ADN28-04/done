@@ -7,6 +7,14 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     static let focusEnd = "done.focus-end"
     static let breakEnd = "done.break-end"
+    /// Rappel d'un bloc de travail, avec ses deux boutons.
+    static let workBlockCategory = "done.workblock"
+    static let startAction = "done.workblock.start"
+    static let moveAction = "done.workblock.move"
+
+    /// Réponse à un rappel de bloc : l'identifiant du bloc, et vrai pour « Lancer le pomodoro »
+    /// (faux pour « Déplacer… » ou un clic sur la notification). Appelé sur le fil principal.
+    var onWorkBlock: ((String, Bool) -> Void)?
 
     /// Ce que macOS permet à Done, affiché dans les Réglages.
     enum Permission: Equatable {
@@ -25,6 +33,11 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     func setUp() {
         center.delegate = self
+        let start = UNNotificationAction(identifier: Self.startAction, title: "Lancer le pomodoro", options: [.foreground])
+        let move = UNNotificationAction(identifier: Self.moveAction, title: "Déplacer…", options: [.foreground])
+        center.setNotificationCategories([
+            UNNotificationCategory(identifier: Self.workBlockCategory, actions: [start, move], intentIdentifiers: [], options: []),
+        ])
         center.requestAuthorization(options: [.alert, .sound]) { [weak self] _, error in
             let message = error?.localizedDescription
             DispatchQueue.main.async { self?.authorizationError = message }
@@ -124,6 +137,26 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// Remplace les rappels de blocs de travail déjà programmés par ceux-ci.
+    func updateWorkBlockReminders(_ reminders: [WorkBlockReminder]) {
+        let center = self.center
+        let wanted = Set(reminders.map(\.id))
+        center.getPendingNotificationRequests { requests in
+            let stale = requests.map(\.identifier).filter { $0.hasPrefix(WorkBlockReminder.prefix) && !wanted.contains($0) }
+            center.removePendingNotificationRequests(withIdentifiers: stale)
+        }
+        for reminder in reminders {
+            let content = UNMutableNotificationContent()
+            content.title = reminder.title
+            content.body = reminder.body
+            content.sound = .default
+            content.categoryIdentifier = Self.workBlockCategory
+            let moment = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: reminder.fireDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: moment, repeats: false)
+            center.add(UNNotificationRequest(identifier: reminder.id, content: content, trigger: trigger), withCompletionHandler: nil)
+        }
+    }
+
     func cancel(_ ids: String...) {
         center.removePendingNotificationRequests(withIdentifiers: ids)
     }
@@ -135,5 +168,20 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound])
+    }
+
+    // Bouton d'un rappel de bloc, ou clic sur le rappel : Done s'ouvre et lance le pomodoro, ou montre le bloc.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let identifier = response.notification.request.identifier
+        let action = response.actionIdentifier
+        if let blockID = WorkBlockReminder.blockID(fromNotification: identifier), action != UNNotificationDismissActionIdentifier {
+            let start = action == Self.startAction
+            DispatchQueue.main.async { [weak self] in self?.onWorkBlock?(blockID, start) }
+        }
+        completionHandler()
     }
 }

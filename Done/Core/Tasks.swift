@@ -192,12 +192,14 @@ struct TaskStore: Codable, Equatable {
     var meetings: [Meeting] = []
     /// Réunions récurrentes : le modèle de chaque série, dont Done crée les occurrences (`meetings`).
     var meetingSeries: [MeetingSeries] = []
+    /// Blocs de travail : du temps réservé au calendrier pour une tâche (`WorkBlock`).
+    var workBlocks: [WorkBlock] = []
     var absences: [Absence] = []
 
     init() {}
 
     enum CodingKeys: String, CodingKey {
-        case version, projects, tasks, meetings, meetingSeries, absences
+        case version, projects, tasks, meetings, meetingSeries, workBlocks, absences
     }
 
     init(from decoder: Decoder) throws {
@@ -207,6 +209,7 @@ struct TaskStore: Codable, Equatable {
         tasks = try c.decodeIfPresent([TodoTask].self, forKey: .tasks) ?? []
         meetings = try c.decodeIfPresent([Meeting].self, forKey: .meetings) ?? []
         meetingSeries = try c.decodeIfPresent([MeetingSeries].self, forKey: .meetingSeries) ?? []
+        workBlocks = try c.decodeIfPresent([WorkBlock].self, forKey: .workBlocks) ?? []
         absences = try c.decodeIfPresent([Absence].self, forKey: .absences) ?? []
     }
 
@@ -537,10 +540,11 @@ struct TaskStore: Codable, Equatable {
         }
     }
 
-    /// Supprime la tâche et ses sous-tâches.
+    /// Supprime la tâche et ses sous-tâches, avec leurs blocs de travail.
     mutating func delete(_ id: String) {
         let dropped = Set([id] + descendants(of: id))
         tasks.removeAll { dropped.contains($0.id) }
+        workBlocks.removeAll { dropped.contains($0.taskID) }
     }
 
     mutating func setBlocked(_ id: String, _ blocked: Bool) {
@@ -654,9 +658,10 @@ struct TaskStore: Codable, Equatable {
         absences.removeAll { $0.day == key }
     }
 
-    /// Oublie les réunions finies avant `date`.
+    /// Oublie les réunions et les blocs de travail finis avant `date`.
     mutating func pruneMeetings(endedBefore date: Date) {
         meetings.removeAll { $0.end < date }
+        workBlocks.removeAll { $0.end < date }
     }
 
     /// Réunions d'un jour, par heure de début.

@@ -23,6 +23,10 @@ struct HomeView: View {
     @State private var meetingRequest: MeetingRequest?
     @State private var openedNote: NoteRef?
     @State private var planDropTarget = false
+    /// Créneau cliqué sur la ligne de temps : réunion ou bloc de travail.
+    @State private var slotChoice: SlotChoice?
+    @State private var blockPick: SlotChoice?
+    @State private var openedBlock: WorkBlock?
     @FocusState private var listFocused: Bool
     @State private var selectedID: String?
     @State private var hovered: String?
@@ -32,13 +36,21 @@ struct HomeView: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let now = context.date
-            let suggestion = Planner.suggest(
-                plan: model.planIDs,
-                index: model.index,
-                meetings: model.meetingsToday,
-                rules: model.rules,
-                now: now,
-                ignoreMeetings: ignoreMeetings
+            // Pendant un bloc de travail, sa tâche passe en tête, pour au plus ce qui reste du bloc.
+            let block = model.store.currentWorkBlock(at: now)
+            let blockRoot = block.flatMap { model.store[$0.taskID] }.map { model.store.rootTask(of: $0) }
+            let suggestion = Self.adjusted(
+                Planner.suggest(
+                    plan: WorkBlockPlan.plan(model.planIDs, leading: blockRoot?.id),
+                    index: model.index,
+                    meetings: model.meetingsToday,
+                    rules: model.rules,
+                    now: now,
+                    ignoreMeetings: ignoreMeetings
+                ),
+                block: block,
+                blockRoot: blockRoot,
+                now: now
             )
             let plan = model.planIDs.compactMap { model.store[$0] }.filter(\.isOpen)
             let due = DayAgenda.dueOrLate(in: model.index.all, plan: model.planIDs, today: now)
@@ -104,6 +116,21 @@ struct HomeView: View {
         }
         .sheet(item: $openedNote) { ref in
             NoteSheet(noteID: ref.id)
+                .environment(model)
+        }
+        .slotChoice($slotChoice) { start in
+            meetingRequest = MeetingRequest(start: start, end: start.addingTimeInterval(3600))
+        } pickTask: { start in
+            blockPick = SlotChoice(start: start)
+        }
+        .sheet(item: $blockPick) { pick in
+            TaskPickerView(title: "Bloquer du temps pour une tâche") { task in
+                model.addWorkBlock(taskID: task.id, start: pick.start)
+            }
+            .environment(model)
+        }
+        .sheet(item: $openedBlock) { block in
+            WorkBlockSheet(blockID: block.id)
                 .environment(model)
         }
     }
@@ -200,10 +227,21 @@ struct HomeView: View {
 
     // MARK: 1. Prochaine action
 
+    /// La proposition pendant un bloc de travail : la durée tient dans ce qui reste du bloc.
+    private static func adjusted(_ suggestion: Suggestion, block: WorkBlock?, blockRoot: TodoTask?, now: Date) -> Suggestion {
+        guard let block, suggestion.status == .ready, suggestion.planTask?.id == blockRoot?.id else { return suggestion }
+        var adjusted = suggestion
+        adjusted.minutes = WorkBlockPlan.minutes(suggestion.minutes, in: block, now: now)
+        return adjusted
+    }
+
     private func nextActionCard(suggestion: Suggestion, now: Date) -> some View {
-        NextActionCard(
+        let block = model.store.currentWorkBlock(at: now)
+        let blockRoot = block.flatMap { model.store[$0.taskID] }.map { model.store.rootTask(of: $0) }
+        return NextActionCard(
             suggestion: suggestion,
             now: now,
+            blockEnd: blockRoot != nil && suggestion.planTask?.id == blockRoot?.id ? block?.end : nil,
             ignoreMeetings: $ignoreMeetings,
             openPlan: { showPlan = true },
             openInbox: { open(.lists(.inbox)) }
@@ -241,11 +279,12 @@ struct HomeView: View {
                         firstHour: first,
                         lastHour: last,
                         showsFreeSlots: true,
-                        onFreeSlot: suggestion.status == .ready ? { _ in startNext(suggestion, now: now) } : nil
+                        onFreeSlot: suggestion.status == .ready ? { _ in startNext(suggestion, now: now) } : nil,
+                        onWorkBlock: { openedBlock = $0 }
                     ) { meeting in
                         meetingRequest = MeetingRequest(meeting: meeting)
                     } onSlot: { start in
-                        meetingRequest = MeetingRequest(start: start, end: start.addingTimeInterval(3600))
+                        slotChoice = SlotChoice(start: start)
                     }
                     .frame(maxWidth: .infinity)
                     .overlay(alignment: .leading) {
@@ -282,6 +321,8 @@ struct HomeView: View {
                         }
                         ForEach(Array(plan.enumerated()), id: \.element.id) { index, task in
                             row(task, number: index + 1)
+                                // Glissée sur la ligne de temps, elle y prend un bloc de travail.
+                                .draggable(task.id)
                         }
                     }
                     .animation(DoneMotion.motion(DoneMotion.travel, reduced: reduceMotion), value: plan.map(\.id) + doneTasks.map(\.id))
@@ -553,6 +594,8 @@ private struct NextActionCard: View {
     @Environment(FocusEngine.self) private var engine
     let suggestion: Suggestion
     let now: Date
+    /// Fin du bloc de travail en cours, quand la proposition en vient.
+    let blockEnd: Date?
     @Binding var ignoreMeetings: Bool
     let openPlan: () -> Void
     let openInbox: () -> Void
@@ -696,13 +739,13 @@ private struct NextActionCard: View {
         }
     }
 
-    /// « • Tâche 1 sur 3 », ou « Hors plan », en accentText sur accentTint.
+    /// « • Tâche 1 sur 3 », « Hors plan », ou « Bloc jusqu'à 15:00 », en accentText sur accentTint.
     private var positionChip: some View {
         HStack(spacing: 5) {
             Circle()
                 .fill(DoneColor.accent)
                 .frame(width: 5, height: 5)
-            Text(suggestion.position > 0 ? "Tâche \(suggestion.position) sur \(suggestion.planCount)" : "Hors plan")
+            Text(positionText)
         }
         .font(.sans(12, .semibold))
         .foregroundStyle(DoneColor.accentText)
@@ -710,6 +753,11 @@ private struct NextActionCard: View {
         .frame(height: 22)
         .background(DoneColor.accentTint, in: Capsule(style: .continuous))
         .fixedSize()
+    }
+
+    private var positionText: String {
+        if let blockEnd { return "Bloc jusqu'à \(Format.time(blockEnd))" }
+        return suggestion.position > 0 ? "Tâche \(suggestion.position) sur \(suggestion.planCount)" : "Hors plan"
     }
 
     /// La tâche de l'étape et sa place (« étape 2 sur 5 »), ou la liste de la tâche.

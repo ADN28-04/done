@@ -4,7 +4,8 @@ import Foundation
 extension ConnectorTools {
     static let instructions = """
     Done est l'app de tâches et de minuteur Pomodoro de l'utilisateur, sur ce Mac. Ce connecteur lit et \
-    modifie ses tâches, projets, étiquettes, notes, réunions, jours d'absence et son plan du jour. Il ne \
+    modifie ses tâches, projets, étiquettes, notes, réunions, blocs de travail, jours d'absence et son plan \
+    du jour. Il ne \
     supprime jamais rien : pour retirer quelque chose, propose à l'utilisateur de le faire dans Done.
 
     Repères :
@@ -18,6 +19,8 @@ extension ConnectorTools {
     - Notes en Markdown ; [[Titre]] relie une note à une autre. Pour compléter une note, préfère append \
     (update_note) à la réécriture du contenu.
     - Le plan du jour tient en \(Rules.maxPlanSize) tâches au plus.
+    - Un bloc de travail réserve du temps au calendrier pour une tâche (add_work_block) : un pomodoro par \
+    défaut, selon le type de la tâche. Ce n'est pas une réunion.
     - Avant de créer une tâche ou une note, vérifie qu'elle n'existe pas déjà (list_tasks, list_notes).
     - Écris en français, court et direct, sans point d'exclamation.
     """
@@ -63,7 +66,7 @@ extension ConnectorTools {
         MCPTool(
             name: "get_calendar",
             title: "Calendrier",
-            description: "Jours à venir, jour par jour : réunions, absences et échéances (les retards comptent pour aujourd'hui). Done oublie les réunions des semaines passées.",
+            description: "Jours à venir, jour par jour : réunions, blocs de travail, absences et échéances (les retards comptent pour aujourd'hui). Done oublie les réunions et les blocs des semaines passées.",
             schema: ToolSchema.object([
                 "start": ToolSchema.text("Premier jour (AAAA-MM-JJ), aujourd'hui par défaut."),
                 "days": ToolSchema.integer("Nombre de jours (7 par défaut).", min: 1, max: 31),
@@ -236,6 +239,29 @@ extension ConnectorTools {
             schema: ToolSchema.object([
                 "id": ToolSchema.text("Identifiant de la réunion."),
                 "title": ToolSchema.text("Nouveau titre."),
+                "start": ToolSchema.text("Nouveau début (AAAA-MM-JJTHH:MM)."),
+                "end": ToolSchema.text("Nouvelle fin (AAAA-MM-JJTHH:MM)."),
+            ], required: ["id"]),
+            readOnly: false
+        ),
+        MCPTool(
+            name: "add_work_block",
+            title: "Bloquer du temps pour une tâche",
+            description: "Réserve un bloc de travail au calendrier pour une tâche ouverte. Sans end ni duration_minutes, il dure un pomodoro selon le type de la tâche (rapide, normale, Deepwork). Done prévient 5 min avant, et propose la tâche pendant le bloc. Heures locales AAAA-MM-JJTHH:MM.",
+            schema: ToolSchema.object([
+                "task_id": ToolSchema.text("Identifiant de la tâche."),
+                "start": ToolSchema.text("Début (AAAA-MM-JJTHH:MM)."),
+                "end": ToolSchema.text("Fin (AAAA-MM-JJTHH:MM), facultative."),
+                "duration_minutes": ToolSchema.integer("Durée en minutes, à la place de end.", min: 5, max: 480),
+            ], required: ["task_id", "start"]),
+            readOnly: false
+        ),
+        MCPTool(
+            name: "update_work_block",
+            title: "Déplacer un bloc de travail",
+            description: "Déplace ou allonge un bloc de travail. Un nouveau début sans nouvelle fin garde la durée.",
+            schema: ToolSchema.object([
+                "id": ToolSchema.text("Identifiant du bloc."),
                 "start": ToolSchema.text("Nouveau début (AAAA-MM-JJTHH:MM)."),
                 "end": ToolSchema.text("Nouvelle fin (AAAA-MM-JJTHH:MM)."),
             ], required: ["id"]),

@@ -22,6 +22,11 @@ struct DoneApp: App {
         Notifier.shared.setUp()
         Notifier.shared.updateReviewReminder(enabled: Rules.current.reviewReminder, hour: Rules.current.reviewHour)
         model.updateMeetingReminders()
+        model.updateWorkBlockReminders()
+        // Rappel d'un bloc de travail : « Lancer le pomodoro » ou « Déplacer… ».
+        Notifier.shared.onWorkBlock = { [weak model] blockID, start in
+            model?.requestWorkBlock(blockID, start ? .start : .move)
+        }
         DoNotDisturb.shared.onError = { [weak model] message in model?.errorMessage = message }
         SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }
         // Une tâche cochée juste avant de quitter reste cochée.

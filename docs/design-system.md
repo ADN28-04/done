@@ -204,7 +204,9 @@ Les moments animés :
 ### Calendrier et pomodoro
 
 - **Bloc réunion** (`MeetingBlock`, `Hatching`) : rayon `sm`. Hachuré à venir (traits de 1,5 à 45° tous les 6), plein `meetingNow` en cours, `stateDone` une fois passé. Moins de 30 min : titre et créneau sur une ligne (`singleLine`). La pastille de réunion de la session (`MeetingPill`) suit les mêmes règles.
-- **Ligne de temps** (`DayTimeline`, `HourLabels`, `DayTimeline.swift`) : plage horaire en paramètre (de 8 h à 19 h par défaut). Focus fait en `accentTint`, titre en `accentText` ; heure courante en braise, un point de 8 et un trait de 2, avec l'heure en `accentText` dans la gouttière (`HourLabels(now:)`). Créneaux libres de 30 min ou plus (`showsFreeSlots`) en pointillé `stateWaiting`, avec « 2 pomodoros possibles » ; cliquables avec `onFreeSlot`.
+- **Ligne de temps** (`DayTimeline`, `HourLabels`, `DayTimeline.swift`) : plage horaire en paramètre (de 8 h à 19 h par défaut). Réunions et blocs de travail se glissent (heure, et jour au calendrier) et s'étirent par leur bord bas (curseur de redimensionnement), au quart d'heure ; pendant le geste, l'élément suit avec un contour `focusRing` de 2, `shadowRaised` et le créneau visé, et pâlit si le geste vise le passé. Une tâche déposée sur la grille y prend un bloc ; la grille survolée passe en `stateActiveTint`. Focus fait en `accentTint`, titre en `accentText` ; heure courante en braise, un point de 8 et un trait de 2, avec l'heure en `accentText` dans la gouttière (`HourLabels(now:)`). Créneaux libres de 30 min ou plus (`showsFreeSlots`) en pointillé `stateWaiting`, avec « 2 pomodoros possibles » ; cliquables avec `onFreeSlot`.
+- **Bloc de travail** (`WorkBlockView`) : rayon `sm`, `stateActiveTint` avec un filet `stateActive` de 3 à gauche, le titre de la tâche précédé de `checkmark.square` et le créneau en `stateActiveText` ; une tâche faite passe en `stateDone`, barrée. La fiche (`WorkBlockSheet`) reprend celle d'une réunion : tâche en `displayM`, jour et horaire, « Retirer le bloc », « Ouvrir la tâche », « Lancer le pomodoro », « Enregistrer ».
+- **Réunion récurrente** : une flèche `arrow.clockwise` devant le titre de chaque occurrence ; la fiche affiche « Réunion · Chaque lundi » et une ligne « Répétition » (`RecurrenceMenu`).
 - **Anneau et barre** : `ProgressRing` (voir Pomodoro) ; `ProgressBar`, hauteur 6, en capsule, plein `stateActive` sur `pomodoroTrack`.
 
 ### Écran Ma journée (`HomeComponents.swift`)
@@ -248,7 +250,7 @@ La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-p
 - **Colonnes** : une par jour, du lundi au vendredi, séparées par un trait `borderSubtle`, après une gouttière pour les heures (`numericS`, texte secondaire ; l'heure courante en `accentText` dans la semaine en cours).
 - **En-tête de jour** : le jour (texte actif pour aujourd'hui), puis une ligne `caption` : l'absence (icône `sun.max`), sinon le focus du jour, sinon « Aujourd'hui ». Menu « … » discret à droite, et le même menu au clic droit.
 - **Échéances** : une petite carte par tâche (`PriorityChip` et titre en `callout`), en texte d'alerte quand elle est en retard. Le jour survolé pendant un glisser-déposer prend la teinte active.
-- **Grille** : de 8 h à 19 h, étirée sur toute la hauteur, avec au moins 44 par heure (en dessous, elle défile). Réunions en `MeetingBlock` ; focus passé en `accentTint` ; deux événements qui se chevauchent se partagent la largeur ; heure courante en braise, jamais en couleur d'alerte. Jour d'absence : fond `bgSunken`.
+- **Grille** : de 8 h à 19 h, étirée sur toute la hauteur, avec au moins 44 par heure (en dessous, elle défile). Un clic sur un créneau propose « Nouvelle réunion » ou « Bloquer pour une tâche… ». Réunions en `MeetingBlock`, blocs en `WorkBlockView` ; focus passé en `accentTint` ; deux événements qui se chevauchent se partagent la largeur ; heure courante en braise, jamais en couleur d'alerte. Jour d'absence : fond `bgSunken`.
 
 ## Navigation
 

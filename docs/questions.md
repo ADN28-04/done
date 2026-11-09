@@ -28,7 +28,13 @@ Points à trancher à l'usage.
    Pas pour l'instant. Si des tâches reviennent chaque semaine (reporting, point d'équipe), on ajoutera une récurrence simple.
 
 6. **Les réunions saisies à la main suffisent-elles ?**
-   Elles servent à ne pas lancer une session qui déborde et au rappel avant la réunion. Si la saisie devient pénible, une saisie en une ligne (« lun 10h-11h Point Zoé ») serait la prochaine étape.
+   Elles servent à ne pas lancer une session qui déborde et au rappel avant la réunion. Les réunions récurrentes et le glisser au calendrier allègent la saisie ; si elle reste pénible, une saisie en une ligne (« lun 10h-11h Point Zoé ») serait la prochaine étape.
+
+13. **Le rappel des blocs de travail.**
+   Il arrive 5 min avant le bloc, sans réglage. Si c'est trop tôt ou trop tard, on pourra le régler comme le rappel des réunions, ou ajouter « Décaler de 30 min » à côté de « Déplacer… ».
+
+14. **Jusqu'où créer les réunions récurrentes.**
+   Done crée les occurrences de la semaine en cours, de la suivante et de celle qu'affiche le calendrier (un an au plus). Si une série doit avoir une fin (un projet de trois mois), on ajoutera une date de fin à la répétition.
 
 ## Méthode et usage
 

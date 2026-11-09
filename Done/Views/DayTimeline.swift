@@ -12,12 +12,14 @@ struct MeetingRequest: Identifiable {
     var title = ""
 }
 
-/// Colonne d'un jour, de 8 h à 19 h par défaut : réunions hachurées (un clic les ouvre ; on les glisse
-/// pour changer l'heure, ou le jour au calendrier, et on étire leur bord bas pour la durée, au quart
-/// d'heure, jamais vers le passé), focus déjà fait en braise claire, heure courante en braise. Aujourd'hui, les créneaux libres de 30 min ou plus
-/// peuvent s'afficher en pointillé, avec les pomodoros qui y tiennent. Un clic ailleurs, aujourd'hui
-/// ou plus tard, propose une réunion. Blocs au rayon sm ; un bloc de moins de 30 min tient sur une
-/// ligne. Partagée par le calendrier et l'écran Aujourd'hui.
+/// Colonne d'un jour, de 8 h à 19 h par défaut : réunions hachurées, blocs de travail en cobalt clair,
+/// focus déjà fait en braise claire, heure courante en braise. Un clic ouvre une réunion ou un bloc ;
+/// on les glisse pour changer l'heure (ou le jour, au calendrier) et on étire leur bord bas pour la
+/// durée, au quart d'heure, jamais vers le passé. Une tâche déposée sur la grille y prend un bloc de
+/// travail d'un pomodoro. Aujourd'hui, les créneaux libres de 30 min ou plus peuvent s'afficher en
+/// pointillé, avec les pomodoros qui y tiennent. Un clic ailleurs, aujourd'hui ou plus tard, propose
+/// une réunion ou un bloc. Blocs au rayon sm ; un bloc de moins de 30 min tient sur une ligne.
+/// Partagée par le calendrier et Ma journée.
 struct DayTimeline: View {
     static let firstHour = 8
     static let lastHour = 19
@@ -37,20 +39,24 @@ struct DayTimeline: View {
     var showsFreeSlots = false
     /// Clic sur un créneau libre (Ma journée : lancer la prochaine action). Sans, le clic passe à la colonne.
     var onFreeSlot: ((DateInterval) -> Void)?
-    /// Jours vers lesquels on peut glisser une réunion, en écart avec ce jour (calendrier : les autres
-    /// jours de la semaine). Ma journée reste sur le jour.
+    /// Jours vers lesquels on peut glisser une réunion ou un bloc, en écart avec ce jour (calendrier :
+    /// les autres jours de la semaine). Ma journée reste sur le jour.
     var moveDays: ClosedRange<Int> = 0...0
-    /// Une réunion de la colonne est en train d'être glissée : le calendrier passe la colonne devant ses voisines.
+    /// Un élément de la colonne est en train d'être glissé : le calendrier passe la colonne devant ses voisines.
     var onDragging: (Bool) -> Void = { _ in }
+    /// Clic sur un bloc de travail.
+    var onWorkBlock: (WorkBlock) -> Void = { _ in }
     let onMeeting: (Meeting) -> Void
     let onSlot: (Date) -> Void
 
-    /// Réunion en train d'être glissée ou étirée.
-    @State private var drag: MeetingDrag?
-    /// Le curseur de redimensionnement est posé (survol du bord bas d'une réunion).
+    /// Réunion ou bloc en train d'être glissé ou étiré.
+    @State private var drag: TimelineDrag?
+    /// Le curseur de redimensionnement est posé (survol du bord bas d'une réunion ou d'un bloc).
     @State private var resizeCursor = false
+    /// Une tâche glissée survole la grille.
+    @State private var dropTargeted = false
 
-    private struct MeetingDrag {
+    private struct TimelineDrag {
         enum Mode { case move, resize }
         let id: String
         let mode: Mode
@@ -69,10 +75,11 @@ struct DayTimeline: View {
             .reduce(0) { $0 + $1.focusedSeconds } / 60
     }
 
-    /// Un bloc de la grille : réunion, ou session de focus passée.
+    /// Un élément de la grille : réunion, bloc de travail, ou session de focus passée.
     private struct Block: Identifiable {
         enum Kind {
             case meeting(Meeting)
+            case work(WorkBlock, task: TodoTask)
             case focus(title: String, minutes: Double)
         }
 
@@ -80,6 +87,12 @@ struct DayTimeline: View {
         let start: Date
         let end: Date
         let kind: Kind
+
+        /// Réunions et blocs se glissent et s'étirent ; le focus passé, non.
+        var isEditable: Bool {
+            if case .focus = kind { return false }
+            return true
+        }
     }
 
     var body: some View {
@@ -91,7 +104,7 @@ struct DayTimeline: View {
             let width = proxy.size.width
             ZStack(alignment: .topLeading) {
                 Rectangle()
-                    .fill(model.absence(on: day) != nil ? DoneColor.bgSunken : Color.clear)
+                    .fill(dropTargeted ? DoneColor.stateActiveTint : (model.absence(on: day) != nil ? DoneColor.bgSunken : Color.clear))
                 ForEach(1..<max(lastHour - firstHour, 2), id: \.self) { index in
                     Rectangle()
                         .fill(DoneColor.borderSubtle)
@@ -108,7 +121,7 @@ struct DayTimeline: View {
                 ForEach(dayBlocks) { block in
                     let lane = lanes[block.id] ?? WorkWeek.Lane(index: 0, count: 1)
                     let laneWidth = (width - 6) / CGFloat(lane.count)
-                    // Pendant un geste, la réunion se dessine à sa nouvelle place (et dans la colonne visée).
+                    // Pendant un geste, l'élément se dessine à sa nouvelle place (et dans la colonne visée).
                     let edit = editing(block)
                     let top = y(of: edit?.range.start ?? block.start)
                     let height = max(y(of: edit?.range.end ?? block.end) - top - 2, 14)
@@ -127,6 +140,16 @@ struct DayTimeline: View {
                 guard !isPast else { return }
                 onSlot(time(at: location.y))
             }
+            // Une tâche déposée sur la grille y prend un bloc de travail, au quart d'heure.
+            .dropDestination(for: String.self) { ids, location in
+                let start = quarter(at: location.y)
+                guard start >= TimelineEdit.currentQuarter(now) else { return false }
+                var added = false
+                for id in ids where model.addWorkBlock(taskID: id, start: start) != nil {
+                    added = true
+                }
+                return added
+            } isTargeted: { dropTargeted = $0 }
         }
     }
 
@@ -134,12 +157,11 @@ struct DayTimeline: View {
     private func blockView(_ block: Block, width: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         let isShort = block.end.timeIntervalSince(block.start) < 30 * 60
+        let edit = editing(block)
+        // Le créneau visé pendant le geste, ou celui de l'élément.
+        let shown = edit.map(\.range) ?? DateInterval(start: block.start, end: max(block.start, block.end))
         switch block.kind {
         case .meeting(let meeting):
-            let edit = editing(block)
-            // Le créneau visé pendant le geste, ou celui de la réunion.
-            let shown = edit.map { $0.isAllowed ? $0.range : DateInterval(start: meeting.start, end: max(meeting.start, meeting.end)) }
-                ?? DateInterval(start: meeting.start, end: max(meeting.start, meeting.end))
             MeetingBlock(
                 meeting: meeting,
                 now: now,
@@ -148,21 +170,25 @@ struct DayTimeline: View {
                 singleLine: shown.duration < 30 * 60
             )
             .clipShape(shape)
-            .overlay {
-                if let edit {
-                    shape.strokeBorder(DoneColor.focusRing, lineWidth: edit.isAllowed ? 2 : 0)
-                }
-            }
-            // Un geste vers un moment interdit (le passé) : la réunion pâlit et ne bougera pas.
-            .opacity(edit.map { $0.isAllowed ? 1 : 0.5 } ?? 1)
-            .shadow(color: edit == nil ? .clear : DoneColor.shadowRaised, radius: 12, y: 6)
-            .contentShape(shape)
-            .onTapGesture { onMeeting(meeting) }
-            .gesture(moveGesture(meeting, width: width))
-            .overlay(alignment: .bottom) {
-                resizeHandle(meeting)
-            }
+            .modifier(EditableBlock(
+                shape: shape,
+                edit: edit.map { ($0.isAllowed) },
+                gesture: moveGesture(block, width: width),
+                handle: resizeHandle(block),
+                open: { onMeeting(meeting) }
+            ))
             .help("\(meeting.title), \(Format.time(meeting.start))–\(Format.time(meeting.end)). Glisser pour déplacer, étirer le bas pour la durée.")
+        case .work(let workBlock, let task):
+            WorkBlockView(task: task, detail: "\(Format.time(shown.start))–\(Format.time(shown.end))", singleLine: shown.duration < 30 * 60)
+                .clipShape(shape)
+                .modifier(EditableBlock(
+                    shape: shape,
+                    edit: edit.map { ($0.isAllowed) },
+                    gesture: moveGesture(block, width: width),
+                    handle: resizeHandle(block),
+                    open: { onWorkBlock(workBlock) }
+                ))
+                .help("Bloc de travail : \(task.title), \(Format.time(workBlock.start))–\(Format.time(workBlock.end)). Glisser pour déplacer, étirer le bas pour la durée.")
         case .focus(let title, let minutes):
             shape
                 .fill(DoneColor.accentTint)
@@ -183,20 +209,20 @@ struct DayTimeline: View {
 
     // MARK: Glisser et étirer
 
-    /// Le geste en cours sur ce bloc : la plage visée (celle d'origine si le geste vise le passé), et le
-    /// décalage en jours.
+    /// Le geste en cours sur cet élément : la plage visée (celle d'origine si le geste vise le passé),
+    /// et le décalage en jours.
     private func editing(_ block: Block) -> (range: DateInterval, days: Int, isAllowed: Bool)? {
-        guard case .meeting(let meeting) = block.kind, let drag, drag.id == meeting.id else { return nil }
-        let original = DateInterval(start: meeting.start, end: max(meeting.start, meeting.end))
-        if let range = target(of: meeting, drag) {
+        guard block.isEditable, let drag, drag.id == block.id else { return nil }
+        let original = DateInterval(start: block.start, end: max(block.start, block.end))
+        if let range = target(of: block, drag) {
             return (range, drag.mode == .move ? drag.days : 0, true)
         }
         return (original, 0, false)
     }
 
-    /// La plage d'une réunion à la fin du geste ; nil si le geste vise un moment interdit.
-    private func target(of meeting: Meeting, _ drag: MeetingDrag) -> DateInterval? {
-        let original = DateInterval(start: meeting.start, end: max(meeting.start, meeting.end))
+    /// La plage d'un élément à la fin du geste ; nil si le geste vise un moment interdit.
+    private func target(of block: Block, _ drag: TimelineDrag) -> DateInterval? {
+        let original = DateInterval(start: block.start, end: max(block.start, block.end))
         switch drag.mode {
         case .move:
             return TimelineEdit.moved(original, byMinutes: drag.minutes, days: drag.days, firstHour: firstHour, lastHour: lastHour, now: now)
@@ -205,63 +231,75 @@ struct DayTimeline: View {
         }
     }
 
-    /// Glisser une réunion : vers le haut ou le bas pour l'heure, sur le côté pour un autre jour.
-    /// Mesuré dans l'espace de la fenêtre : la réunion bouge sous le doigt sans fausser le geste.
-    private func moveGesture(_ meeting: Meeting, width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 4, coordinateSpace: .global)
-            .onChanged { value in
-                let columns = Int((value.translation.width / max(width, 1)).rounded())
-                let days = min(max(columns, moveDays.lowerBound), moveDays.upperBound)
-                if drag == nil { onDragging(true) }
-                drag = MeetingDrag(id: meeting.id, mode: .move, minutes: Double(value.translation.height / hourHeight) * 60, days: days)
-            }
-            .onEnded { _ in commit(meeting) }
-    }
-
-    /// Bord bas d'une réunion : on l'étire pour changer sa durée.
-    private func resizeHandle(_ meeting: Meeting) -> some View {
-        Color.clear
-            .frame(height: 8)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .onHover { inside in
-                if inside, !resizeCursor {
-                    NSCursor.resizeUpDown.push()
-                    resizeCursor = true
-                } else if !inside, resizeCursor, drag?.mode != .resize {
-                    NSCursor.pop()
-                    resizeCursor = false
+    /// Glisser un élément : vers le haut ou le bas pour l'heure, sur le côté pour un autre jour.
+    /// Mesuré dans l'espace de la fenêtre : l'élément bouge sous le doigt sans fausser le geste.
+    private func moveGesture(_ block: Block, width: CGFloat) -> AnyGesture<DragGesture.Value> {
+        AnyGesture(
+            DragGesture(minimumDistance: 4, coordinateSpace: .global)
+                .onChanged { value in
+                    let columns = Int((value.translation.width / max(width, 1)).rounded())
+                    let days = min(max(columns, moveDays.lowerBound), moveDays.upperBound)
+                    if drag == nil { onDragging(true) }
+                    drag = TimelineDrag(id: block.id, mode: .move, minutes: Double(value.translation.height / hourHeight) * 60, days: days)
                 }
-            }
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                    .onChanged { value in
-                        if drag == nil { onDragging(true) }
-                        drag = MeetingDrag(id: meeting.id, mode: .resize, minutes: Double(value.translation.height / hourHeight) * 60)
-                    }
-                    .onEnded { _ in
-                        commit(meeting)
-                        if resizeCursor {
-                            NSCursor.pop()
-                            resizeCursor = false
-                        }
-                    }
-            )
-            .accessibilityHidden(true)
+                .onEnded { _ in commit(block) }
+        )
     }
 
-    /// Fin du geste : la réunion prend sa nouvelle plage, si elle est permise et a changé.
-    private func commit(_ meeting: Meeting) {
+    /// Bord bas d'un élément : on l'étire pour changer sa durée.
+    private func resizeHandle(_ block: Block) -> AnyView {
+        AnyView(
+            Color.clear
+                .frame(height: 8)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .onHover { inside in
+                    if inside, !resizeCursor {
+                        NSCursor.resizeUpDown.push()
+                        resizeCursor = true
+                    } else if !inside, resizeCursor, drag?.mode != .resize {
+                        NSCursor.pop()
+                        resizeCursor = false
+                    }
+                }
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                        .onChanged { value in
+                            if drag == nil { onDragging(true) }
+                            drag = TimelineDrag(id: block.id, mode: .resize, minutes: Double(value.translation.height / hourHeight) * 60)
+                        }
+                        .onEnded { _ in
+                            commit(block)
+                            if resizeCursor {
+                                NSCursor.pop()
+                                resizeCursor = false
+                            }
+                        }
+                )
+                .accessibilityHidden(true)
+        )
+    }
+
+    /// Fin du geste : la réunion ou le bloc prend sa nouvelle plage, si elle est permise et a changé.
+    private func commit(_ block: Block) {
         defer {
             self.drag = nil
             onDragging(false)
         }
-        guard let drag, drag.id == meeting.id, let range = target(of: meeting, drag),
-              range.start != meeting.start || range.end != meeting.end else { return }
-        var updated = meeting
-        updated.start = range.start
-        updated.end = range.end
-        model.updateMeeting(updated)
+        guard let drag, drag.id == block.id, let range = target(of: block, drag),
+              range.start != block.start || range.end != block.end else { return }
+        switch block.kind {
+        case .meeting(var meeting):
+            meeting.start = range.start
+            meeting.end = range.end
+            model.updateMeeting(meeting)
+        case .work(var workBlock, _):
+            workBlock.start = range.start
+            workBlock.end = range.end
+            model.updateWorkBlock(workBlock)
+        case .focus:
+            break
+        }
     }
 
     /// Heure courante : un point et un trait de 2 en braise.
@@ -324,6 +362,10 @@ struct DayTimeline: View {
         let meetings = model.store.meetings(on: day).map {
             Block(id: "meeting-" + $0.id, start: $0.start, end: $0.end, kind: .meeting($0))
         }
+        let work = model.store.workBlocks(on: day).compactMap { block -> Block? in
+            guard let task = model.store[block.taskID] else { return nil }
+            return Block(id: "work-" + block.id, start: block.start, end: block.end, kind: .work(block, task: task))
+        }
         let focus = sessions
             .filter { Calendar.current.isDate($0.startedAt, inSameDayAs: day) }
             .compactMap { session -> Block? in
@@ -336,7 +378,7 @@ struct DayTimeline: View {
                     kind: .focus(title: session.rootTitle, minutes: session.focusedSeconds / 60)
                 )
             }
-        return focus + meetings
+        return focus + work + meetings
     }
 
     /// Position verticale d'une heure dans la grille, bornée à la plage affichée.
@@ -346,6 +388,13 @@ struct DayTimeline: View {
         let minutes = date.timeIntervalSince(start) / 60
         let total = Double(lastHour - firstHour) * 60
         return CGFloat(min(max(minutes, 0), total) / 60) * hourHeight
+    }
+
+    /// L'heure sous un point de la grille, au quart d'heure le plus proche : où commence un bloc déposé.
+    private func quarter(at y: CGFloat) -> Date {
+        let start = Calendar.current.date(bySettingHour: firstHour, minute: 0, second: 0, of: day) ?? day
+        let minutes = max(0, min(Double(y / hourHeight) * 60, Double(lastHour - firstHour) * 60 - Double(TimelineEdit.step)))
+        return TimelineEdit.snapped(start.addingTimeInterval(minutes * 60), dayStart: Calendar.current.startOfDay(for: day))
     }
 
     /// L'heure sous un point de la grille, à la demi-heure inférieure.
@@ -401,5 +450,79 @@ struct HourLabels: View {
         let minutes = date.timeIntervalSince(start) / 60
         guard minutes >= 0, minutes <= Double(lastHour - firstHour) * 60 else { return nil }
         return CGFloat(minutes / 60) * hourHeight
+    }
+}
+
+/// Ce qui rend un élément de la grille modifiable : contour cobalt et ombre pendant le geste, pâle si
+/// le geste vise le passé, clic pour l'ouvrir, glisser pour le déplacer, bord bas pour l'étirer.
+private struct EditableBlock<Handle: View>: ViewModifier {
+    let shape: RoundedRectangle
+    /// Pendant un geste : vrai si la plage visée est permise.
+    let edit: Bool?
+    let gesture: AnyGesture<DragGesture.Value>
+    let handle: Handle
+    let open: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if let edit {
+                    shape.strokeBorder(DoneColor.focusRing, lineWidth: edit ? 2 : 0)
+                }
+            }
+            // Un geste vers un moment interdit (le passé) : l'élément pâlit et ne bougera pas.
+            .opacity(edit.map { $0 ? 1 : 0.5 } ?? 1)
+            .shadow(color: edit == nil ? .clear : DoneColor.shadowRaised, radius: 12, y: 6)
+            .contentShape(shape)
+            .onTapGesture(perform: open)
+            .gesture(gesture)
+            .overlay(alignment: .bottom) { handle }
+    }
+}
+
+/// Bloc de travail dans la grille : cobalt clair, le titre de la tâche et le créneau. Une tâche déjà
+/// faite passe en gris, barrée.
+struct WorkBlockView: View {
+    let task: TodoTask
+    let detail: String
+    var singleLine = false
+
+    var body: some View {
+        let done = !task.isOpen
+        let title = Text(Image(systemName: "checkmark.square")) + Text(" ") + Text(task.title)
+        Group {
+            if singleLine {
+                HStack(spacing: DoneSpace.s6) {
+                    title
+                        .font(.sans(12, .semibold))
+                        .strikethrough(done)
+                        .lineLimit(1)
+                    Text(detail)
+                        .font(.done(.numericS))
+                        .lineLimit(1)
+                        .opacity(0.85)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 1) {
+                    title
+                        .font(.sans(13, .semibold))
+                        .strikethrough(done)
+                        .lineLimit(2)
+                    Text(detail)
+                        .font(.done(.numericS))
+                        .opacity(0.85)
+                }
+            }
+        }
+        .foregroundStyle(done ? DoneColor.textDisabled : DoneColor.stateActiveText)
+        .padding(.horizontal, DoneSpace.s8)
+        .padding(.vertical, singleLine ? 1 : DoneSpace.s6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(done ? DoneColor.stateDone : DoneColor.stateActiveTint)
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(done ? DoneColor.borderDefault : DoneColor.stateActive)
+                .frame(width: 3)
+        }
     }
 }

@@ -40,6 +40,8 @@ struct ConnectorTools {
         case "update_note": return try updateNote(args)
         case "add_meeting": return try addMeeting(args)
         case "update_meeting": return try updateMeeting(args)
+        case "add_work_block": return try addWorkBlock(args)
+        case "update_work_block": return try updateWorkBlock(args)
         case "set_absence": return try setAbsence(args)
         case "set_today_plan": return try setTodayPlan(args)
         default: throw ToolFailure("Outil inconnu : \(name)")
@@ -74,6 +76,8 @@ struct ConnectorTools {
             .sorted(by: Planner.priorityOrder)
         fields["due_or_late"] = .array(due.map { .object(taskFields($0, in: store, now: now)) })
         fields["meetings_today"] = .array(store.meetings(on: now).map { meetingFields($0, notes: notes, store: store) })
+        let blocks = store.workBlocks(on: now)
+        if !blocks.isEmpty { fields["work_blocks_today"] = .array(blocks.map { workBlockFields($0, store: store) }) }
         let done = DayAgenda.doneToday(in: store.tasks, today: now)
         if !done.isEmpty { fields["done_today"] = .array(done.prefix(30).map(taskRef)) }
         let topLevel = store.openTasks.filter { $0.parentID == nil }
@@ -187,6 +191,8 @@ struct ConnectorTools {
             if let absence = store.absence(on: day) { fields["absence"] = .string(absence.title) }
             let meetings = store.meetings(on: day)
             if !meetings.isEmpty { fields["meetings"] = .array(meetings.map { meetingFields($0, notes: notes, store: store) }) }
+            let blocks = store.workBlocks(on: day)
+            if !blocks.isEmpty { fields["work_blocks"] = .array(blocks.map { workBlockFields($0, store: store) }) }
             let due = WorkWeek.dueTasks(on: day, in: store.openTasks, today: now).sorted(by: Planner.priorityOrder)
             if !due.isEmpty { fields["due"] = .array(due.map { .object(taskFields($0, in: store, now: now)) }) }
             return .object(fields)
@@ -634,6 +640,63 @@ struct ConnectorTools {
             return store.meetings.first { $0.id == id } ?? meeting
         }
         return meetingFields(meeting, notes: workspace.loadNotes())
+    }
+
+    // MARK: Blocs de travail
+
+    private func addWorkBlock(_ args: ToolArguments) throws -> JSONValue {
+        let taskID = try args.required("task_id")
+        let start = try ConnectorFormat.moment(args.required("start"), field: "start")
+        var end: Date?
+        if let text = try args.string("end"), !text.isEmpty {
+            end = try ConnectorFormat.moment(text, field: "end")
+        } else if let minutes = try args.int("duration_minutes") {
+            end = start.addingTimeInterval(TimeInterval(minutes) * 60)
+        }
+        if let end { try checkMeetingTimes(start: start, end: end) }
+        let rules = Rules.current
+        let (block, store) = try workspace.updateTasks { (store: inout TaskStore) throws -> (WorkBlock, TaskStore) in
+            guard let task = store[taskID] else { throw ToolFailure("Tâche introuvable : \(taskID).") }
+            guard task.isOpen else { throw ToolFailure("La tâche « \(task.title) » est déjà faite.") }
+            guard let created = store.addWorkBlock(taskID: taskID, start: start, end: end, rules: rules) else {
+                throw ToolFailure("La fin doit venir après le début.")
+            }
+            return (created, store)
+        }
+        return workBlockFields(block, store: store)
+    }
+
+    private func updateWorkBlock(_ args: ToolArguments) throws -> JSONValue {
+        let id = try args.required("id")
+        let start = try args.string("start").map { try ConnectorFormat.moment($0, field: "start") }
+        let end = try args.string("end").map { try ConnectorFormat.moment($0, field: "end") }
+        let (block, store) = try workspace.updateTasks { (store: inout TaskStore) throws -> (WorkBlock, TaskStore) in
+            guard var block = store.workBlocks.first(where: { $0.id == id }) else { throw ToolFailure("Bloc introuvable : \(id).") }
+            if let start {
+                // Sans nouvelle fin, le bloc garde sa durée.
+                if end == nil { block.end = start.addingTimeInterval(block.end.timeIntervalSince(block.start)) }
+                block.start = start
+            }
+            if let end { block.end = end }
+            try checkMeetingTimes(start: block.start, end: block.end)
+            store.updateWorkBlock(block)
+            return (block, store)
+        }
+        return workBlockFields(block, store: store)
+    }
+
+    private func workBlockFields(_ block: WorkBlock, store: TaskStore) -> JSONValue {
+        var fields: [String: JSONValue] = [
+            "id": .string(block.id),
+            "task_id": .string(block.taskID),
+            "start": .string(ConnectorFormat.stamp(block.start)),
+            "end": .string(ConnectorFormat.stamp(block.end)),
+        ]
+        if let task = store[block.taskID] {
+            fields["task_title"] = .string(task.title)
+            if !task.isOpen { fields["task_done"] = true }
+        }
+        return .object(fields)
     }
 
     private func checkMeetingTimes(start: Date, end: Date) throws {
