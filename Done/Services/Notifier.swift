@@ -10,11 +10,12 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     /// Rappel d'un bloc de travail, avec ses deux boutons.
     static let workBlockCategory = "done.workblock"
     static let startAction = "done.workblock.start"
+    static let postponeAction = "done.workblock.postpone"
     static let moveAction = "done.workblock.move"
 
-    /// Réponse à un rappel de bloc : l'identifiant du bloc, et vrai pour « Lancer le pomodoro »
-    /// (faux pour « Déplacer… » ou un clic sur la notification). Appelé sur le fil principal.
-    var onWorkBlock: ((String, Bool) -> Void)?
+    /// Réponse à un rappel de bloc : l'identifiant du bloc et la réponse (« Lancer le pomodoro »,
+    /// « Décaler de 30 min », « Déplacer… » ou un clic sur la notification). Appelé sur le fil principal.
+    var onWorkBlock: ((String, WorkBlockReminder.Answer) -> Void)?
 
     /// Ce que macOS permet à Done, affiché dans les Réglages.
     enum Permission: Equatable {
@@ -34,9 +35,11 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     func setUp() {
         center.delegate = self
         let start = UNNotificationAction(identifier: Self.startAction, title: "Lancer le pomodoro", options: [.foreground])
+        // Décaler se fait sans ouvrir Done : la notification suffit.
+        let postpone = UNNotificationAction(identifier: Self.postponeAction, title: "Décaler de \(WorkBlockReminder.postponeMinutes) min", options: [])
         let move = UNNotificationAction(identifier: Self.moveAction, title: "Déplacer…", options: [.foreground])
         center.setNotificationCategories([
-            UNNotificationCategory(identifier: Self.workBlockCategory, actions: [start, move], intentIdentifiers: [], options: []),
+            UNNotificationCategory(identifier: Self.workBlockCategory, actions: [start, postpone, move], intentIdentifiers: [], options: []),
         ])
         center.requestAuthorization(options: [.alert, .sound]) { [weak self] _, error in
             let message = error?.localizedDescription
@@ -179,8 +182,12 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         let identifier = response.notification.request.identifier
         let action = response.actionIdentifier
         if let blockID = WorkBlockReminder.blockID(fromNotification: identifier), action != UNNotificationDismissActionIdentifier {
-            let start = action == Self.startAction
-            DispatchQueue.main.async { [weak self] in self?.onWorkBlock?(blockID, start) }
+            let answer: WorkBlockReminder.Answer = switch action {
+            case Self.startAction: .start
+            case Self.postponeAction: .postpone
+            default: .move
+            }
+            DispatchQueue.main.async { [weak self] in self?.onWorkBlock?(blockID, answer) }
         }
         completionHandler()
     }

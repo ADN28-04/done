@@ -24,8 +24,12 @@ struct DoneApp: App {
         model.updateMeetingReminders()
         model.updateWorkBlockReminders()
         // Rappel d'un bloc de travail : « Lancer le pomodoro » ou « Déplacer… ».
-        Notifier.shared.onWorkBlock = { [weak model] blockID, start in
-            model?.requestWorkBlock(blockID, start ? .start : .move)
+        Notifier.shared.onWorkBlock = { [weak model] blockID, answer in
+            switch answer {
+            case .start: model?.requestWorkBlock(blockID, .start)
+            case .postpone: model?.postponeWorkBlock(blockID)
+            case .move: model?.requestWorkBlock(blockID, .move)
+            }
         }
         DoNotDisturb.shared.onError = { [weak model] message in model?.errorMessage = message }
         SystemBridge.onTerminate { DoNotDisturb.shared.turnOffBeforeExit() }

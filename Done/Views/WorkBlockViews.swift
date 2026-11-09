@@ -53,7 +53,7 @@ struct WorkBlockSheet: View {
                         .foregroundStyle(DoneColor.stateRiskText)
                         .padding(.top, DoneSpace.s8)
                 }
-                Text("Done te prévient 5 min avant le début : lancer le pomodoro, ou déplacer le bloc. Pendant le bloc, Ma journée propose cette tâche. Au calendrier, glisse le bloc au-dessus de la grille pour rendre la tâche aux échéances du jour.")
+                Text("Done te prévient 5 min avant le début : lancer le pomodoro, le décaler de 30 min, ou déplacer le bloc. Pendant le bloc, Ma journée propose cette tâche. Au calendrier, glisse le bloc au-dessus de la grille pour rendre la tâche aux échéances du jour.")
                     .doneText(.caption)
                     .foregroundStyle(DoneColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

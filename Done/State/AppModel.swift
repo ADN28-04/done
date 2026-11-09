@@ -472,6 +472,11 @@ final class AppModel {
         commit { $0.deleteWorkBlock(id) }
     }
 
+    /// « Décaler de 30 min », depuis le rappel du bloc : son rappel suit.
+    func postponeWorkBlock(_ id: String) {
+        commit { $0.postponeWorkBlock(id, now: .now) }
+    }
+
     /// Ce que demande un rappel de bloc, ou la fiche d'un bloc : `RootView` lance le pomodoro, ou ouvre
     /// le bloc pour le déplacer.
     struct WorkBlockRequest: Equatable {

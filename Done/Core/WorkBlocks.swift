@@ -66,6 +66,24 @@ extension TaskStore {
         Set(workBlocks.filter { $0.end > now }.map(\.taskID))
     }
 
+    /// « Décaler de 30 min » : le bloc garde sa durée et commence `minutes` plus tard, à partir de son
+    /// début s'il est encore à venir, sinon de maintenant (au quart d'heure suivant).
+    @discardableResult
+    mutating func postponeWorkBlock(_ id: String, minutes: Int = WorkBlockReminder.postponeMinutes, now: Date, calendar: Calendar = .current) -> WorkBlock? {
+        guard let i = workBlocks.firstIndex(where: { $0.id == id }) else { return nil }
+        let block = workBlocks[i]
+        let duration = block.end.timeIntervalSince(block.start)
+        var start = block.start.addingTimeInterval(TimeInterval(minutes) * 60)
+        if block.start < now {
+            // Déjà commencé : on repart de maintenant, au quart d'heure suivant.
+            let quarter = TimelineEdit.currentQuarter(now, calendar: calendar).addingTimeInterval(TimeInterval(TimelineEdit.step) * 60)
+            start = quarter.addingTimeInterval(TimeInterval(minutes) * 60)
+        }
+        workBlocks[i].start = start
+        workBlocks[i].end = start.addingTimeInterval(max(duration, 60))
+        return workBlocks[i]
+    }
+
     /// Le bloc en cours d'une tâche encore ouverte, à `now`.
     func currentWorkBlock(at now: Date) -> WorkBlock? {
         workBlocks
@@ -96,6 +114,18 @@ struct WorkBlockReminder: Equatable {
     /// Préfixe des identifiants de notification ; la suite est l'identifiant du bloc.
     static let prefix = "done.workblock."
     static let minutesBefore = 5
+    /// « Décaler de 30 min » : le décalage proposé par le rappel.
+    static let postponeMinutes = 30
+
+    /// Réponse au rappel d'un bloc.
+    enum Answer: Equatable {
+        /// « Lancer le pomodoro ».
+        case start
+        /// « Décaler de 30 min », sans ouvrir Done.
+        case postpone
+        /// « Déplacer… », ou un clic sur le rappel : Done ouvre le bloc.
+        case move
+    }
 
     let id: String
     let blockID: String
@@ -120,7 +150,7 @@ struct WorkBlockReminder: Equatable {
                 blockID: block.id,
                 fireDate: fireDate,
                 title: "Bloc de travail à \(Format.time(block.start))",
-                body: "« \(task.title) » dans \(minutesBefore) min. Lancer le pomodoro, ou déplacer le bloc ?"
+                body: "« \(task.title) » dans \(minutesBefore) min. Lancer le pomodoro, le décaler, ou le déplacer ?"
             )
         }
     }
