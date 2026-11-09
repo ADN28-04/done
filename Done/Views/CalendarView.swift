@@ -82,8 +82,11 @@ struct CalendarView: View {
             TaskEditorSheet(taskID: task.id)
                 .environment(model)
         }
-        // La semaine a pu avancer : les réunions récurrentes de la semaine prochaine arrivent.
-        .onAppear { model.refreshMeetingSeries() }
+        // Les réunions récurrentes de la semaine affichée arrivent, même plusieurs semaines plus loin.
+        .onAppear { fillShownWeek() }
+        .onChange(of: weekOffset) { fillShownWeek() }
+        // Une réunion vient de devenir récurrente, ou sa série a changé : la semaine affichée la reçoit aussi.
+        .onChange(of: model.store.meetingSeries) { fillShownWeek() }
         .sheet(item: $meetingRequest) { request in
             MeetingSheet(meeting: request.meeting, start: request.start, end: request.end)
                 .environment(model)
@@ -281,6 +284,11 @@ struct CalendarView: View {
     }
 
     /// Un jour de la semaine affichée.
+    /// Crée les occurrences des réunions récurrentes jusqu'à la fin de la semaine affichée.
+    private func fillShownWeek() {
+        model.refreshMeetingSeries(through: Stats.week(containing: reference(.now)).end)
+    }
+
     private func reference(_ now: Date) -> Date {
         // Le week-end, la semaine qui vient est plus utile que celle qui finit.
         let weekday = Calendar(identifier: .gregorian).component(.weekday, from: now)

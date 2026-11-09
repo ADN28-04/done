@@ -394,11 +394,12 @@ final class AppModel {
         }
     }
 
-    /// Crée les occurrences qui manquent jusqu'à la fin de la semaine prochaine : au lancement, et
-    /// quand le calendrier ou Ma journée s'affichent (la semaine a pu avancer).
-    func refreshMeetingSeries() {
+    /// Crée les occurrences qui manquent jusqu'à la fin de la semaine prochaine, ou jusqu'à `through`
+    /// (la fin de la semaine affichée au calendrier) : au lancement, quand le calendrier ou Ma journée
+    /// s'affichent (la semaine a pu avancer), et quand on change de semaine au calendrier.
+    func refreshMeetingSeries(through: Date? = nil) {
         guard !store.meetingSeries.isEmpty else { return }
-        commit { $0.fillMeetingSeries(now: .now) }
+        commit { $0.fillMeetingSeries(now: .now, through: through) }
     }
 
     /// Reprogramme les rappels des réunions des sept prochains jours, après chaque changement

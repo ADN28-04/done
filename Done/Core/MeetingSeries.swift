@@ -115,9 +115,11 @@ extension TaskStore {
     }
 
     /// Crée les occurrences qui manquent, de la semaine en cours jusqu'à la fin de la semaine
-    /// prochaine. Ce qui a déjà été créé une fois (`filledThrough`) ne l'est pas de nouveau.
-    mutating func fillMeetingSeries(now: Date, calendar: Calendar = .current) {
-        let horizon = Self.meetingHorizon(now: now)
+    /// prochaine, ou jusqu'à `through` (exclu) si c'est plus loin : la semaine affichée au calendrier,
+    /// un an au plus. Ce qui a déjà été créé une fois (`filledThrough`) ne l'est pas de nouveau.
+    mutating func fillMeetingSeries(now: Date, through: Date? = nil, calendar: Calendar = .current) {
+        let limit = calendar.date(byAdding: .year, value: 1, to: now) ?? now
+        let horizon = max(Self.meetingHorizon(now: now), min(through ?? .distantPast, limit))
         let weekStart = Stats.week(containing: now).start
         guard let lastDay = calendar.date(byAdding: .day, value: -1, to: horizon) else { return }
         for i in meetingSeries.indices {
