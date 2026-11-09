@@ -283,9 +283,13 @@ La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-p
 ## Stats
 
 - **En-tête** : « Cette semaine » en `displayL`, la période en `body` secondaire, les flèches en `DoneIconButtonStyle`.
-- **Total** : les minutes de focus en `numericXL`, puis « de focus · 9 pomodoros · 3 tâches cochées · 1 interruption » en `body` secondaire.
-- **Par jour** : barres de 40 en `stateActive` (piste `pomodoroTrack` pour un jour vide), la durée au-dessus en `caption`, le jour en dessous ; les pomodoros en pastilles braise de 6 (5 au plus, puis « +2 » en `accentText`). Un soleil braise au-dessus de la meilleure journée ; un petit soleil à côté des jours où le plan a été bouclé, et leur nombre en tête de la carte, en `accentText`.
-- **Par projet** : jauges `ProgressBar` de 8.
+- **Grille** : six cartes widget (`WidgetCard`, comme Ma journée), trois colonnes (1 / 1,25 / 1) sur deux rangées, écart de 16, les graphiques dans la colonne large ; sous 1 150 de large utile, deux colonnes. Les cartes d'une rangée prennent la hauteur de la plus haute, et l'écran défile.
+  1. **Focus de la semaine** : le total en `numericXL` (`stateActiveText`), l'écart avec la semaine d'avant en `callout` secondaire, puis les lignes Sessions, Tâches cochées et Plans bouclés (valeur en `numericM`, en `accentText` quand des plans ont été bouclés), séparées par un `Hairline`.
+  2. **Par jour** : barres de 32 en `stateActive` (piste `pomodoroTrack` pour un jour vide), la durée au-dessus en `caption`, le jour en dessous ; les pomodoros en pastilles braise de 6 (5 au plus, puis « +2 » en `accentText`). Un soleil braise au-dessus de la meilleure journée ; un petit soleil à côté des jours où le plan a été bouclé.
+  3. **Pomodoros et série** : le nombre en `numericL` ; une pastille de 10 par jour ouvré (et par jour de week-end travaillé), pleine en braise avec au moins un pomodoro, cerclée `borderDefault` sinon, en pointillé pour les jours à venir ; puis Série en cours (en `accentText`), Meilleur jour et Par jour travaillé.
+  4. **Par projet** : jauges `ProgressBar` de 8.
+  5. **Tes meilleures heures** : la phrase en `callout`, la période en `caption` secondaire, puis une barre par heure (8 h à 19 h au moins), les meilleures heures en `stateActive`, les autres en `stateActiveTint` ; l'heure sous une barre sur deux.
+  6. **Interruptions** : le nombre en `numericL`, la part des sessions sans interruption en `callout` secondaire, puis une jauge par raison.
 - **Mouvement** : les barres poussent l'une après l'autre (`arrive`, 40 ms d'écart), puis le soleil de la meilleure journée rebondit (`pop`). Avec « Réduire les animations », tout arrive en fondu.
 
 ## Logo
