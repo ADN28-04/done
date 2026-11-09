@@ -46,13 +46,18 @@ struct DayTimeline: View {
     var onDragging: (Bool) -> Void = { _ in }
     /// Clic sur un bloc de travail.
     var onWorkBlock: (WorkBlock) -> Void = { _ in }
+    /// Calendrier : hauteur (dans la fenêtre) du haut de la grille visible. Un bloc de travail glissé
+    /// au-dessus quitte la grille et rend sa tâche aux échéances du jour visé (`onReturnToDue`).
+    var liftThreshold: CGFloat?
+    /// Le jour dont les échéances recevraient le bloc soulevé, ou nil quand il revient sur la grille.
+    var onLiftTarget: (Date?) -> Void = { _ in }
+    /// Bloc lâché au-dessus de la grille : sa tâche revient aux échéances de ce jour.
+    var onReturnToDue: (WorkBlock, Date) -> Void = { _, _ in }
     let onMeeting: (Meeting) -> Void
     let onSlot: (Date) -> Void
 
     /// Réunion ou bloc en train d'être glissé ou étiré.
     @State private var drag: TimelineDrag?
-    /// Le curseur de redimensionnement est posé (survol du bord bas d'une réunion ou d'un bloc).
-    @State private var resizeCursor = false
     /// Une tâche glissée survole la grille.
     @State private var dropTargeted = false
 
@@ -62,6 +67,8 @@ struct DayTimeline: View {
         let mode: Mode
         var minutes: Double = 0
         var days = 0
+        /// Bloc de travail soulevé au-dessus de la grille, vers les échéances.
+        var lifted = false
     }
 
     /// Hauteur d'une heure pour remplir `available`, sans descendre sous le minimum.
@@ -210,10 +217,12 @@ struct DayTimeline: View {
     // MARK: Glisser et étirer
 
     /// Le geste en cours sur cet élément : la plage visée (celle d'origine si le geste vise le passé),
-    /// et le décalage en jours.
+    /// et le décalage en jours. Un bloc soulevé vers les échéances reste à son heure, pâle, dans la
+    /// colonne du jour visé.
     private func editing(_ block: Block) -> (range: DateInterval, days: Int, isAllowed: Bool)? {
         guard block.isEditable, let drag, drag.id == block.id else { return nil }
         let original = DateInterval(start: block.start, end: max(block.start, block.end))
+        if drag.lifted { return (original, drag.days, false) }
         if let range = target(of: block, drag) {
             return (range, drag.mode == .move ? drag.days : 0, true)
         }
@@ -233,6 +242,7 @@ struct DayTimeline: View {
 
     /// Glisser un élément : vers le haut ou le bas pour l'heure, sur le côté pour un autre jour.
     /// Mesuré dans l'espace de la fenêtre : l'élément bouge sous le doigt sans fausser le geste.
+    /// Au calendrier, un bloc de travail poussé au-dessus de la grille rejoint les échéances du jour.
     private func moveGesture(_ block: Block, width: CGFloat) -> AnyGesture<DragGesture.Value> {
         AnyGesture(
             DragGesture(minimumDistance: 4, coordinateSpace: .global)
@@ -240,40 +250,50 @@ struct DayTimeline: View {
                     let columns = Int((value.translation.width / max(width, 1)).rounded())
                     let days = min(max(columns, moveDays.lowerBound), moveDays.upperBound)
                     if drag == nil { onDragging(true) }
-                    drag = TimelineDrag(id: block.id, mode: .move, minutes: Double(value.translation.height / hourHeight) * 60, days: days)
+                    var lifted = false
+                    if case .work = block.kind, let liftThreshold, value.location.y < liftThreshold {
+                        lifted = true
+                    }
+                    drag = TimelineDrag(id: block.id, mode: .move, minutes: Double(value.translation.height / hourHeight) * 60, days: days, lifted: lifted)
+                    onLiftTarget(lifted ? targetDay(of: block, days: days) : nil)
                 }
                 .onEnded { _ in commit(block) }
         )
     }
 
-    /// Bord bas d'un élément : on l'étire pour changer sa durée.
+    /// Le jour visé par un geste de `days` colonnes.
+    private func targetDay(of block: Block, days: Int) -> Date {
+        let start = Calendar.current.startOfDay(for: block.start)
+        return Calendar.current.date(byAdding: .day, value: days, to: start) ?? start
+    }
+
+    /// Bord bas d'un élément : on l'étire pour changer sa durée. Le curseur de redimensionnement est
+    /// posé tant que la souris est sur le bord, et la flèche revient dès qu'elle le quitte ou qu'on
+    /// relâche (`set` plutôt qu'une pile : il ne peut pas rester coincé).
     private func resizeHandle(_ block: Block) -> AnyView {
         AnyView(
             Color.clear
                 .frame(height: 8)
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
-                .onHover { inside in
-                    if inside, !resizeCursor {
-                        NSCursor.resizeUpDown.push()
-                        resizeCursor = true
-                    } else if !inside, resizeCursor, drag?.mode != .resize {
-                        NSCursor.pop()
-                        resizeCursor = false
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active:
+                        NSCursor.resizeUpDown.set()
+                    case .ended:
+                        if drag?.mode != .resize { NSCursor.arrow.set() }
                     }
                 }
                 .highPriorityGesture(
                     DragGesture(minimumDistance: 1, coordinateSpace: .global)
                         .onChanged { value in
                             if drag == nil { onDragging(true) }
+                            NSCursor.resizeUpDown.set()
                             drag = TimelineDrag(id: block.id, mode: .resize, minutes: Double(value.translation.height / hourHeight) * 60)
                         }
                         .onEnded { _ in
                             commit(block)
-                            if resizeCursor {
-                                NSCursor.pop()
-                                resizeCursor = false
-                            }
+                            NSCursor.arrow.set()
                         }
                 )
                 .accessibilityHidden(true)
@@ -285,6 +305,12 @@ struct DayTimeline: View {
         defer {
             self.drag = nil
             onDragging(false)
+            onLiftTarget(nil)
+        }
+        // Bloc lâché au-dessus de la grille : sa tâche revient aux échéances du jour visé.
+        if let drag, drag.id == block.id, drag.lifted, case .work(let workBlock, _) = block.kind {
+            onReturnToDue(workBlock, targetDay(of: block, days: drag.days))
+            return
         }
         guard let drag, drag.id == block.id, let range = target(of: block, drag),
               range.start != block.start || range.end != block.end else { return }

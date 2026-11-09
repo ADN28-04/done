@@ -53,20 +53,32 @@ struct WorkBlockSheet: View {
                         .foregroundStyle(DoneColor.stateRiskText)
                         .padding(.top, DoneSpace.s8)
                 }
-                Text("Done te prévient 5 min avant le début : lancer le pomodoro, ou déplacer le bloc. Pendant le bloc, Ma journée propose cette tâche.")
+                Text("Done te prévient 5 min avant le début : lancer le pomodoro, ou déplacer le bloc. Pendant le bloc, Ma journée propose cette tâche. Au calendrier, glisse le bloc au-dessus de la grille pour rendre la tâche aux échéances du jour.")
                     .doneText(.caption)
                     .foregroundStyle(DoneColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, DoneSpace.s12)
+                // Actions sur le bloc et la tâche, à gauche ; la session et l'enregistrement, en bas.
                 HStack(spacing: DoneSpace.s8) {
-                    Button("Retirer le bloc") {
+                    Button {
+                        editingTask = task
+                    } label: {
+                        Label("Ouvrir la tâche", systemImage: "checkmark.square")
+                    }
+                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
+                    .fixedSize()
+                    Button {
                         model.deleteWorkBlock(block.id)
                         dismiss()
+                    } label: {
+                        Label("Retirer le bloc", systemImage: "calendar.badge.minus")
                     }
-                    .buttonStyle(DoneButtonStyle(kind: .plain))
-                    Button("Ouvrir la tâche") { editingTask = task }
-                        .buttonStyle(DoneButtonStyle(kind: .plain))
-                    Spacer()
+                    .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
+                    .fixedSize()
+                    .help("La tâche reste dans sa liste ; seul le temps réservé est retiré")
+                }
+                .padding(.top, DoneSpace.s16)
+                HStack(spacing: DoneSpace.s8) {
                     if task.isOpen {
                         Button {
                             save(block, from: from, to: to)
@@ -76,10 +88,13 @@ struct WorkBlockSheet: View {
                             Label("Lancer le pomodoro", systemImage: "play.fill")
                         }
                         .buttonStyle(DoneButtonStyle())
+                        .fixedSize()
                     }
+                    Spacer(minLength: DoneSpace.s8)
                     Button("Annuler") { dismiss() }
                         .buttonStyle(DoneButtonStyle())
                         .keyboardShortcut(.cancelAction)
+                        .fixedSize()
                     Button("Enregistrer") {
                         save(block, from: from, to: to)
                         dismiss()
@@ -87,8 +102,9 @@ struct WorkBlockSheet: View {
                     .buttonStyle(DoneButtonStyle(kind: .primary))
                     .keyboardShortcut(.defaultAction)
                     .disabled(!isValid)
+                    .fixedSize()
                 }
-                .padding(.top, DoneSpace.s20)
+                .padding(.top, DoneSpace.s16)
             } else {
                 Text("Ce bloc n'existe plus.")
                     .doneText(.body)
@@ -104,7 +120,7 @@ struct WorkBlockSheet: View {
             }
         }
         .padding(DoneSpace.s24)
-        .frame(width: 560)
+        .frame(width: 580)
         .background(DoneColor.bgCanvas)
         .onAppear {
             guard !loaded, let block else { return }

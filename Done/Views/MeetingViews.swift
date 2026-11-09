@@ -165,27 +165,31 @@ struct MeetingSheet: View {
                         }
                     }
                     .buttonStyle(DoneButtonStyle(kind: .plain))
+                    .fixedSize()
                     Button {
                         openedNote = NoteRef(id: NoteBook.shared.ensureMeetingNote(for: meeting).id)
                     } label: {
                         Label(NoteBook.shared.meetingNote(for: meeting) == nil ? "Prendre des notes" : "Ouvrir la note", systemImage: "doc.text")
                     }
                     .buttonStyle(DoneButtonStyle(kind: .plain))
+                    .fixedSize()
                     .help("Note de réunion, préremplie")
                 }
-                Spacer()
+                Spacer(minLength: DoneSpace.s8)
                 Button("Annuler") { dismiss() }
                     .buttonStyle(DoneButtonStyle())
                     .keyboardShortcut(.cancelAction)
+                    .fixedSize()
                 Button(meeting == nil ? "Ajouter" : "Enregistrer", action: save)
-                .buttonStyle(DoneButtonStyle(kind: .primary))
-                .keyboardShortcut(.defaultAction)
-                .disabled(!isValid)
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!isValid)
+                    .fixedSize()
             }
             .padding(.top, DoneSpace.s20)
         }
         .padding(DoneSpace.s24)
-        .frame(width: 520)
+        .frame(width: 580)
         .background(DoneColor.bgCanvas)
         .onAppear {
             titleFocused = true

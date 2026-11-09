@@ -61,7 +61,7 @@ struct CalendarView: View {
                         ScrollView {
                             row {
                                 ForEach(days, id: \.self) { day in
-                                    dayColumn(day, now: now, hourHeight: hourHeight)
+                                    dayColumn(day, now: now, hourHeight: hourHeight, liftThreshold: space.frame(in: .global).minY)
                                 }
                             } gutter: {
                                 HourLabels(hourHeight: hourHeight, now: days.contains { Calendar.current.isDate($0, inSameDayAs: now) } ? now : nil)
@@ -273,7 +273,9 @@ struct CalendarView: View {
 
     // MARK: Grille
 
-    private func dayColumn(_ day: Date, now: Date, hourHeight: CGFloat) -> some View {
+    /// Une colonne de la grille. `liftThreshold` : le haut de la grille visible, dans la fenêtre ; un bloc
+    /// de travail glissé au-dessus rejoint les échéances du jour visé.
+    private func dayColumn(_ day: Date, now: Date, hourHeight: CGFloat, liftThreshold: CGFloat) -> some View {
         // Une réunion se glisse vers les autres jours de la semaine affichée.
         let days = WorkWeek.days(containing: day)
         let index = days.firstIndex { Calendar.current.isDate($0, inSameDayAs: day) } ?? 0
@@ -284,7 +286,13 @@ struct CalendarView: View {
             sessions: sessions,
             moveDays: (-index)...(days.count - 1 - index),
             onDragging: { dragging in draggingDay = dragging ? day : nil },
-            onWorkBlock: { openedBlock = $0 }
+            onWorkBlock: { openedBlock = $0 },
+            liftThreshold: liftThreshold,
+            onLiftTarget: { target in dropDay = target },
+            onReturnToDue: { block, target in
+                // La tâche prend ce jour pour échéance, et le bloc disparaît. Pas vers un jour passé.
+                if move([block.taskID], to: target, now: .now) { model.deleteWorkBlock(block.id) }
+            }
         ) { meeting in
             meetingRequest = MeetingRequest(meeting: meeting)
         } onSlot: { start in
