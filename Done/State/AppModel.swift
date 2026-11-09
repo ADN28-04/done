@@ -61,6 +61,7 @@ final class AppModel {
         // Les réunions de la veille et d'avant ne servent plus.
         // Gardées jusqu'à la fin de la semaine, pour le calendrier.
         commit { $0.pruneMeetings(endedBefore: Stats.week(containing: .now).start) }
+        refreshMeetingSeries()
         updateResumeNotes { $0.keepOnly(Set(store.openTasks.map(\.id))) }
         loadPlan()
         applyPlanRequest()
@@ -351,6 +352,53 @@ final class AppModel {
 
     func updateMeeting(_ meeting: Meeting) {
         commit { $0.updateMeeting(meeting) }
+    }
+
+    // MARK: Réunions récurrentes
+
+    /// La série d'une occurrence, `nil` pour une réunion simple.
+    func meetingSeries(of meeting: Meeting) -> MeetingSeries? {
+        store.series(of: meeting)
+    }
+
+    @discardableResult
+    func addMeetingSeries(title: String, start: Date, end: Date, recurrence: Recurrence) -> Meeting? {
+        var created: Meeting?
+        commit { created = $0.addMeetingSeries(title: title, start: start, end: end, recurrence: recurrence, now: .now) }
+        return created
+    }
+
+    /// Une réunion simple devient la première occurrence d'une série.
+    func makeRecurring(_ meetingID: String, recurrence: Recurrence) {
+        commit { $0.makeRecurring(meetingID, recurrence: recurrence, now: .now) }
+    }
+
+    /// « Toutes les suivantes » : la série change à partir de cette occurrence.
+    func updateMeetingSeries(from occurrence: Meeting, title: String, start: Date, end: Date, recurrence: Recurrence) {
+        commit { $0.updateMeetingSeries(from: occurrence, title: title, start: start, end: end, recurrence: recurrence, now: .now) }
+    }
+
+    /// « Ne plus répéter » : cette occurrence reste, en réunion simple, avec les changements faits.
+    func endMeetingSeries(at occurrence: Meeting) {
+        commit { store in
+            store.updateMeeting(occurrence)
+            store.endMeetingSeries(at: occurrence)
+        }
+    }
+
+    /// Supprime cette occurrence et toutes les suivantes, et oublie la série.
+    func deleteMeetingSeries(from occurrence: Meeting) {
+        commit { store in
+            store.endMeetingSeries(at: occurrence)
+            store.deleteMeeting(occurrence.id)
+        }
+    }
+
+    /// Crée les occurrences qui manquent jusqu'à la fin de la semaine prochaine : au lancement, et
+    /// quand le calendrier ou Ma journée s'affichent (la semaine a pu avancer).
+    func refreshMeetingSeries() {
+        guard !store.meetingSeries.isEmpty else { return }
+        commit { $0.fillMeetingSeries(now: .now) }
     }
 
     /// Reprogramme les rappels des réunions des sept prochains jours, après chaque changement

@@ -73,7 +73,7 @@ struct ConnectorTools {
             .filter { !plan.taskIDs.contains($0.id) }
             .sorted(by: Planner.priorityOrder)
         fields["due_or_late"] = .array(due.map { .object(taskFields($0, in: store, now: now)) })
-        fields["meetings_today"] = .array(store.meetings(on: now).map { meetingFields($0, notes: notes) })
+        fields["meetings_today"] = .array(store.meetings(on: now).map { meetingFields($0, notes: notes, store: store) })
         let done = DayAgenda.doneToday(in: store.tasks, today: now)
         if !done.isEmpty { fields["done_today"] = .array(done.prefix(30).map(taskRef)) }
         let topLevel = store.openTasks.filter { $0.parentID == nil }
@@ -186,7 +186,7 @@ struct ConnectorTools {
             ]
             if let absence = store.absence(on: day) { fields["absence"] = .string(absence.title) }
             let meetings = store.meetings(on: day)
-            if !meetings.isEmpty { fields["meetings"] = .array(meetings.map { meetingFields($0, notes: notes) }) }
+            if !meetings.isEmpty { fields["meetings"] = .array(meetings.map { meetingFields($0, notes: notes, store: store) }) }
             let due = WorkWeek.dueTasks(on: day, in: store.openTasks, today: now).sorted(by: Planner.priorityOrder)
             if !due.isEmpty { fields["due"] = .array(due.map { .object(taskFields($0, in: store, now: now)) }) }
             return .object(fields)
@@ -594,13 +594,25 @@ struct ConnectorTools {
             throw ToolFailure("Donne « end » ou « duration_minutes ».")
         }
         try checkMeetingTimes(start: start, end: end)
-        let meeting = try workspace.updateTasks { (store: inout TaskStore) throws -> Meeting in
-            guard let created = store.addMeeting(title: title, start: start, end: end) else {
-                throw ToolFailure("La fin doit venir après le début.")
+        var recurrence: Recurrence?
+        if let raw = try args.string("repeat"), !raw.isEmpty {
+            guard let rule = Recurrence(raw: raw) else {
+                throw ToolFailure("Répétition inconnue : \(raw). Formes : daily, weekdays, weekly ou weekly:2,5, biweekly, monthly ou monthly:15.")
             }
-            return created
+            recurrence = rule
         }
-        return meetingFields(meeting, notes: [])
+        let now = clock()
+        let (meeting, store) = try workspace.updateTasks { (store: inout TaskStore) throws -> (Meeting, TaskStore) in
+            let created: Meeting?
+            if let recurrence {
+                created = store.addMeetingSeries(title: title, start: start, end: end, recurrence: recurrence, now: now)
+            } else {
+                created = store.addMeeting(title: title, start: start, end: end)
+            }
+            guard let created else { throw ToolFailure("La fin doit venir après le début.") }
+            return (created, store)
+        }
+        return meetingFields(meeting, notes: [], store: store)
     }
 
     private func updateMeeting(_ args: ToolArguments) throws -> JSONValue {
@@ -726,13 +738,18 @@ struct ConnectorTools {
         return .object(fields)
     }
 
-    private func meetingFields(_ meeting: Meeting, notes: [Note]) -> JSONValue {
+    private func meetingFields(_ meeting: Meeting, notes: [Note], store: TaskStore? = nil) -> JSONValue {
         var fields: [String: JSONValue] = [
             "id": .string(meeting.id),
             "title": .string(meeting.title),
             "start": .string(ConnectorFormat.stamp(meeting.start)),
             "end": .string(ConnectorFormat.stamp(meeting.end)),
         ]
+        // Occurrence d'une réunion récurrente : la répétition de sa série.
+        if let rule = store?.series(of: meeting)?.recurrence {
+            fields["repeat"] = .string(rule.raw)
+            fields["repeat_label"] = .string(rule.label)
+        }
         if let note = notes.first(where: { $0.kind == .meeting && $0.meetingID == meeting.id }) {
             fields["note_id"] = .string(note.id)
         }

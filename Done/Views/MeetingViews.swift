@@ -82,7 +82,17 @@ struct MeetingSheet: View {
     @State private var start: Date
     @State private var end: Date
     @State private var openedNote: NoteRef?
+    /// Répétition choisie ; lue sur la série pour une occurrence de réunion récurrente.
+    @State private var recurrence: Recurrence?
+    @State private var loadedSeries = false
+    /// Occurrence d'une série : ce qui attend une réponse (« Cette réunion » ou « Toutes les suivantes »).
+    @State private var pending: Pending?
     @FocusState private var titleFocused: Bool
+
+    private enum Pending: Identifiable {
+        case save, stop, delete
+        var id: Self { self }
+    }
 
     init(meeting: Meeting? = nil, start: Date? = nil, end: Date? = nil, title: String = "") {
         self.meeting = meeting
@@ -93,10 +103,15 @@ struct MeetingSheet: View {
         _end = State(initialValue: meeting?.end ?? end ?? from.addingTimeInterval(3600))
     }
 
+    /// La série de la réunion ouverte, `nil` pour une réunion simple ou nouvelle.
+    private var series: MeetingSeries? {
+        meeting.flatMap { model.meetingSeries(of: $0) }
+    }
+
     var body: some View {
         let isValid = combine(day, end) > combine(day, start)
         VStack(alignment: .leading, spacing: 0) {
-            Eyebrow(text: "Réunion")
+            Eyebrow(text: series?.recurrence.map { "Réunion · \($0.label)" } ?? "Réunion")
             Text(meeting == nil ? "Nouvelle réunion" : "Modifier la réunion")
                 .doneText(.displayM)
                 .foregroundStyle(DoneColor.textPrimary)
@@ -120,6 +135,14 @@ struct MeetingSheet: View {
                 }
             }
             .padding(.top, DoneSpace.s16)
+            labeled("Répétition") {
+                RecurrenceMenu(
+                    recurrence: $recurrence,
+                    due: Binding(get: { day }, set: { if let new = $0 { day = new } }),
+                    help: "La réunion revient à ce rythme ; Done crée celles de cette semaine et de la suivante"
+                )
+            }
+            .padding(.top, DoneSpace.s16)
             if !isValid {
                 Text("La fin doit venir après le début.")
                     .doneText(.caption)
@@ -134,8 +157,12 @@ struct MeetingSheet: View {
             HStack(spacing: DoneSpace.s8) {
                 if let meeting {
                     Button("Supprimer") {
-                        model.deleteMeeting(meeting.id)
-                        dismiss()
+                        if series != nil {
+                            pending = .delete
+                        } else {
+                            model.deleteMeeting(meeting.id)
+                            dismiss()
+                        }
                     }
                     .buttonStyle(DoneButtonStyle(kind: .plain))
                     Button {
@@ -150,14 +177,7 @@ struct MeetingSheet: View {
                 Button("Annuler") { dismiss() }
                     .buttonStyle(DoneButtonStyle())
                     .keyboardShortcut(.cancelAction)
-                Button(meeting == nil ? "Ajouter" : "Enregistrer") {
-                    if let meeting {
-                        model.updateMeeting(Meeting(id: meeting.id, title: title, start: combine(day, start), end: combine(day, end)))
-                    } else {
-                        model.addMeeting(title: title, start: combine(day, start), end: combine(day, end))
-                    }
-                    dismiss()
-                }
+                Button(meeting == nil ? "Ajouter" : "Enregistrer", action: save)
                 .buttonStyle(DoneButtonStyle(kind: .primary))
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isValid)
@@ -167,11 +187,111 @@ struct MeetingSheet: View {
         .padding(DoneSpace.s24)
         .frame(width: 520)
         .background(DoneColor.bgCanvas)
-        .onAppear { titleFocused = true }
+        .onAppear {
+            titleFocused = true
+            if !loadedSeries {
+                recurrence = series?.recurrence
+                loadedSeries = true
+            }
+        }
         .sheet(item: $openedNote) { ref in
             NoteSheet(noteID: ref.id)
                 .environment(model)
         }
+        .confirmationDialog(dialogTitle, isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }), presenting: pending) { choice in
+            switch choice {
+            case .save:
+                // Une autre répétition vaut pour toute la suite de la série.
+                if recurrence == series?.recurrence {
+                    Button("Cette réunion seulement") { saveOccurrence() }
+                }
+                Button("Toutes les suivantes") { saveFollowing() }
+            case .stop:
+                Button("Ne plus répéter") { stopRepeating() }
+            case .delete:
+                Button("Cette réunion seulement", role: .destructive) { deleteOccurrence() }
+                Button("Celle-ci et toutes les suivantes", role: .destructive) { deleteFollowing() }
+            }
+            Button("Annuler", role: .cancel) { pending = nil }
+        } message: { choice in
+            switch choice {
+            case .save: Text("Cette réunion revient régulièrement.")
+            case .stop: Text("Cette réunion reste, avec tes changements ; les suivantes de la série sont retirées.")
+            case .delete: Text("Cette réunion revient régulièrement.")
+            }
+        }
+    }
+
+    private var dialogTitle: String {
+        switch pending {
+        case .save: "Modifier cette réunion ou toute la suite ?"
+        case .stop: "Ne plus répéter cette réunion ?"
+        case .delete: "Supprimer cette réunion ou toute la suite ?"
+        case nil: ""
+        }
+    }
+
+    /// La réunion telle que la fiche la décrit.
+    private var edited: Meeting? {
+        meeting.map { Meeting(id: $0.id, title: title, start: combine(day, start), end: combine(day, end), seriesID: $0.seriesID) }
+    }
+
+    private func save() {
+        let from = combine(day, start)
+        let to = combine(day, end)
+        guard let meeting else {
+            if let recurrence {
+                model.addMeetingSeries(title: title, start: from, end: to, recurrence: recurrence)
+            } else {
+                model.addMeeting(title: title, start: from, end: to)
+            }
+            dismiss()
+            return
+        }
+        guard let series else {
+            model.updateMeeting(Meeting(id: meeting.id, title: title, start: from, end: to))
+            if let recurrence { model.makeRecurring(meeting.id, recurrence: recurrence) }
+            dismiss()
+            return
+        }
+        if recurrence == nil {
+            pending = .stop
+            return
+        }
+        let unchanged = title.trimmingCharacters(in: .whitespacesAndNewlines) == meeting.title
+            && from == meeting.start && to == meeting.end && recurrence == series.recurrence
+        if unchanged {
+            dismiss()
+        } else {
+            pending = .save
+        }
+    }
+
+    private func saveOccurrence() {
+        if let edited { model.updateMeeting(edited) }
+        dismiss()
+    }
+
+    private func saveFollowing() {
+        if let meeting, let recurrence {
+            model.updateMeetingSeries(from: meeting, title: title, start: combine(day, start), end: combine(day, end), recurrence: recurrence)
+        }
+        dismiss()
+    }
+
+    private func stopRepeating() {
+        if let edited { model.endMeetingSeries(at: edited) }
+        dismiss()
+    }
+
+    private func deleteOccurrence() {
+        if let meeting { model.deleteMeeting(meeting.id) }
+        dismiss()
+    }
+
+    private func deleteFollowing() {
+        if let meeting { model.deleteMeetingSeries(from: meeting) }
+        dismiss()
     }
 
     private func labeled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

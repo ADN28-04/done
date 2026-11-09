@@ -1133,6 +1133,7 @@ struct NavItem: View {
 // MARK: Réunions
 
 /// Bloc réunion, rayon sm. Hachuré à venir (temps pris), plein meetingNow (encre) en cours, gris une fois passé.
+/// Une occurrence de réunion récurrente porte une petite flèche devant son titre.
 struct MeetingBlock: View {
     let meeting: Meeting
     let now: Date
@@ -1150,10 +1151,12 @@ struct MeetingBlock: View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         let detailText = Text(moment == .now ? "En cours · fin \(Format.time(meeting.end))" : detail)
             .font(.done(.numericS))
+        // Une occurrence de réunion récurrente porte la flèche de la répétition devant son titre.
+        let title = (meeting.seriesID == nil ? Text("") : Text(Image(systemName: "arrow.clockwise")) + Text(" ")) + Text(meeting.title)
         Group {
             if singleLine {
                 HStack(spacing: DoneSpace.s6) {
-                    Text(meeting.title)
+                    title
                         .font(.sans(12, .semibold))
                         .lineLimit(1)
                     detailText
@@ -1162,7 +1165,7 @@ struct MeetingBlock: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(meeting.title)
+                    title
                         .font(.sans(13, .semibold))
                         .lineLimit(1)
                     detailText

@@ -149,6 +149,9 @@ struct Meeting: Codable, Identifiable, Hashable {
     var title: String
     var start: Date
     var end: Date
+    /// Occurrence d'une réunion récurrente : la série d'où elle vient (`MeetingSeries`). Absent du
+    /// fichier pour une réunion simple.
+    var seriesID: String? = nil
 
     func contains(_ date: Date) -> Bool { start <= date && date < end }
 }
@@ -187,12 +190,14 @@ struct TaskStore: Codable, Equatable {
     var projects: [Project] = []
     var tasks: [TodoTask] = []
     var meetings: [Meeting] = []
+    /// Réunions récurrentes : le modèle de chaque série, dont Done crée les occurrences (`meetings`).
+    var meetingSeries: [MeetingSeries] = []
     var absences: [Absence] = []
 
     init() {}
 
     enum CodingKeys: String, CodingKey {
-        case version, projects, tasks, meetings, absences
+        case version, projects, tasks, meetings, meetingSeries, absences
     }
 
     init(from decoder: Decoder) throws {
@@ -201,6 +206,7 @@ struct TaskStore: Codable, Equatable {
         projects = try c.decodeIfPresent([Project].self, forKey: .projects) ?? []
         tasks = try c.decodeIfPresent([TodoTask].self, forKey: .tasks) ?? []
         meetings = try c.decodeIfPresent([Meeting].self, forKey: .meetings) ?? []
+        meetingSeries = try c.decodeIfPresent([MeetingSeries].self, forKey: .meetingSeries) ?? []
         absences = try c.decodeIfPresent([Absence].self, forKey: .absences) ?? []
     }
 
@@ -617,7 +623,14 @@ struct TaskStore: Codable, Equatable {
     mutating func updateMeeting(_ meeting: Meeting) {
         guard meeting.end > meeting.start, let i = meetings.firstIndex(where: { $0.id == meeting.id }) else { return }
         let trimmed = meeting.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        meetings[i] = Meeting(id: meeting.id, title: trimmed.isEmpty ? meetings[i].title : trimmed, start: meeting.start, end: meeting.end)
+        // Une occurrence déplacée ou renommée reste dans sa série : elle seule change.
+        meetings[i] = Meeting(
+            id: meeting.id,
+            title: trimmed.isEmpty ? meetings[i].title : trimmed,
+            start: meeting.start,
+            end: meeting.end,
+            seriesID: meetings[i].seriesID
+        )
     }
 
     // MARK: Absences

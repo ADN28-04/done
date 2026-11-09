@@ -219,19 +219,20 @@ extension ConnectorTools {
         MCPTool(
             name: "add_meeting",
             title: "Ajouter une réunion",
-            description: "Ajoute une réunion au calendrier de Done, qui en tient compte pour proposer des sessions. Heures locales AAAA-MM-JJTHH:MM ; donner end ou duration_minutes.",
+            description: "Ajoute une réunion au calendrier de Done, qui en tient compte pour proposer des sessions. Heures locales AAAA-MM-JJTHH:MM ; donner end ou duration_minutes. Avec repeat, la réunion revient régulièrement : Done crée ses occurrences pour la semaine en cours et la suivante, puis au fil des semaines.",
             schema: ToolSchema.object([
                 "title": ToolSchema.text("Titre de la réunion."),
                 "start": ToolSchema.text("Début (AAAA-MM-JJTHH:MM)."),
                 "end": ToolSchema.text("Fin (AAAA-MM-JJTHH:MM)."),
                 "duration_minutes": ToolSchema.integer("Durée en minutes, à la place de end.", min: 5, max: 720),
+                "repeat": ToolSchema.text("Répétition, facultative : daily, weekdays, weekly (le jour du début) ou weekly:2,5 (1 dimanche, 2 lundi… 7 samedi), biweekly, monthly ou monthly:15."),
             ], required: ["title", "start"]),
             readOnly: false
         ),
         MCPTool(
             name: "update_meeting",
             title: "Modifier une réunion",
-            description: "Modifie le titre ou les horaires d'une réunion. Un nouveau début sans nouvelle fin garde la durée.",
+            description: "Modifie le titre ou les horaires d'une réunion. Un nouveau début sans nouvelle fin garde la durée. Pour une réunion récurrente, seule cette occurrence change.",
             schema: ToolSchema.object([
                 "id": ToolSchema.text("Identifiant de la réunion."),
                 "title": ToolSchema.text("Nouveau titre."),

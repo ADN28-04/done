@@ -261,6 +261,7 @@ extension TaskDetailsCard where Extra == EmptyView {
 struct RecurrenceMenu: View {
     @Binding var recurrence: Recurrence?
     @Binding var due: Date?
+    var help = "Cochée, la tâche revient à l'échéance suivante"
 
     var body: some View {
         Menu {
@@ -281,7 +282,7 @@ struct RecurrenceMenu: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .help("Cochée, la tâche revient à l'échéance suivante")
+        .help(help)
     }
 
     private var weeklyDays: Set<Int> {

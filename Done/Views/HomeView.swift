@@ -85,7 +85,11 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         // À l'ouverture, les cartes ont le focus : les raccourcis des listes marchent tout de suite.
-        .onAppear { listFocused = true }
+        .onAppear {
+            listFocused = true
+            // La semaine a pu avancer : les réunions récurrentes de la semaine prochaine arrivent.
+            model.refreshMeetingSeries()
+        }
         .sheet(isPresented: $showPlan) {
             PlanSheet()
                 .environment(model)

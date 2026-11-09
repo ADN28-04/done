@@ -82,6 +82,8 @@ struct CalendarView: View {
             TaskEditorSheet(taskID: task.id)
                 .environment(model)
         }
+        // La semaine a pu avancer : les réunions récurrentes de la semaine prochaine arrivent.
+        .onAppear { model.refreshMeetingSeries() }
         .sheet(item: $meetingRequest) { request in
             MeetingSheet(meeting: request.meeting, start: request.start, end: request.end)
                 .environment(model)
