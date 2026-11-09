@@ -488,6 +488,13 @@ final class AppModel {
 
     var workBlockRequest: WorkBlockRequest?
 
+    /// « Lancer le pomodoro » depuis le rappel quand rien n'est lancé : `RootView` démarre la prochaine action.
+    var startNextRequest: UUID?
+
+    func requestStartNext() {
+        startNextRequest = UUID()
+    }
+
     func requestWorkBlock(_ blockID: String, _ action: WorkBlockRequest.Action) {
         workBlockRequest = WorkBlockRequest(blockID: blockID, action: action)
     }

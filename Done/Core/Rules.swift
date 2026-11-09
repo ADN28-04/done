@@ -17,6 +17,7 @@ enum SettingsKey {
     static let meetingReminder = "rules.meetingReminder"
     static let meetingReminderMinutes = "rules.meetingReminderMinutes"
     static let endSound = "rules.endSound"
+    static let idleReminder = "rules.idleReminder"
     /// Raccourci global de la saisie flottante (`CaptureShortcut`).
     static let captureShortcut = "capture.shortcut"
     /// Boîte d'arrivée Rappels : activée, et nom de la liste lue.
@@ -57,6 +58,8 @@ struct Rules {
     var reviewReminder = true
     /// Nombre de tâches mises en avant dans le plan du jour.
     var planSize = 3
+    /// Rappel quand rien n'est lancé depuis 20 min, en semaine de 9 h à 18 h (`IdleReminder`).
+    var idleReminder = true
     /// Notification quelques minutes avant chaque réunion.
     var meetingReminder = true
     var meetingReminderMinutes = 5
@@ -95,6 +98,7 @@ struct Rules {
         rules.meetingReminder = (defaults.object(forKey: SettingsKey.meetingReminder) as? Bool) ?? base.meetingReminder
         rules.meetingReminderMinutes = min(max(int(SettingsKey.meetingReminderMinutes, base.meetingReminderMinutes), 1), 30)
         rules.endSound = (defaults.object(forKey: SettingsKey.endSound) as? Bool) ?? base.endSound
+        rules.idleReminder = (defaults.object(forKey: SettingsKey.idleReminder) as? Bool) ?? base.idleReminder
         return rules
     }
 }

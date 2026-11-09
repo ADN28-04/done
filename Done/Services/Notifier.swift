@@ -12,6 +12,13 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     static let startAction = "done.workblock.start"
     static let postponeAction = "done.workblock.postpone"
     static let moveAction = "done.workblock.move"
+    /// Rappel quand rien n'est lancé, avec « Lancer le pomodoro » et « Pas maintenant ».
+    static let idleCategory = "done.idle"
+    static let idleStartAction = "done.idle.start"
+    static let idleLaterAction = "done.idle.later"
+
+    /// « Lancer le pomodoro » sur le rappel quand rien n'est lancé. Appelé sur le fil principal.
+    var onIdleStart: (() -> Void)?
 
     /// Réponse à un rappel de bloc : l'identifiant du bloc et la réponse (« Lancer le pomodoro »,
     /// « Décaler de 30 min », « Déplacer… » ou un clic sur la notification). Appelé sur le fil principal.
@@ -40,6 +47,15 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         let move = UNNotificationAction(identifier: Self.moveAction, title: "Déplacer…", options: [.foreground])
         center.setNotificationCategories([
             UNNotificationCategory(identifier: Self.workBlockCategory, actions: [start, postpone, move], intentIdentifiers: [], options: []),
+            UNNotificationCategory(
+                identifier: Self.idleCategory,
+                actions: [
+                    UNNotificationAction(identifier: Self.idleStartAction, title: "Lancer le pomodoro", options: [.foreground]),
+                    UNNotificationAction(identifier: Self.idleLaterAction, title: "Pas maintenant", options: []),
+                ],
+                intentIdentifiers: [],
+                options: []
+            ),
         ])
         center.requestAuthorization(options: [.alert, .sound]) { [weak self] _, error in
             let message = error?.localizedDescription
@@ -160,6 +176,17 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// Rappel quand rien n'est lancé : remplace le précédent s'il est encore affiché.
+    func notifyIdle(title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.categoryIdentifier = Self.idleCategory
+        center.removeDeliveredNotifications(withIdentifiers: [IdleReminder.identifier])
+        center.add(UNNotificationRequest(identifier: IdleReminder.identifier, content: content, trigger: nil), withCompletionHandler: nil)
+    }
+
     func cancel(_ ids: String...) {
         center.removePendingNotificationRequests(withIdentifiers: ids)
     }
@@ -181,6 +208,9 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     ) {
         let identifier = response.notification.request.identifier
         let action = response.actionIdentifier
+        if identifier == IdleReminder.identifier, action == Self.idleStartAction {
+            DispatchQueue.main.async { [weak self] in self?.onIdleStart?() }
+        }
         if let blockID = WorkBlockReminder.blockID(fromNotification: identifier), action != UNNotificationDismissActionIdentifier {
             let answer: WorkBlockReminder.Answer = switch action {
             case Self.startAction: .start

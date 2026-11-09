@@ -69,6 +69,7 @@ Dans Claude, sur le Mac, je demande où en est un projet, de préparer le plan d
 | Ne pas déranger | Activé pendant le focus, coupé en pause, en interruption, en fin de session et à la fermeture de Done. Passe par deux raccourcis de l'app Raccourcis, faute d'API publique. Désactivé par défaut. |
 | Note de reprise | En fin de session ou pendant une interruption, un champ « Où tu en es ? » garde une ligne sur la tâche. Elle est réaffichée sur Ma journée et pendant la session suivante sur cette tâche, puis effacée quand la tâche est cochée ou supprimée. |
 | Réunion proche | Notification quelques minutes avant chaque réunion (5 min par défaut, réglable), pour les sept prochains jours. |
+| Rien n'est lancé | Au bout de 20 min sans session ni pause, en semaine de 9 h à 18 h, une notification nomme la prochaine action. « Lancer le pomodoro » la démarre (ou la pause due avant de changer de tâche), « Pas maintenant » la laisse se taire. Rien pendant une réunion, un bloc de travail ou un jour de congé, ni quand une réunion est trop proche pour un pomodoro ; au plus une fois par heure, et le compte repart de zéro après une mise en veille. Interrupteur dans Réglages › Notifications, activé par défaut. |
 | Sauvegarde | Le fichier des tâches est réécrit à chaque changement. Une copie par jour, gardée 30 jours. Un fichier illisible est mis de côté, jamais écrasé. |
 
 ### Plus tard

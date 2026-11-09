@@ -36,6 +36,9 @@ Points à trancher à l'usage.
 14. **Jusqu'où créer les réunions récurrentes.**
    Done crée les occurrences de la semaine en cours, de la suivante et de celle qu'affiche le calendrier (un an au plus), jusqu'à la fin choisie s'il y en a une. Si l'on veut plutôt un nombre d'occurrences (« dix séances »), on l'ajoutera à côté de la date.
 
+15. **Le rappel quand rien n'est lancé.**
+   20 min d'inactivité, en semaine de 9 h à 18 h, une fois par heure au plus. Done ne voit pas si l'on travaille ailleurs (un appel imprévu, un document à relire) : si le rappel tombe trop souvent à côté, on allongera le délai ou on le rendra réglable.
+
 ## Méthode et usage
 
 7. **Données professionnelles.**

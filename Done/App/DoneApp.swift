@@ -18,11 +18,15 @@ struct DoneApp: App {
         self.container = container
         let model = AppModel(context: container.mainContext)
         _model = State(initialValue: model)
-        _engine = State(initialValue: FocusEngine(model: model, context: container.mainContext))
+        let engine = FocusEngine(model: model, context: container.mainContext)
+        _engine = State(initialValue: engine)
         Notifier.shared.setUp()
         Notifier.shared.updateReviewReminder(enabled: Rules.current.reviewReminder, hour: Rules.current.reviewHour)
         model.updateMeetingReminders()
         model.updateWorkBlockReminders()
+        // Rappel quand rien n'est lancé depuis 20 min : « Lancer le pomodoro » démarre la prochaine action.
+        IdleWatcher.shared.start(model: model, engine: engine)
+        Notifier.shared.onIdleStart = { [weak model] in model?.requestStartNext() }
         // Rappel d'un bloc de travail : « Lancer le pomodoro » ou « Déplacer… ».
         Notifier.shared.onWorkBlock = { [weak model] blockID, answer in
             switch answer {

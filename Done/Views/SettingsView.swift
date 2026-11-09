@@ -16,6 +16,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.reviewHour) private var reviewHour = Rules().reviewHour
     @AppStorage(SettingsKey.reviewReminder) private var reviewReminder = Rules().reviewReminder
     @AppStorage(SettingsKey.meetingReminder) private var meetingReminder = Rules().meetingReminder
+    @AppStorage(SettingsKey.idleReminder) private var idleReminder = Rules().idleReminder
     @AppStorage(SettingsKey.meetingReminderMinutes) private var meetingReminderMinutes = Rules().meetingReminderMinutes
     @AppStorage(SettingsKey.endSound) private var endSound = Rules().endSound
     @AppStorage(SettingsKey.captureShortcut) private var captureShortcut = CaptureShortcut.standard.rawValue
@@ -120,6 +121,8 @@ struct SettingsView: View {
                     RowDivider()
                     stepperRow("Prévenir avant la réunion", value: $meetingReminderMinutes, range: 1...30, step: 1, unit: "min")
                         .disabled(!meetingReminder)
+                    RowDivider()
+                    toggleRow("Rappel si rien n'est lancé depuis 20 min", isOn: $idleReminder)
                 }
                 .task { notificationStatus = await Notifier.shared.permission() }
                 .onChange(of: meetingReminder) { model.updateMeetingReminders() }
