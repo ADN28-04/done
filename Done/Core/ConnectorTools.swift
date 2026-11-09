@@ -607,11 +607,18 @@ struct ConnectorTools {
             }
             recurrence = rule
         }
+        var until: Date?
+        if let text = try args.string("repeat_until"), !text.isEmpty {
+            guard recurrence != nil else { throw ToolFailure("repeat_until va avec repeat.") }
+            guard let day = Format.date(fromDayKey: text) else { throw ToolFailure("repeat_until : un jour au format AAAA-MM-JJ.") }
+            guard day >= Calendar.current.startOfDay(for: start) else { throw ToolFailure("repeat_until vient avant le début de la réunion.") }
+            until = day
+        }
         let now = clock()
         let (meeting, store) = try workspace.updateTasks { (store: inout TaskStore) throws -> (Meeting, TaskStore) in
             let created: Meeting?
             if let recurrence {
-                created = store.addMeetingSeries(title: title, start: start, end: end, recurrence: recurrence, now: now)
+                created = store.addMeetingSeries(title: title, start: start, end: end, recurrence: recurrence, until: until, now: now)
             } else {
                 created = store.addMeeting(title: title, start: start, end: end)
             }
@@ -809,9 +816,10 @@ struct ConnectorTools {
             "end": .string(ConnectorFormat.stamp(meeting.end)),
         ]
         // Occurrence d'une réunion récurrente : la répétition de sa série.
-        if let rule = store?.series(of: meeting)?.recurrence {
+        if let series = store?.series(of: meeting), let rule = series.recurrence {
             fields["repeat"] = .string(rule.raw)
             fields["repeat_label"] = .string(rule.label)
+            if let last = series.lastDay { fields["repeat_until"] = .string(last) }
         }
         if let note = notes.first(where: { $0.kind == .meeting && $0.meetingID == meeting.id }) {
             fields["note_id"] = .string(note.id)

@@ -34,7 +34,7 @@ Points à trancher à l'usage.
    Il arrive 5 min avant le bloc, sans réglage, avec « Décaler de 30 min ». Si c'est trop tôt ou trop tard, on pourra le régler comme le rappel des réunions, ou proposer d'autres décalages.
 
 14. **Jusqu'où créer les réunions récurrentes.**
-   Done crée les occurrences de la semaine en cours, de la suivante et de celle qu'affiche le calendrier (un an au plus). Si une série doit avoir une fin (un projet de trois mois), on ajoutera une date de fin à la répétition.
+   Done crée les occurrences de la semaine en cours, de la suivante et de celle qu'affiche le calendrier (un an au plus), jusqu'à la fin choisie s'il y en a une. Si l'on veut plutôt un nombre d'occurrences (« dix séances »), on l'ajoutera à côté de la date.
 
 ## Méthode et usage
 

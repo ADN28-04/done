@@ -17,6 +17,8 @@ struct MeetingSeries: Codable, Identifiable, Hashable {
     /// Dernier jour (clé) jusqu'où les occurrences ont été créées : une occurrence supprimée n'est
     /// pas recréée.
     var filledThrough: String?
+    /// Fin de la répétition (clé de jour, incluse) : « jusqu'au 18 décembre ». Sans fin si absente.
+    var lastDay: String?
 
     var recurrence: Recurrence? { Recurrence(raw: recurrenceRaw) }
 }
@@ -37,7 +39,7 @@ extension TaskStore {
     /// Nouvelle réunion récurrente : la série, puis ses occurrences jusqu'à la fin de la semaine
     /// prochaine. Renvoie la première occurrence.
     @discardableResult
-    mutating func addMeetingSeries(title: String, start: Date, end: Date, recurrence: Recurrence, now: Date, calendar: Calendar = .current) -> Meeting? {
+    mutating func addMeetingSeries(title: String, start: Date, end: Date, recurrence: Recurrence, until: Date? = nil, now: Date, calendar: Calendar = .current) -> Meeting? {
         guard end > start else { return nil }
         let rule = recurrence.anchored(to: start, calendar: calendar)
         let first = rule.first(onOrAfter: start, calendar: calendar)
@@ -49,7 +51,8 @@ extension TaskStore {
             startMinute: Self.minuteOfDay(start, calendar: calendar),
             durationMinutes: max(1, Int((end.timeIntervalSince(start) / 60).rounded())),
             recurrenceRaw: rule.raw,
-            filledThrough: nil
+            filledThrough: nil,
+            lastDay: until.map(Format.dayKey)
         )
         meetingSeries.append(series)
         fillMeetingSeries(now: now, calendar: calendar)
@@ -57,7 +60,7 @@ extension TaskStore {
     }
 
     /// Rend récurrente une réunion simple : elle devient la première occurrence de la série.
-    mutating func makeRecurring(_ meetingID: String, recurrence: Recurrence, now: Date, calendar: Calendar = .current) {
+    mutating func makeRecurring(_ meetingID: String, recurrence: Recurrence, until: Date? = nil, now: Date, calendar: Calendar = .current) {
         guard let i = meetings.firstIndex(where: { $0.id == meetingID }), meetings[i].seriesID == nil else { return }
         let meeting = meetings[i]
         let rule = recurrence.anchored(to: meeting.start, calendar: calendar)
@@ -69,7 +72,8 @@ extension TaskStore {
             startMinute: Self.minuteOfDay(meeting.start, calendar: calendar),
             durationMinutes: max(1, Int((meeting.end.timeIntervalSince(meeting.start) / 60).rounded())),
             recurrenceRaw: rule.raw,
-            filledThrough: day
+            filledThrough: day,
+            lastDay: until.map(Format.dayKey)
         )
         meetingSeries.append(series)
         meetings[i].seriesID = series.id
@@ -79,7 +83,7 @@ extension TaskStore {
     /// « Toutes les suivantes » : la série prend ce titre, cet horaire et cette répétition à partir de
     /// cette occurrence, qui garde son identifiant (et sa note). Les occurrences suivantes sont
     /// recréées ; celles d'avant restent telles quelles.
-    mutating func updateMeetingSeries(from occurrence: Meeting, title: String, start: Date, end: Date, recurrence: Recurrence, now: Date, calendar: Calendar = .current) {
+    mutating func updateMeetingSeries(from occurrence: Meeting, title: String, start: Date, end: Date, recurrence: Recurrence, until: Date? = nil, now: Date, calendar: Calendar = .current) {
         guard end > start, let id = occurrence.seriesID,
               let i = meetingSeries.firstIndex(where: { $0.id == id }),
               let k = meetings.firstIndex(where: { $0.id == occurrence.id }) else { return }
@@ -98,7 +102,8 @@ extension TaskStore {
             startMinute: Self.minuteOfDay(start, calendar: calendar),
             durationMinutes: max(1, Int((end.timeIntervalSince(start) / 60).rounded())),
             recurrenceRaw: recurrence.anchored(to: start, calendar: calendar).raw,
-            filledThrough: day
+            filledThrough: day,
+            lastDay: until.map(Format.dayKey)
         )
         fillMeetingSeries(now: now, calendar: calendar)
     }
@@ -126,9 +131,12 @@ extension TaskStore {
             let series = meetingSeries[i]
             guard let rule = series.recurrence, let first = Format.date(fromDayKey: series.firstDay) else { continue }
             let filled = series.filledThrough.flatMap(Format.date(fromDayKey:))
+            let last = series.lastDay.flatMap(Format.date(fromDayKey:))
             var day = rule.first(onOrAfter: first, calendar: calendar)
             var steps = 0
             while day < horizon, steps < 2_000 {
+                // Après la fin de la répétition, plus rien.
+                if let last, day > last { break }
                 let isNew = filled.map { day > $0 } ?? true
                 if isNew, day >= calendar.startOfDay(for: weekStart),
                    let start = calendar.date(byAdding: .minute, value: series.startMinute, to: day) {

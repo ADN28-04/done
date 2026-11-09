@@ -393,20 +393,20 @@ final class AppModel {
     }
 
     @discardableResult
-    func addMeetingSeries(title: String, start: Date, end: Date, recurrence: Recurrence) -> Meeting? {
+    func addMeetingSeries(title: String, start: Date, end: Date, recurrence: Recurrence, until: Date? = nil) -> Meeting? {
         var created: Meeting?
-        commit { created = $0.addMeetingSeries(title: title, start: start, end: end, recurrence: recurrence, now: .now) }
+        commit { created = $0.addMeetingSeries(title: title, start: start, end: end, recurrence: recurrence, until: until, now: .now) }
         return created
     }
 
     /// Une réunion simple devient la première occurrence d'une série.
-    func makeRecurring(_ meetingID: String, recurrence: Recurrence) {
-        commit { $0.makeRecurring(meetingID, recurrence: recurrence, now: .now) }
+    func makeRecurring(_ meetingID: String, recurrence: Recurrence, until: Date? = nil) {
+        commit { $0.makeRecurring(meetingID, recurrence: recurrence, until: until, now: .now) }
     }
 
     /// « Toutes les suivantes » : la série change à partir de cette occurrence.
-    func updateMeetingSeries(from occurrence: Meeting, title: String, start: Date, end: Date, recurrence: Recurrence) {
-        commit { $0.updateMeetingSeries(from: occurrence, title: title, start: start, end: end, recurrence: recurrence, now: .now) }
+    func updateMeetingSeries(from occurrence: Meeting, title: String, start: Date, end: Date, recurrence: Recurrence, until: Date? = nil) {
+        commit { $0.updateMeetingSeries(from: occurrence, title: title, start: start, end: end, recurrence: recurrence, until: until, now: .now) }
     }
 
     /// « Ne plus répéter » : cette occurrence reste, en réunion simple, avec les changements faits.

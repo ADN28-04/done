@@ -84,6 +84,9 @@ struct MeetingSheet: View {
     @State private var openedNote: NoteRef?
     /// Répétition choisie ; lue sur la série pour une occurrence de réunion récurrente.
     @State private var recurrence: Recurrence?
+    /// Fin de la répétition : « Jusqu'au » coché, et le dernier jour.
+    @State private var hasEnd = false
+    @State private var endDay = Date.now
     @State private var loadedSeries = false
     /// Occurrence d'une série : ce qui attend une réponse (« Cette réunion » ou « Toutes les suivantes »).
     @State private var pending: Pending?
@@ -111,7 +114,7 @@ struct MeetingSheet: View {
     var body: some View {
         let isValid = combine(day, end) > combine(day, start)
         VStack(alignment: .leading, spacing: 0) {
-            Eyebrow(text: series?.recurrence.map { "Réunion · \($0.label)" } ?? "Réunion")
+            Eyebrow(text: series.map(Self.seriesLabel) ?? "Réunion")
             Text(meeting == nil ? "Nouvelle réunion" : "Modifier la réunion")
                 .doneText(.displayM)
                 .foregroundStyle(DoneColor.textPrimary)
@@ -135,12 +138,33 @@ struct MeetingSheet: View {
                 }
             }
             .padding(.top, DoneSpace.s16)
-            labeled("Répétition") {
-                RecurrenceMenu(
-                    recurrence: $recurrence,
-                    due: Binding(get: { day }, set: { if let new = $0 { day = new } }),
-                    help: "La réunion revient à ce rythme ; Done crée celles de cette semaine et de la suivante"
-                )
+            HStack(alignment: .top, spacing: DoneSpace.s20) {
+                labeled("Répétition") {
+                    RecurrenceMenu(
+                        recurrence: $recurrence,
+                        due: Binding(get: { day }, set: { if let new = $0 { day = new } }),
+                        help: "La réunion revient à ce rythme ; Done crée celles de cette semaine et de la suivante"
+                    )
+                }
+                // Une répétition peut s'arrêter à une date : « jusqu'au 18 décembre ».
+                if recurrence != nil {
+                    labeled("Fin") {
+                        HStack(spacing: DoneSpace.s8) {
+                            Toggle("Jusqu'au", isOn: $hasEnd)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                                .fixedSize()
+                            if hasEnd {
+                                DatePicker("Jusqu'au", selection: $endDay, in: Calendar.current.startOfDay(for: day)..., displayedComponents: .date)
+                                    .labelsHidden()
+                            } else {
+                                Text("Sans fin")
+                                    .doneText(.callout)
+                                    .foregroundStyle(DoneColor.textSecondary)
+                            }
+                        }
+                    }
+                }
             }
             .padding(.top, DoneSpace.s16)
             if !isValid {
@@ -195,6 +219,12 @@ struct MeetingSheet: View {
             titleFocused = true
             if !loadedSeries {
                 recurrence = series?.recurrence
+                if let last = series?.lastDay.flatMap(Format.date(fromDayKey:)) {
+                    hasEnd = true
+                    endDay = last
+                } else {
+                    endDay = Calendar.current.date(byAdding: .month, value: 3, to: day) ?? day
+                }
                 loadedSeries = true
             }
         }
@@ -206,7 +236,7 @@ struct MeetingSheet: View {
             switch choice {
             case .save:
                 // Une autre répétition vaut pour toute la suite de la série.
-                if recurrence == series?.recurrence {
+                if recurrence == series?.recurrence && untilKey == series?.lastDay {
                     Button("Cette réunion seulement") { saveOccurrence() }
                 }
                 Button("Toutes les suivantes") { saveFollowing() }
@@ -224,6 +254,20 @@ struct MeetingSheet: View {
             case .delete: Text("Cette réunion revient régulièrement.")
             }
         }
+    }
+
+    /// Le dernier jour choisi pour la répétition, ou nil sans fin.
+    private var until: Date? {
+        recurrence != nil && hasEnd ? Calendar.current.startOfDay(for: endDay) : nil
+    }
+
+    private var untilKey: String? { until.map(Format.dayKey) }
+
+    /// « Réunion · Chaque lundi », « Réunion · Chaque lundi, jusqu'au 18 déc. ».
+    private static func seriesLabel(_ series: MeetingSeries) -> String {
+        guard let rule = series.recurrence else { return "Réunion" }
+        guard let last = series.lastDay.flatMap(Format.date(fromDayKey:)) else { return "Réunion · \(rule.label)" }
+        return "Réunion · \(rule.label), jusqu'au \(Format.shortDate(last))"
     }
 
     private var dialogTitle: String {
@@ -245,7 +289,7 @@ struct MeetingSheet: View {
         let to = combine(day, end)
         guard let meeting else {
             if let recurrence {
-                model.addMeetingSeries(title: title, start: from, end: to, recurrence: recurrence)
+                model.addMeetingSeries(title: title, start: from, end: to, recurrence: recurrence, until: until)
             } else {
                 model.addMeeting(title: title, start: from, end: to)
             }
@@ -254,7 +298,7 @@ struct MeetingSheet: View {
         }
         guard let series else {
             model.updateMeeting(Meeting(id: meeting.id, title: title, start: from, end: to))
-            if let recurrence { model.makeRecurring(meeting.id, recurrence: recurrence) }
+            if let recurrence { model.makeRecurring(meeting.id, recurrence: recurrence, until: until) }
             dismiss()
             return
         }
@@ -263,7 +307,7 @@ struct MeetingSheet: View {
             return
         }
         let unchanged = title.trimmingCharacters(in: .whitespacesAndNewlines) == meeting.title
-            && from == meeting.start && to == meeting.end && recurrence == series.recurrence
+            && from == meeting.start && to == meeting.end && recurrence == series.recurrence && untilKey == series.lastDay
         if unchanged {
             dismiss()
         } else {
@@ -278,7 +322,7 @@ struct MeetingSheet: View {
 
     private func saveFollowing() {
         if let meeting, let recurrence {
-            model.updateMeetingSeries(from: meeting, title: title, start: combine(day, start), end: combine(day, end), recurrence: recurrence)
+            model.updateMeetingSeries(from: meeting, title: title, start: combine(day, start), end: combine(day, end), recurrence: recurrence, until: until)
         }
         dismiss()
     }

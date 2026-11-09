@@ -229,6 +229,7 @@ extension ConnectorTools {
                 "end": ToolSchema.text("Fin (AAAA-MM-JJTHH:MM)."),
                 "duration_minutes": ToolSchema.integer("Durée en minutes, à la place de end.", min: 5, max: 720),
                 "repeat": ToolSchema.text("Répétition, facultative : daily, weekdays, weekly (le jour du début) ou weekly:2,5 (1 dimanche, 2 lundi… 7 samedi), biweekly, monthly ou monthly:15."),
+                "repeat_until": ToolSchema.text("Dernier jour de la répétition (AAAA-MM-JJ), facultatif ; sans, elle n'a pas de fin."),
             ], required: ["title", "start"]),
             readOnly: false
         ),
