@@ -12,6 +12,8 @@ struct CalendarView: View {
     @State private var editing: TodoTask?
     @State private var meetingRequest: MeetingRequest?
     @State private var dropDay: Date?
+    /// Jour d'où part une réunion qu'on glisse : sa colonne passe devant les autres.
+    @State private var draggingDay: Date?
     @State private var absenceDay: Date?
     @State private var absenceDraft = ""
 
@@ -247,7 +249,17 @@ struct CalendarView: View {
     // MARK: Grille
 
     private func dayColumn(_ day: Date, now: Date, hourHeight: CGFloat) -> some View {
-        DayTimeline(day: day, now: now, hourHeight: hourHeight, sessions: sessions) { meeting in
+        // Une réunion se glisse vers les autres jours de la semaine affichée.
+        let days = WorkWeek.days(containing: day)
+        let index = days.firstIndex { Calendar.current.isDate($0, inSameDayAs: day) } ?? 0
+        return DayTimeline(
+            day: day,
+            now: now,
+            hourHeight: hourHeight,
+            sessions: sessions,
+            moveDays: (-index)...(days.count - 1 - index),
+            onDragging: { dragging in draggingDay = dragging ? day : nil }
+        ) { meeting in
             meetingRequest = MeetingRequest(meeting: meeting)
         } onSlot: { start in
             meetingRequest = MeetingRequest(start: start, end: start.addingTimeInterval(3600))
@@ -258,7 +270,8 @@ struct CalendarView: View {
         }
         .background(dropDay == day ? DoneColor.stateActiveTint : Color.clear)
         .modifier(DayDrop(day: day, now: now, dropDay: $dropDay) { move($0, to: $1, now: $2) })
-        .clipped()
+        // La colonne d'où part une réunion glissée passe devant les autres.
+        .zIndex(draggingDay == day ? 1 : 0)
     }
 
     private func focusMinutes(on day: Date) -> Double {

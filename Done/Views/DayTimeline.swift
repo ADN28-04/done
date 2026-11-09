@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -11,8 +12,9 @@ struct MeetingRequest: Identifiable {
     var title = ""
 }
 
-/// Colonne d'un jour, de 8 h à 19 h par défaut : réunions hachurées (un clic les ouvre), focus déjà fait
-/// en braise claire, heure courante en braise. Aujourd'hui, les créneaux libres de 30 min ou plus
+/// Colonne d'un jour, de 8 h à 19 h par défaut : réunions hachurées (un clic les ouvre ; on les glisse
+/// pour changer l'heure, ou le jour au calendrier, et on étire leur bord bas pour la durée, au quart
+/// d'heure, jamais vers le passé), focus déjà fait en braise claire, heure courante en braise. Aujourd'hui, les créneaux libres de 30 min ou plus
 /// peuvent s'afficher en pointillé, avec les pomodoros qui y tiennent. Un clic ailleurs, aujourd'hui
 /// ou plus tard, propose une réunion. Blocs au rayon sm ; un bloc de moins de 30 min tient sur une
 /// ligne. Partagée par le calendrier et l'écran Aujourd'hui.
@@ -35,8 +37,26 @@ struct DayTimeline: View {
     var showsFreeSlots = false
     /// Clic sur un créneau libre (Ma journée : lancer la prochaine action). Sans, le clic passe à la colonne.
     var onFreeSlot: ((DateInterval) -> Void)?
+    /// Jours vers lesquels on peut glisser une réunion, en écart avec ce jour (calendrier : les autres
+    /// jours de la semaine). Ma journée reste sur le jour.
+    var moveDays: ClosedRange<Int> = 0...0
+    /// Une réunion de la colonne est en train d'être glissée : le calendrier passe la colonne devant ses voisines.
+    var onDragging: (Bool) -> Void = { _ in }
     let onMeeting: (Meeting) -> Void
     let onSlot: (Date) -> Void
+
+    /// Réunion en train d'être glissée ou étirée.
+    @State private var drag: MeetingDrag?
+    /// Le curseur de redimensionnement est posé (survol du bord bas d'une réunion).
+    @State private var resizeCursor = false
+
+    private struct MeetingDrag {
+        enum Mode { case move, resize }
+        let id: String
+        let mode: Mode
+        var minutes: Double = 0
+        var days = 0
+    }
 
     /// Hauteur d'une heure pour remplir `available`, sans descendre sous le minimum.
     static func hourHeight(fitting available: CGFloat) -> CGFloat {
@@ -88,11 +108,14 @@ struct DayTimeline: View {
                 ForEach(dayBlocks) { block in
                     let lane = lanes[block.id] ?? WorkWeek.Lane(index: 0, count: 1)
                     let laneWidth = (width - 6) / CGFloat(lane.count)
-                    let top = y(of: block.start)
-                    let height = max(y(of: block.end) - top - 2, 14)
-                    blockView(block)
+                    // Pendant un geste, la réunion se dessine à sa nouvelle place (et dans la colonne visée).
+                    let edit = editing(block)
+                    let top = y(of: edit?.range.start ?? block.start)
+                    let height = max(y(of: edit?.range.end ?? block.end) - top - 2, 14)
+                    blockView(block, width: width)
                         .frame(width: max(laneWidth - 2, 0), height: height)
-                        .offset(x: 3 + laneWidth * CGFloat(lane.index), y: top + 1)
+                        .offset(x: 3 + laneWidth * CGFloat(lane.index) + CGFloat(edit?.days ?? 0) * width, y: top + 1)
+                        .zIndex(edit == nil ? 0 : 2)
                 }
                 if isToday {
                     nowLine
@@ -108,16 +131,38 @@ struct DayTimeline: View {
     }
 
     @ViewBuilder
-    private func blockView(_ block: Block) -> some View {
+    private func blockView(_ block: Block, width: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: DoneRadius.sm, style: .continuous)
         let isShort = block.end.timeIntervalSince(block.start) < 30 * 60
         switch block.kind {
         case .meeting(let meeting):
-            MeetingBlock(meeting: meeting, now: now, detail: "\(Format.time(meeting.start))–\(Format.time(meeting.end))", fillsHeight: true, singleLine: isShort)
-                .clipShape(shape)
-                .contentShape(shape)
-                .onTapGesture { onMeeting(meeting) }
-                .help("\(meeting.title), \(Format.time(meeting.start))–\(Format.time(meeting.end))")
+            let edit = editing(block)
+            // Le créneau visé pendant le geste, ou celui de la réunion.
+            let shown = edit.map { $0.isAllowed ? $0.range : DateInterval(start: meeting.start, end: max(meeting.start, meeting.end)) }
+                ?? DateInterval(start: meeting.start, end: max(meeting.start, meeting.end))
+            MeetingBlock(
+                meeting: meeting,
+                now: now,
+                detail: "\(Format.time(shown.start))–\(Format.time(shown.end))",
+                fillsHeight: true,
+                singleLine: shown.duration < 30 * 60
+            )
+            .clipShape(shape)
+            .overlay {
+                if let edit {
+                    shape.strokeBorder(DoneColor.focusRing, lineWidth: edit.isAllowed ? 2 : 0)
+                }
+            }
+            // Un geste vers un moment interdit (le passé) : la réunion pâlit et ne bougera pas.
+            .opacity(edit.map { $0.isAllowed ? 1 : 0.5 } ?? 1)
+            .shadow(color: edit == nil ? .clear : DoneColor.shadowRaised, radius: 12, y: 6)
+            .contentShape(shape)
+            .onTapGesture { onMeeting(meeting) }
+            .gesture(moveGesture(meeting, width: width))
+            .overlay(alignment: .bottom) {
+                resizeHandle(meeting)
+            }
+            .help("\(meeting.title), \(Format.time(meeting.start))–\(Format.time(meeting.end)). Glisser pour déplacer, étirer le bas pour la durée.")
         case .focus(let title, let minutes):
             shape
                 .fill(DoneColor.accentTint)
@@ -134,6 +179,89 @@ struct DayTimeline: View {
                 // Un clic sur du focus passé tombe sur la colonne, comme un créneau libre.
                 .allowsHitTesting(false)
         }
+    }
+
+    // MARK: Glisser et étirer
+
+    /// Le geste en cours sur ce bloc : la plage visée (celle d'origine si le geste vise le passé), et le
+    /// décalage en jours.
+    private func editing(_ block: Block) -> (range: DateInterval, days: Int, isAllowed: Bool)? {
+        guard case .meeting(let meeting) = block.kind, let drag, drag.id == meeting.id else { return nil }
+        let original = DateInterval(start: meeting.start, end: max(meeting.start, meeting.end))
+        if let range = target(of: meeting, drag) {
+            return (range, drag.mode == .move ? drag.days : 0, true)
+        }
+        return (original, 0, false)
+    }
+
+    /// La plage d'une réunion à la fin du geste ; nil si le geste vise un moment interdit.
+    private func target(of meeting: Meeting, _ drag: MeetingDrag) -> DateInterval? {
+        let original = DateInterval(start: meeting.start, end: max(meeting.start, meeting.end))
+        switch drag.mode {
+        case .move:
+            return TimelineEdit.moved(original, byMinutes: drag.minutes, days: drag.days, firstHour: firstHour, lastHour: lastHour, now: now)
+        case .resize:
+            return TimelineEdit.resized(original, byMinutes: drag.minutes, lastHour: lastHour, now: now)
+        }
+    }
+
+    /// Glisser une réunion : vers le haut ou le bas pour l'heure, sur le côté pour un autre jour.
+    /// Mesuré dans l'espace de la fenêtre : la réunion bouge sous le doigt sans fausser le geste.
+    private func moveGesture(_ meeting: Meeting, width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 4, coordinateSpace: .global)
+            .onChanged { value in
+                let columns = Int((value.translation.width / max(width, 1)).rounded())
+                let days = min(max(columns, moveDays.lowerBound), moveDays.upperBound)
+                if drag == nil { onDragging(true) }
+                drag = MeetingDrag(id: meeting.id, mode: .move, minutes: Double(value.translation.height / hourHeight) * 60, days: days)
+            }
+            .onEnded { _ in commit(meeting) }
+    }
+
+    /// Bord bas d'une réunion : on l'étire pour changer sa durée.
+    private func resizeHandle(_ meeting: Meeting) -> some View {
+        Color.clear
+            .frame(height: 8)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside, !resizeCursor {
+                    NSCursor.resizeUpDown.push()
+                    resizeCursor = true
+                } else if !inside, resizeCursor, drag?.mode != .resize {
+                    NSCursor.pop()
+                    resizeCursor = false
+                }
+            }
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                    .onChanged { value in
+                        if drag == nil { onDragging(true) }
+                        drag = MeetingDrag(id: meeting.id, mode: .resize, minutes: Double(value.translation.height / hourHeight) * 60)
+                    }
+                    .onEnded { _ in
+                        commit(meeting)
+                        if resizeCursor {
+                            NSCursor.pop()
+                            resizeCursor = false
+                        }
+                    }
+            )
+            .accessibilityHidden(true)
+    }
+
+    /// Fin du geste : la réunion prend sa nouvelle plage, si elle est permise et a changé.
+    private func commit(_ meeting: Meeting) {
+        defer {
+            self.drag = nil
+            onDragging(false)
+        }
+        guard let drag, drag.id == meeting.id, let range = target(of: meeting, drag),
+              range.start != meeting.start || range.end != meeting.end else { return }
+        var updated = meeting
+        updated.start = range.start
+        updated.end = range.end
+        model.updateMeeting(updated)
     }
 
     /// Heure courante : un point et un trait de 2 en braise.
@@ -213,7 +341,8 @@ struct DayTimeline: View {
 
     /// Position verticale d'une heure dans la grille, bornée à la plage affichée.
     private func y(of date: Date) -> CGFloat {
-        let start = Calendar.current.date(bySettingHour: firstHour, minute: 0, second: 0, of: day) ?? day
+        // Compté depuis le jour de `date` : une réunion glissée vers un autre jour garde son heure.
+        let start = Calendar.current.date(bySettingHour: firstHour, minute: 0, second: 0, of: date) ?? day
         let minutes = date.timeIntervalSince(start) / 60
         let total = Double(lastHour - firstHour) * 60
         return CGFloat(min(max(minutes, 0), total) / 60) * hourHeight
