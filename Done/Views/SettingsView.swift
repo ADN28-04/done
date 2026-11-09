@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
@@ -32,6 +33,14 @@ struct SettingsView: View {
     @State private var claudeError: String?
     @State private var claudeJustAdded = false
     @State private var claudeCommandCopied = false
+    @State private var exportIncludesDone = false
+    @State private var exportDocument: ExportDocument?
+    /// Après un export : le nom du fichier, ou l'erreur.
+    @State private var exportResult: Result<String, ExportFailure>?
+
+    struct ExportFailure: Error {
+        let message: String
+    }
 
     /// Résultat de la vérification des raccourcis « Ne pas déranger ».
     private enum CheckStatus: Equatable {
@@ -215,7 +224,7 @@ struct SettingsView: View {
                 }
                 .onAppear { claudeStatus = ClaudeConfigFile.status() }
 
-                SettingsSection("Données", footer: "Tes tâches, projets et réunions restent sur ce Mac, dans un seul fichier. Done en garde une copie par jour, sur 30 jours, dans le dossier Sauvegardes à côté.") {
+                SettingsSection("Données", footer: "Tes tâches, projets et réunions restent sur ce Mac, dans un seul fichier. Done en garde une copie par jour, sur 30 jours, dans le dossier Sauvegardes à côté. L'export Markdown se lit tel quel, rangé par projet puis par étiquette ; le CSV s'ouvre dans un tableur, Notion ou un autre gestionnaire de tâches.") {
                     SettingsRow {
                         VStack(alignment: .leading, spacing: DoneSpace.s2) {
                             Text("Fichier des tâches")
@@ -230,6 +239,38 @@ struct SettingsView: View {
                             .buttonStyle(DoneButtonStyle(compact: true))
                     }
                     .padding(.vertical, DoneSpace.s4)
+                    RowDivider()
+                    SettingsRow {
+                        VStack(alignment: .leading, spacing: DoneSpace.s2) {
+                            Text("Exporter les tâches")
+                            exportStatusLabel
+                                .doneText(.caption)
+                        }
+                    } trailing: {
+                        HStack(spacing: DoneSpace.s8) {
+                            Button("Markdown…") { export(.markdown) }
+                                .buttonStyle(DoneButtonStyle(compact: true))
+                            Button("CSV…") { export(.csv) }
+                                .buttonStyle(DoneButtonStyle(compact: true))
+                        }
+                    }
+                    .padding(.vertical, DoneSpace.s4)
+                    RowDivider()
+                    toggleRow("Inclure les tâches faites", isOn: $exportIncludesDone)
+                }
+                .fileExporter(
+                    isPresented: Binding(get: { exportDocument != nil }, set: { if !$0 { exportDocument = nil } }),
+                    document: exportDocument,
+                    contentType: exportDocument?.contentType ?? .plainText,
+                    defaultFilename: TaskExport.baseName()
+                ) { result in
+                    switch result {
+                    case .success(let url):
+                        exportResult = .success(url.lastPathComponent)
+                    case .failure(let error):
+                        guard (error as? CocoaError)?.code != .userCancelled else { return }
+                        exportResult = .failure(ExportFailure(message: error.localizedDescription))
+                    }
                 }
             }
             .frame(width: 600)
@@ -281,6 +322,31 @@ struct SettingsView: View {
                 .labelsHidden()
                 .tint(DoneColor.stateActive)
         }
+    }
+
+    /// Sous « Exporter les tâches » : ce qui part, puis le fichier écrit ou l'erreur.
+    @ViewBuilder
+    private var exportStatusLabel: some View {
+        switch exportResult {
+        case .success(let name):
+            Label("Exporté dans « \(name) »", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(DoneColor.stateActiveText)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        case .failure(let failure):
+            Text("Export impossible : \(failure.message)")
+                .foregroundStyle(DoneColor.stateRiskText)
+                .lineLimit(2)
+        case nil:
+            Text(exportIncludesDone ? "Tâches ouvertes et tâches faites" : "Tâches ouvertes")
+                .foregroundStyle(DoneColor.textSecondary)
+        }
+    }
+
+    /// Prépare le fichier puis ouvre le panneau d'enregistrement.
+    private func export(_ kind: TaskExport.Kind) {
+        exportResult = nil
+        exportDocument = ExportDocument(kind: kind, text: TaskExport.text(kind, store: model.store, includeDone: exportIncludesDone))
     }
 
     @ViewBuilder
