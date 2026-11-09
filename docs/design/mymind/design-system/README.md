@@ -41,6 +41,7 @@ Trois familles libres (licence OFL), choisies pour approcher celles de mymind (L
 - `display` : Newsreader, variable en graisse et en taille optique, avec son italique. Pour `displayXL`, `displayL`, `displayM` et `noteTitle`. Medium (500), approche serrée. La salutation du titre d'accueil passe en italique.
 - `sans` : Nunito Sans, variable. Regular pour le texte, SemiBold pour les libellés et les titres de tâche, Bold pour `title` et `label`, Light pour les grands chiffres (`numericXL`, `numericL`). Ses chiffres sont à chasse fixe par défaut : le minuteur et les colonnes ne bougent pas.
 - `mono` : Courier Prime, pour `noteMono` seulement : le corps du journal et des notes rapides dans la mosaïque, comme un brouillon tapé à la machine.
+- `timer` : Oswald SemiBold (600), pour les chiffres du minuteur de session seulement, en cases de largeur fixe (voir `maquettes/minuteur-de-focus.html`).
 
 Newsreader ne descend jamais sous `noteTitle` (17) et ne sert jamais aux nombres.
 
@@ -99,5 +100,5 @@ Les composants sont en SwiftUI dans l'app ; leurs aperçus ici sont des rendus H
 
 - Ce design system décrit la direction Mymind ; `Done/Views/Theme.swift` (commit `fc5fd9f`) est encore en v5. Les noms des rôles existants n'ont pas changé ; s'ajoutent `accent`, `onAccent`, `accentTint`, `accentText`, `success`, `successTint`, `successText`, `tagPink`, `tagYellow`, les quatre teintes de cartes et les deux halos.
 - À construire dans l'app : l'écran Ma journée (qui remplace Focus, Aujourd'hui et Plan du jour comme écran d'arrivée), le rail, la barre de saisie, la recherche ⌘K, la mosaïque de notes, et l'écran Listes qui accueille projets et étiquettes.
-- Polices à embarquer en TTF : Newsreader, Nunito Sans et Courier Prime (le paquet pour Claude Code les fournit en instances statiques).
+- Polices à embarquer en TTF : Newsreader, Nunito Sans, Courier Prime et Oswald SemiBold (instances statiques dans `fonts/`).
 - Une nouvelle synchronisation depuis GitHub remettrait les valeurs v5 : la faire seulement après le report dans `Theme.swift`.

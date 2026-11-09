@@ -188,6 +188,14 @@ enum DoneMotion {
     /// ease-out, dur-base : le fondu léger quand on change d'écran (un fondu, gardé avec « Réduire les animations »).
     static let screen = Animation.easeOut(duration: base)
 
+    // Minuteur de session (`FocusTimer`).
+    /// La barre glisse d'une seconde à l'autre.
+    static let tick = Animation.linear(duration: 1)
+    /// Dernière minute : la lueur de la barre va et vient, 1,6 s dans chaque sens.
+    static let timerGlow = Animation.easeInOut(duration: 1.6)
+    /// En pause : les chiffres clignotent lentement, un battement de 2,4 s (1,2 s dans chaque sens).
+    static let timerBlink = Animation.easeInOut(duration: 1.2)
+
     // Ambiance : les seuls mouvements sans geste de la personne, avec l'anneau du minuteur et l'heure
     // courante. Coupés par « Réduire les animations ».
     /// dur-sun-turn : le soleil de la date fait un tour à l'ouverture de Ma journée.
@@ -466,6 +474,12 @@ extension Font {
         case .bold: "NunitoSans-Bold"
         }
         return .custom(name, fixedSize: size)
+    }
+
+    /// Chiffres du minuteur de session (`FocusTimer`) : Oswald SemiBold, seule exception à Nunito Sans
+    /// pour les nombres, et seulement là.
+    static func timer(_ size: CGFloat) -> Font {
+        .custom("Oswald-SemiBold", fixedSize: size)
     }
 }
 
@@ -1330,8 +1344,8 @@ struct DoneAppIcon: View {
     }
 }
 
-/// Anneau du minuteur : la part restante, depuis midi, dans le sens horaire.
-/// Diamètre 280 et trait 6 en session, fin comme le logo ; braise en concentration, cobalt en pause, gris à l'arrêt.
+/// Anneau : la part restante, depuis midi, dans le sens horaire. Trait 6, fin comme le logo : la durée
+/// de la carte Prochaine action (86) et la fin de pomodoro (56). Le minuteur de session est `FocusTimer`.
 struct ProgressRing: View {
     let fraction: Double
     var color: Color = DoneColor.pomodoroFocus

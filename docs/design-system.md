@@ -12,7 +12,7 @@ L'esprit : un tableau de bord calme et moderne, où la journée tient sur un seu
 - Tout ce qui se clique est une pilule (`DoneRadius.pill`). Les cartes sont de grands rectangles doux (`lg`, 24) avec un liseré et une ombre très légère (`shadowCard`).
 - Calme au repos, joyeux à l'arrivée : la braise (`accent`) et le rebond sont réservés aux réussites et à la marque. Une vue qu'on regarde sans agir ne bouge pas.
 - Pas de fond derrière les dates et les durées d'une ligne : `InfoChip` et `TagChip` restent du texte avec une icône. La pilule colorée (`TagPill`) est pour les cartes.
-- Pas de capitales espacées. Les nombres sont en Nunito Sans, jamais en Newsreader.
+- Pas de capitales espacées. Les nombres sont en Nunito Sans, jamais en Newsreader ; seule exception, les chiffres du minuteur de session, en Oswald SemiBold.
 - Le code ne cite jamais une couleur de marque ni une couleur système : seulement les rôles de `DoneColor`, les styles de texte et les composants.
 
 ## Contenu
@@ -60,9 +60,9 @@ La marque tient en cinq couleurs, qui n'apparaissent jamais sous leur nom dans l
 | `cardBlush`, `cardSlate`, `cardSage`, `cardParchment` | #FFF1F1, #E5EAF2, #DDE9D3, #F3F0E7 | #251A1A, #1A1F29, #19221A, #1F1D18 | Teintes des cartes de note (Journal, Réunion, Personne, Référence et page de projet) |
 | `meetingBg`, `meetingHatch` | #E5EAF2, cobalt à 14 % | #1C2230, cobalt à 16 % | Réunion à venir, hachurée |
 | `meetingNow` / `meetingOnNow` | #24272D / #FFFFFF | #EEF0F4 / #15171A | Réunion en cours, en encre |
-| `pomodoroFocus` | #F4511F | #FF6A3D | Anneau de concentration, en braise |
-| `pomodoroBreak` / `pomodoroBreakBg` | #1573DD / #EEF4FC | #5AA2F0 / #101A27 | Anneau et fond de la pause, en cobalt |
-| `pomodoroTrack` / `pomodoroPaused` | #E6E8EE / #AFB5C1 | #2A2C31 / #4F5560 | Piste des anneaux et des barres ; anneau à l'arrêt |
+| `pomodoroFocus` | #F4511F | #FF6A3D | Barre du minuteur et anneaux de concentration, en braise |
+| `pomodoroBreak` / `pomodoroBreakBg` | #1573DD / #EEF4FC | #5AA2F0 / #101A27 | Barre et fond de la pause, en cobalt |
+| `pomodoroTrack` / `pomodoroPaused` | #E6E8EE / #AFB5C1 | #2A2C31 / #4F5560 | Piste des anneaux et des barres ; minuteur à l'arrêt |
 
 Les rôles `sun`, `onSun`, `sunTint` et `sunText` de la v6 restent déclarés comme alias de la braise, pour ne renommer aucun rôle ; plus aucun composant ne s'en sert.
 
@@ -74,11 +74,12 @@ Règles :
 
 ## Typographie
 
-Trois familles sous licence OFL (licences dans `docs/fonts/`), embarquées en TTF statiques dans `Done/Fonts` et chargées au lancement par `FontLoader` :
+Quatre familles sous licence OFL (licences dans `docs/fonts/`), embarquées en TTF statiques dans `Done/Fonts` et chargées au lancement par `FontLoader` :
 
 - **Newsreader**, Medium, pour les titres : `NewsreaderDisplay-Medium` pour `displayXL` et `displayL`, `NewsreaderText-Medium` pour `displayM` et `noteTitle`. L'italique (`NewsreaderDisplay-MediumItalic`, `Font.doneItalic`) sert à la salutation de Ma journée. Newsreader ne descend jamais sous `noteTitle` (17) et ne sert jamais aux nombres.
 - **Nunito Sans** pour l'interface : Regular pour le texte, SemiBold pour les libellés et les titres de tâche, Bold pour `title`, `label` et la navigation active, Light pour les grands chiffres. Ses chiffres sont à chasse fixe ; les styles `numeric…` ajoutent `monospacedDigit` pour le garantir.
 - **Courier Prime**, pour `noteMono` seulement : le corps du journal et des notes simples dans la mosaïque, comme un brouillon tapé à la machine.
+- **Oswald SemiBold** (`Oswald-SemiBold`, `Font.timer`), pour les chiffres du minuteur de session seulement (`FocusTimer`) : des chiffres étroits et gras qui se lisent de loin. Nulle part ailleurs.
 
 Dans le code, `.doneText(.style)` applique la police, l'interlignage et l'interlettrage. `Font.sans(taille, graisse)` sert hors échelle (boutons, puces, navigation), avec `.monospacedDigit()` pour un nombre isolé. Nunito Sans n'a pas de Medium : `.medium` donne SemiBold.
 
@@ -108,7 +109,7 @@ Dans le code, `.doneText(.style)` applique la police, l'interlignage et l'interl
   - `lg` 24 : cartes widget, feuilles, carte de fin de pomodoro ;
   - `pill` (et `chip`, son alias) : tout ce qui se clique, puces, étiquettes, recherche, barre de saisie, boutons du rail.
 - **Contours** : 1 en `borderSubtle` (cartes), `borderDefault` (pilules secondaires, recherche) ou `borderControl` (champs) ; 1,5 pour la case à cocher et le pointillé `stateWaiting` ; 2 en `focusRing` (focus, cible de dépôt, champ actif) ; 6 pour les anneaux, fins comme le logo.
-- **Hauteurs fixes** : contrôle 34, contrôle compact 28, puce 22, case à cocher 18, tuile 24, segment 26, recherche 38, ligne de tâche 48, barre de saisie 54. Rail de 84 avec des boutons de 44, colonne des listes de 240, anneau du minuteur de 280, anneau de la carte Prochaine action de 86, retrait d'une étape de 28 par niveau.
+- **Hauteurs fixes** : contrôle 34, contrôle compact 28, puce 22, case à cocher 18, tuile 24, segment 26, recherche 38, ligne de tâche 48, barre de saisie 54. Rail de 84 avec des boutons de 44, colonne des listes de 240, minuteur de 142 sur une règle de 1000 au plus, anneau de la carte Prochaine action de 86, retrait d'une étape de 28 par niveau.
 - **Ombres**, teintées de l'encre en clair, noires en sombre :
   - `shadowCard` et `shadowCardNear` (0 10 30 à 6 %, plus 0 1 2 à 5 % ; 30 % et 40 % en sombre) : cartes widget (`doneCard`), barre de saisie, boutons du rail ;
   - `shadowRaised` et `shadowRaisedNear` (0 20 50 à 14 %, plus 0 4 10 à 6 % ; 55 % et 35 % en sombre) : `doneRaised`, la carte de fin de pomodoro, et le rail qui passe par-dessus une session ;
@@ -119,7 +120,7 @@ Dans le code, `.doneText(.style)` applique la police, l'interlignage et l'interl
 Le mouvement dit « c'est fait » ; il ne décore pas.
 
 - Ce qui arrive ralentit en se posant (ease-out). Ce qui se déplace accélère puis freine (ease-in-out). Seules les réussites rebondissent (ease-spring), et une seule fois.
-- Rien ne bouge sans action de la personne, sauf l'anneau du minuteur, l'heure courante et deux mouvements d'ambiance très lents, purement cosmétiques : les halos de la toile qui dérivent (hors session, fenêtre au premier plan) et le soleil de la date qui fait un tour à l'ouverture de Ma journée. Maquette validée : `docs/design/mymind/maquettes/ambiance-ma-journee.html`.
+- Rien ne bouge sans action de la personne, sauf le minuteur (sa barre, la lueur de la dernière minute, le clignotement en pause), l'heure courante et deux mouvements d'ambiance très lents, purement cosmétiques : les halos de la toile qui dérivent (hors session, fenêtre au premier plan) et le soleil de la date qui fait un tour à l'ouverture de Ma journée. Maquette validée : `docs/design/mymind/maquettes/ambiance-ma-journee.html`.
 - Avec « Réduire les animations » (macOS), il ne reste que des fondus : pas d'échelle, de rebond ni d'éclat. Chaque vue animée lit `accessibilityReduceMotion` ; `DoneMotion.motion(_:reduced:)` remplace un mouvement par `DoneMotion.fade`.
 
 `DoneMotion` reprend les tokens de durée et de courbe, avec les équivalents SwiftUI de la référence :
@@ -265,10 +266,15 @@ La vue d'un projet montre d'abord ses propres tâches, puis un groupe par sous-p
 
 ## Pomodoro
 
-- **Minuteur** : anneau de 280, trait 6, qui se vide dans le sens horaire depuis midi et glisse d'une seconde à l'autre ; chiffres en `numericXL`.
-  - En concentration : `pomodoroFocus`, en braise.
-  - À l'arrêt : `pomodoroPaused`, avec la mention « En pause ».
-  - En pause : l'écran passe sur `pomodoroBreakBg` et l'anneau en `pomodoroBreak`, cobalt.
+- **Minuteur** (`FocusTimer`, maquette validée : `docs/design/mymind/maquettes/minuteur-de-focus.html`, piste C « Grands chiffres ») :
+  - Le temps restant en Oswald SemiBold de 142 (`Font.timer`), minutes sur deux chiffres (« 08:42 »), sur une ligne de 142. Chaque chiffre dans une case de 0,503 em (le chiffre le plus large moins 0,04 em), les deux-points dans une case de 0,251 em : les chiffres sont serrés et ne bougent pas d'une seconde à l'autre. `textPrimary`, `textSecondary` à l'arrêt.
+  - À 22 dessous, une règle de 1000 au plus (seule sa longueur suit la place), de 0 à gauche à la durée de la session à droite : une graduation par minute (2 × 11 en `textSecondary` toutes les 5 min, 1,2 × 6 en `textDisabled` sinon, à 18 sous le haut de la règle), un chiffre toutes les 5 min (toutes les 10 au-delà de 30 min) en Nunito Sans SemiBold 12 secondaire, sans unité ; le premier calé à gauche, le dernier à droite.
+  - Sur la piste `pomodoroTrack` de 11, une barre ancrée à gauche dont le bout avance vers 0 et pointe les minutes qui restent ; elle glisse d'une seconde à l'autre (`DoneMotion.tick`).
+  - En concentration : `pomodoroFocus`, en braise. Dans la dernière minute, une lueur `accentTint` de 21 de haut va et vient sous la barre (`timerGlow`, de 0,35 à 0,9).
+  - À l'arrêt : `pomodoroPaused`, « En pause » dessous, et les chiffres clignotent lentement (`timerBlink`, de 1 à 0,35).
+  - En pause : l'écran passe sur `pomodoroBreakBg` et la barre en `pomodoroBreak`, cobalt (lueur `stateActiveTint`), avec « de pause, sur 5 min ».
+  - Dessous, à 22, « sur 25 min » en Nunito Sans Bold 14 secondaire.
+  - Avec « Réduire les animations », ni lueur qui bouge (elle reste à 0,6) ni clignotement.
   - Aucune couleur d'alerte, même à la fin.
 - **Fin de pomodoro** (`OutcomeView`, composant `PomodoroDone` de la référence) : carte surélevée de 520 (`doneRaised`), le seul élément surélevé de Done.
   - Anneau de 56 au trait de 6 en `pomodoroFocus` qui se referme, puis une coche qui se trace au centre et l'éclat.

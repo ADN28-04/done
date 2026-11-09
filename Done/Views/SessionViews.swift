@@ -36,24 +36,15 @@ struct SessionView: View {
                         .padding(.top, DoneSpace.s8)
                 }
 
-                // Anneau de 280, trait 6 : braise en concentration, gris à l'arrêt.
-                ZStack {
-                    ProgressRing(fraction: engine.remainingFraction, color: paused ? DoneColor.pomodoroPaused : DoneColor.pomodoroFocus)
-                    VStack(spacing: DoneSpace.s4) {
-                        TimerText(text: Format.clock(engine.remaining), color: paused ? DoneColor.textSecondary : DoneColor.textPrimary)
-                        if paused {
-                            Label("En pause", systemImage: "pause.fill")
-                                .font(.sans(13, .semibold))
-                                .foregroundStyle(DoneColor.textSecondary)
-                        } else {
-                            Text("sur \(Int(current.planned / 60)) min")
-                                .doneText(.callout)
-                                .foregroundStyle(DoneColor.textSecondary)
-                        }
-                    }
-                }
-                .frame(width: 280, height: 280)
-                .padding(.top, DoneSpace.s32)
+                // Grands chiffres et règle : barre braise en concentration, grise à l'arrêt.
+                FocusTimer(
+                    remaining: engine.remaining,
+                    total: current.planned,
+                    tone: paused ? .paused : .focus,
+                    caption: paused ? "En pause" : "sur \(Int((current.planned / 60).rounded())) min"
+                )
+                .padding(.horizontal, DoneSpace.s40)
+                .padding(.top, DoneSpace.s24)
 
                 HStack(spacing: DoneSpace.s8) {
                     if paused {
@@ -516,7 +507,7 @@ struct BlockedSheet: View {
     }
 }
 
-/// Pause : fond pomodoro.breakBg (posé par RootView) et anneau de pause. Entre deux tâches
+/// Pause : fond pomodoro.breakBg (posé par RootView) et minuteur cobalt. Entre deux tâches
 /// principales, elle ne se passe pas.
 struct BreakView: View {
     @Environment(AppModel.self) private var model
@@ -525,16 +516,14 @@ struct BreakView: View {
     var body: some View {
         VStack(spacing: 0) {
             Eyebrow(text: engine.breakIsMandatory ? "Pause avant la tâche suivante" : "Pause")
-            ZStack {
-                ProgressRing(fraction: engine.breakRemainingFraction, color: DoneColor.pomodoroBreak)
-                VStack(spacing: DoneSpace.s4) {
-                    TimerText(text: Format.clock(engine.breakRemaining))
-                    Text("sur \(Int((engine.breakDuration / 60).rounded())) min")
-                        .doneText(.callout)
-                        .foregroundStyle(DoneColor.textSecondary)
-                }
-            }
-            .frame(width: 280, height: 280)
+            // Les mêmes grands chiffres, barre cobalt.
+            FocusTimer(
+                remaining: engine.breakRemaining,
+                total: engine.breakDuration,
+                tone: .onBreak,
+                caption: "de pause, sur \(Int((engine.breakDuration / 60).rounded())) min"
+            )
+            .padding(.horizontal, DoneSpace.s40)
             .padding(.top, DoneSpace.s24)
             Text("Lève-toi, bois de l'eau, regarde loin de l'écran.")
                 .doneText(.title)
