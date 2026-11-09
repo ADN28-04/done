@@ -1,0 +1,250 @@
+<title>Ambiance de Ma journée</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<style>
+/* Mise en page : une fenêtre de Done réduite (toile, halos, en-tête, cartes), puis les réglages de l'aperçu.
+   Couleurs et polices : les rôles du design system Mymind de Done (tokens.json). */
+:root {
+  --bgCanvas: #F9FAFC;
+  --surface: #FFFFFF;
+  --bgSunken: #F1F3F7;
+  --borderSubtle: #E6E8EE;
+  --borderDefault: #D6DAE2;
+  --textPrimary: #24272D;
+  --textSecondary: #5D6575;
+  --accent: #FF5924;
+  --accentText: #B33A0C;
+  --surfaceSelected: #E5EAF2;
+  --haloWarm: rgba(255, 89, 36, 0.22);
+  --haloPink: rgba(240, 120, 160, 0.20);
+  --shadowCard: 0 1px 2px rgba(36, 39, 45, 0.05), 0 10px 30px rgba(36, 39, 45, 0.06);
+  --display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --sans: "Nunito Sans", "Avenir Next", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bgCanvas: #0F1012; --surface: #18191C; --bgSunken: #0B0C0E; --borderSubtle: #2A2C31; --borderDefault: #383B42;
+    --textPrimary: #EEF0F4; --textSecondary: #A3A9B6; --accent: #FF6A3D; --accentText: #FF9B77; --surfaceSelected: #232A36;
+    --haloWarm: rgba(255, 106, 61, 0.12); --haloPink: rgba(240, 120, 160, 0.10);
+    --shadowCard: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bgCanvas: #0F1012; --surface: #18191C; --bgSunken: #0B0C0E; --borderSubtle: #2A2C31; --borderDefault: #383B42;
+  --textPrimary: #EEF0F4; --textSecondary: #A3A9B6; --accent: #FF6A3D; --accentText: #FF9B77; --surfaceSelected: #232A36;
+  --haloWarm: rgba(255, 106, 61, 0.12); --haloPink: rgba(240, 120, 160, 0.10);
+  --shadowCard: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bgSunken);
+  color: var(--textPrimary);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+.page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 20px;
+}
+h1 {
+  margin: 0;
+  font: 500 32px/38px var(--display);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.lede { margin: 6px 0 0; color: var(--textSecondary); max-width: 62ch; }
+
+/* Réglages de l'aperçu : pilules, comme dans Done. */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+.group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.group-label { font: 700 12px/16px var(--sans); color: var(--textSecondary); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--borderSubtle); }
+.seg button {
+  font: 600 13px/26px var(--sans); color: var(--textSecondary);
+  border: 0; background: transparent; height: 26px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { color: var(--textPrimary); background: var(--surfaceSelected); }
+.seg button:focus-visible, .replay:focus-visible { outline: 2px solid #1573DD; outline-offset: 2px; }
+.replay {
+  font: 600 14px/20px var(--sans); height: 34px; padding: 0 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--borderDefault); background: var(--surface); color: var(--textPrimary);
+}
+
+/* La fenêtre de Done, réduite. */
+.window {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--borderSubtle);
+  background: var(--bgCanvas);
+  min-height: 460px;
+  isolation: isolate;
+}
+.halo { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; will-change: transform, opacity; }
+.halo.warm { width: 620px; height: 620px; right: -170px; top: -290px; background: radial-gradient(circle, var(--haloWarm), transparent 65%); }
+.halo.pink { width: 680px; height: 680px; left: -200px; bottom: -420px; background: radial-gradient(circle, var(--haloPink), transparent 65%); }
+
+/* Variante « dérive lente » : chaque halo trace une petite ellipse, en contretemps. */
+.window[data-halos="drift"] .halo.warm { animation: drift-warm 22s ease-in-out infinite; }
+.window[data-halos="drift"] .halo.pink { animation: drift-pink 26s ease-in-out infinite; }
+@keyframes drift-warm {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-22px, 14px) scale(1.04); }
+  50% { transform: translate(-8px, 28px) scale(1.07); }
+  75% { transform: translate(14px, 10px) scale(1.03); }
+}
+@keyframes drift-pink {
+  0%, 100% { transform: translate(0, 0) scale(1.03); }
+  25% { transform: translate(18px, -12px) scale(1); }
+  50% { transform: translate(30px, -4px) scale(1.06); }
+  75% { transform: translate(8px, -18px) scale(1.02); }
+}
+/* Variante « respiration » : les halos gonflent et pâlissent à peine, sur place. */
+.window[data-halos="breathe"] .halo.warm { animation: breathe 12s ease-in-out infinite alternate; }
+.window[data-halos="breathe"] .halo.pink { animation: breathe 14s ease-in-out -6s infinite alternate; }
+@keyframes breathe {
+  from { transform: scale(0.96); opacity: 0.75; }
+  to { transform: scale(1.05); opacity: 1; }
+}
+
+.content { position: relative; z-index: 1; padding: 30px 32px 28px; display: grid; gap: 22px; }
+.date { display: flex; align-items: center; gap: 6px; font: 600 13px/18px var(--sans); color: var(--textSecondary); }
+.sun { width: 14px; height: 14px; color: var(--accent); flex: none; transform-origin: 50% 50%; }
+.window.opening[data-sun="slow"] .sun { animation: sun-turn 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both; }
+.window.opening[data-sun="slower"] .sun { animation: sun-turn 4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both; }
+@keyframes sun-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.greeting { margin: 0; font: 500 40px/44px var(--display); letter-spacing: -0.02em; text-wrap: balance; max-width: 760px; }
+.greeting em { font-style: italic; color: var(--textSecondary); }
+
+.cards { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 14px; }
+.card {
+  background: var(--surface); border: 1px solid var(--borderSubtle); border-radius: 20px;
+  box-shadow: var(--shadowCard); padding: 16px 18px; min-height: 150px; display: grid; align-content: start; gap: 10px;
+}
+.card-label { font: 700 12px/16px var(--sans); color: var(--textSecondary); }
+.card-title { font: 500 22px/27px var(--display); letter-spacing: -0.01em; }
+.line { height: 8px; border-radius: 999px; background: var(--bgSunken); }
+.line.short { width: 60%; }
+.line.mid { width: 80%; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.note { background: var(--surface); border: 1px solid var(--borderSubtle); border-radius: 16px; padding: 14px 16px; }
+.note h2 { margin: 0 0 4px; font: 700 13px/18px var(--sans); }
+.note p { margin: 0; color: var(--textSecondary); font-size: 13px; line-height: 18px; }
+
+@media (max-width: 760px) {
+  .cards { grid-template-columns: 1fr; }
+  .greeting { font-size: 30px; line-height: 34px; }
+  .content { padding: 22px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .halo, .sun { animation: none !important; }
+}
+</style>
+
+<main class="page">
+  <header>
+    <h1>Ambiance de Ma journée</h1>
+    <p class="lede">Deux animations d'ambiance, très lentes et purement cosmétiques : les halos de la toile, et le petit soleil de la date à l'ouverture. Choisis les variantes, puis « Rejouer l'ouverture » pour revoir le soleil.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Variantes de l'aperçu">
+    <div class="group">
+      <span class="group-label" id="halos-label">Halos</span>
+      <div class="seg" role="group" aria-labelledby="halos-label" data-setting="halos">
+        <button type="button" id="halos-drift" data-value="drift" aria-pressed="true">Dérive lente</button>
+        <button type="button" id="halos-breathe" data-value="breathe" aria-pressed="false">Respiration</button>
+        <button type="button" id="halos-still" data-value="still" aria-pressed="false">Immobiles</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-label" id="sun-label">Soleil</span>
+      <div class="seg" role="group" aria-labelledby="sun-label" data-setting="sun">
+        <button type="button" id="sun-slow" data-value="slow" aria-pressed="true">Un tour, 2,4 s</button>
+        <button type="button" id="sun-slower" data-value="slower" aria-pressed="false">Un tour, 4 s</button>
+        <button type="button" id="sun-still" data-value="still" aria-pressed="false">Immobile</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-label" id="theme-label">Thème</span>
+      <div class="seg" role="group" aria-labelledby="theme-label" data-setting="theme">
+        <button type="button" id="theme-system" data-value="system" aria-pressed="true">Système</button>
+        <button type="button" id="theme-light" data-value="light" aria-pressed="false">Clair</button>
+        <button type="button" id="theme-dark" data-value="dark" aria-pressed="false">Sombre</button>
+      </div>
+    </div>
+    <button type="button" class="replay" id="replay">Rejouer l'ouverture</button>
+  </div>
+
+  <section class="window opening" id="window" data-halos="drift" data-sun="slow" aria-label="Aperçu de Ma journée">
+    <div class="halo warm" aria-hidden="true"></div>
+    <div class="halo pink" aria-hidden="true"></div>
+    <div class="content">
+      <div style="display:grid;gap:10px">
+        <div class="date">
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>
+          </svg>
+          <span>Lundi 9 novembre · semaine 46</span>
+        </div>
+        <p class="greeting"><em>Un café d'abord&nbsp;?</em> Trois tâches et deux réunions aujourd'hui.</p>
+      </div>
+      <div class="cards" aria-hidden="true">
+        <div class="card"><span class="card-label">Prochaine action</span><span class="card-title">Relire la fiche produit</span><div class="line mid"></div><div class="line short"></div></div>
+        <div class="card"><span class="card-label">Ma journée</span><div class="line"></div><div class="line mid"></div><div class="line short"></div></div>
+        <div class="card"><span class="card-label">Plan du jour</span><div class="line"></div><div class="line"></div><div class="line short"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="notes" aria-label="Ce que fait chaque variante">
+    <div class="note"><h2>Dérive lente</h2><p>Chaque halo trace une petite ellipse de 20 à 30 points, en 22 et 26 secondes, en contretemps. On le remarque à peine, sauf en regardant la toile.</p></div>
+    <div class="note"><h2>Respiration</h2><p>Les halos restent en place, grossissent de quelques pour cent et pâlissent à peine, sur 12 et 14 secondes.</p></div>
+    <div class="note"><h2>Soleil</h2><p>Un seul tour, en ralentissant, à l'ouverture de Ma journée et à chaque retour sur l'écran. Il ne tourne jamais en continu.</p></div>
+    <div class="note"><h2>Réduire les animations</h2><p>Avec le réglage de macOS, halos et soleil restent immobiles. Pendant une session de focus, la toile reste calme, comme aujourd'hui.</p></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var win = document.getElementById('window');
+  function setPressed(group, value) {
+    group.querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.value === value));
+    });
+  }
+  function replay() {
+    win.classList.remove('opening');
+    void win.offsetWidth; // relance l'animation du soleil
+    win.classList.add('opening');
+  }
+  document.querySelectorAll('.seg').forEach(function (group) {
+    group.addEventListener('click', function (event) {
+      var button = event.target.closest('button');
+      if (!button) return;
+      var setting = group.dataset.setting;
+      var value = button.dataset.value;
+      setPressed(group, value);
+      if (setting === 'halos') win.dataset.halos = value;
+      if (setting === 'sun') { win.dataset.sun = value; replay(); }
+      if (setting === 'theme') {
+        if (value === 'system') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', value);
+      }
+    });
+  });
+  document.getElementById('replay').addEventListener('click', replay);
+})();
+</script>

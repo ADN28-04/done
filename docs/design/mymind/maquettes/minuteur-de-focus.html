@@ -1,0 +1,488 @@
+<title>Minuteur de focus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Nunito+Sans:opsz,wght@6..12,300;6..12,400;6..12,600;6..12,700;6..12,900&family=Bebas+Neue&family=Oswald:wght@600&family=Barlow+Condensed:wght@700&display=swap">
+<style>
+/* Mise en page : l'écran de session de Done, au centre ; trois variantes du minuteur à comparer.
+   Couleurs et polices : les rôles du design system Mymind de Done (tokens.json). */
+:root {
+  --bgCanvas: #F9FAFC;
+  --surface: #FFFFFF;
+  --bgSunken: #F1F3F7;
+  --borderSubtle: #E6E8EE;
+  --borderDefault: #D6DAE2;
+  --textPrimary: #24272D;
+  --textSecondary: #5D6575;
+  --textDisabled: #AFB5C1;
+  --surfaceSelected: #E5EAF2;
+  --actionPrimary: #24272D;
+  --onPrimary: #FFFFFF;
+  --focus: #F4511F;
+  --focusTint: #FFECE4;
+  --breakColor: #1573DD;
+  --breakTint: #E7F0FC;
+  --breakBg: #EEF4FC;
+  --track: #E6E8EE;
+  --paused: #AFB5C1;
+  --haloWarm: rgba(255, 89, 36, 0.20);
+  --haloPink: rgba(240, 120, 160, 0.18);
+  --display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --sans: "Nunito Sans", "Avenir Next", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bgCanvas: #0F1012; --surface: #18191C; --bgSunken: #0B0C0E; --borderSubtle: #2A2C31; --borderDefault: #383B42;
+    --textPrimary: #EEF0F4; --textSecondary: #A3A9B6; --textDisabled: #4F5560; --surfaceSelected: #232A36;
+    --actionPrimary: #EEF0F4; --onPrimary: #15171A;
+    --focus: #FF6A3D; --focusTint: #3A1D14; --breakColor: #5AA2F0; --breakTint: #16243A; --breakBg: #101A27;
+    --track: #2A2C31; --paused: #4F5560;
+    --haloWarm: rgba(255, 106, 61, 0.12); --haloPink: rgba(240, 120, 160, 0.10);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bgCanvas: #0F1012; --surface: #18191C; --bgSunken: #0B0C0E; --borderSubtle: #2A2C31; --borderDefault: #383B42;
+  --textPrimary: #EEF0F4; --textSecondary: #A3A9B6; --textDisabled: #4F5560; --surfaceSelected: #232A36;
+  --actionPrimary: #EEF0F4; --onPrimary: #15171A;
+  --focus: #FF6A3D; --focusTint: #3A1D14; --breakColor: #5AA2F0; --breakTint: #16243A; --breakBg: #101A27;
+  --track: #2A2C31; --paused: #4F5560;
+  --haloWarm: rgba(255, 106, 61, 0.12); --haloPink: rgba(240, 120, 160, 0.10);
+  color-scheme: dark;
+}
+
+body { background: var(--bgSunken); color: var(--textPrimary); font-family: var(--sans); font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
+.page {
+  max-width: 1080px; margin: 0 auto; display: grid; gap: 18px;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1 { margin: 0; font: 500 32px/38px var(--display); letter-spacing: -0.015em; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--textSecondary); max-width: 66ch; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; }
+.group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.group-label { font: 700 12px/16px var(--sans); color: var(--textSecondary); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--borderSubtle); }
+.seg button { font: 600 13px/26px var(--sans); color: var(--textSecondary); border: 0; background: transparent; height: 26px; padding: 0 12px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { color: var(--textPrimary); background: var(--surfaceSelected); }
+button:focus-visible { outline: 2px solid #1573DD; outline-offset: 2px; }
+
+/* L'écran de session, réduit. */
+.screen {
+  position: relative; overflow: hidden; isolation: isolate;
+  border-radius: 16px; border: 1px solid var(--borderSubtle);
+  background: var(--bgCanvas);
+  transition: background-color 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  padding: 34px 20px 30px;
+  display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 0;
+}
+.screen[data-phase="break"] { background: var(--breakBg); }
+.halo { position: absolute; border-radius: 50%; pointer-events: none; z-index: -1; transition: opacity 420ms; }
+.halo.warm { width: 560px; height: 560px; right: -170px; top: -260px; background: radial-gradient(circle, var(--haloWarm), transparent 65%); }
+.halo.pink { width: 620px; height: 620px; left: -190px; bottom: -380px; background: radial-gradient(circle, var(--haloPink), transparent 65%); }
+.screen[data-phase="break"] .halo { opacity: 0; }
+
+.context { color: var(--textSecondary); font-size: 13px; line-height: 18px; text-align: center; }
+.title { margin: 6px 0 0; font: 500 24px/30px var(--display); letter-spacing: -0.01em; text-align: center; max-width: 34ch; text-wrap: balance; }
+.badge { margin-top: 10px; font: 600 12px/22px var(--sans); color: var(--textSecondary); background: var(--surface); border: 1px solid var(--borderSubtle); border-radius: 999px; padding: 0 10px; }
+
+.dial-wrap { margin-top: 26px; width: min(340px, 82vw); aspect-ratio: 1; max-width: 100%; position: relative; }
+.dial-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.readout { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 2px; pointer-events: none; }
+.digits { font: 300 68px/72px var(--sans); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.digits .sec { font-size: 40px; color: var(--textSecondary); }
+.sub { font-size: 13px; line-height: 18px; color: var(--textSecondary); font-variant-numeric: tabular-nums; }
+
+/* Variante C : grands chiffres et règle. La police des chiffres se choisit (data-font). */
+.big { margin-top: 22px; display: grid; justify-items: center; gap: 22px; width: min(1000px, 100%); }
+/* Chaque chiffre dans une case de largeur fixe : rien ne bouge d'une seconde à l'autre. */
+.big .digits .d { display: inline-block; width: var(--digitCell, 0.5em); text-align: center; }
+.big .digits .c { display: inline-block; width: var(--colonCell, 0.24em); text-align: center; }
+.big .digits { font-family: var(--timerFont); font-weight: var(--timerWeight); font-size: var(--timerSize); line-height: 1; letter-spacing: var(--timerTracking); }
+.big .digits .sec { font-size: inherit; color: inherit; }
+.screen { --timerFont: "Bebas Neue", "Oswald", Impact, sans-serif; --timerWeight: 400; --timerSize: 176px; --timerTracking: 0.01em; }
+.screen[data-font="oswald"] { --timerFont: "Oswald", Impact, sans-serif; --timerWeight: 600; --timerSize: 142px; --timerTracking: -0.01em; }
+.screen[data-font="barlow"] { --timerFont: "Barlow Condensed", "Oswald", sans-serif; --timerWeight: 700; --timerSize: 158px; --timerTracking: -0.01em; }
+.screen[data-font="nunito"] { --timerFont: var(--sans); --timerWeight: 900; --timerSize: 128px; --timerTracking: -0.03em; }
+.big .sub { font-weight: 700; font-size: 14px; }
+.ruler { width: 100%; }
+.ruler svg { width: 100%; height: auto; display: block; overflow: visible; }
+/* Règle de la piste C : tailles fixes, seule la longueur suit la place. */
+.big .ruler { position: relative; height: 52px; }
+.r-track { position: absolute; left: 0; right: 0; top: 0; height: 11px; border-radius: 6px; background: var(--track); }
+.r-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
+.r-glow { position: absolute; left: 0; top: -5px; bottom: -5px; border-radius: 11px; opacity: 0; }
+.r-tick { position: absolute; top: 18px; width: 1.2px; height: 6px; margin-left: -0.6px; border-radius: 1px; background: var(--textDisabled); }
+.r-tick.major { width: 2px; height: 11px; margin-left: -1px; background: var(--textSecondary); }
+.r-label { position: absolute; top: 34px; transform: translateX(-50%); font: 600 12px/16px var(--sans); color: var(--textSecondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.r-label.first { transform: none; }
+.r-label.last { transform: translateX(-100%); }
+
+.actions { margin-top: 30px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.btn { font: 600 14px/20px var(--sans); height: 34px; padding: 0 16px; border-radius: 999px; cursor: pointer; border: 1px solid var(--borderDefault); background: var(--surface); color: var(--textPrimary); display: inline-flex; align-items: center; gap: 8px; }
+.btn.primary { background: var(--actionPrimary); color: var(--onPrimary); border-color: transparent; }
+.kbd { font: 600 12px/16px var(--sans); opacity: .6; }
+.minor { margin-top: 6px; display: flex; gap: 2px; }
+.btn.plain { border-color: transparent; background: transparent; color: var(--textSecondary); padding: 0 10px; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.note { background: var(--surface); border: 1px solid var(--borderSubtle); border-radius: 16px; padding: 14px 16px; }
+.note h2 { margin: 0 0 4px; font: 700 13px/18px var(--sans); }
+.note p { margin: 0; color: var(--textSecondary); font-size: 13px; line-height: 18px; }
+
+/* Dernière minute : l'anneau luit doucement. */
+@keyframes glow { from { opacity: .35; } to { opacity: .9; } }
+.glow { animation: glow 1.6s ease-in-out infinite alternate; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.screen[data-paused="true"] .digits { animation: blink 2.4s ease-in-out infinite; }
+
+@media (max-width: 640px) {
+  .big .digits { font-size: calc(var(--timerSize) * 0.6); }
+  .digits { font-size: 54px; line-height: 58px; }
+  .digits .sec { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow, .screen[data-paused="true"] .digits { animation: none; }
+}
+</style>
+
+<main class="page">
+  <header>
+    <h1>Minuteur de focus</h1>
+    <p class="lede">Trois pistes pour l'écran de session, avec un minuteur qui tourne vraiment. Accélère le temps pour voir le dernier quart, mets en pause, ou passe en pause café pour voir la version cobalt.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Réglages de l'aperçu">
+    <div class="group">
+      <span class="group-label" id="v-label">Piste</span>
+      <div class="seg" role="group" aria-labelledby="v-label" data-setting="variant">
+        <button type="button" id="v-dial" data-value="dial" aria-pressed="false">A · Cadran gradué</button>
+        <button type="button" id="v-disc" data-value="disc" aria-pressed="false">B · Disque d'une heure</button>
+        <button type="button" id="v-big" data-value="big" aria-pressed="true">C · Grands chiffres</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-label" id="f-label">Chiffres de C</span>
+      <div class="seg" role="group" aria-labelledby="f-label" data-setting="font">
+        <button type="button" id="f-bebas" data-value="bebas" aria-pressed="false">Bebas Neue</button>
+        <button type="button" id="f-oswald" data-value="oswald" aria-pressed="true">Oswald SemiBold</button>
+        <button type="button" id="f-barlow" data-value="barlow" aria-pressed="false">Barlow Condensed Bold</button>
+        <button type="button" id="f-nunito" data-value="nunito" aria-pressed="false">Nunito Sans Black</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-label" id="p-label">Phase</span>
+      <div class="seg" role="group" aria-labelledby="p-label" data-setting="phase">
+        <button type="button" id="p-focus" data-value="focus" aria-pressed="true">Focus 25 min</button>
+        <button type="button" id="p-deep" data-value="deep" aria-pressed="false">Deepwork 50 min</button>
+        <button type="button" id="p-break" data-value="break" aria-pressed="false">Pause 5 min</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-label" id="s-label">Vitesse</span>
+      <div class="seg" role="group" aria-labelledby="s-label" data-setting="speed">
+        <button type="button" id="s-1" data-value="1" aria-pressed="true">Réelle</button>
+        <button type="button" id="s-30" data-value="30" aria-pressed="false">× 30</button>
+        <button type="button" id="s-last" data-value="last" aria-pressed="false">Dernière minute</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-label" id="t-label">Thème</span>
+      <div class="seg" role="group" aria-labelledby="t-label" data-setting="theme">
+        <button type="button" id="t-system" data-value="system" aria-pressed="true">Système</button>
+        <button type="button" id="t-light" data-value="light" aria-pressed="false">Clair</button>
+        <button type="button" id="t-dark" data-value="dark" aria-pressed="false">Sombre</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="screen" id="screen" data-phase="focus" data-paused="false" data-font="oswald" aria-label="Aperçu de l'écran de session">
+    <div class="halo warm" aria-hidden="true"></div>
+    <div class="halo pink" aria-hidden="true"></div>
+    <div class="context" id="context">Boutique · Refonte de la page d'accueil</div>
+    <p class="title" id="title">Relire la fiche produit et noter les corrections</p>
+    <div class="badge" id="badge">Encore 2 étapes après celle-ci</div>
+
+    <div id="stage"></div>
+
+    <div class="actions">
+      <button type="button" class="btn" id="pause">Pause <span class="kbd">Espace</span></button>
+      <button type="button" class="btn">Interrompre</button>
+      <button type="button" class="btn" id="done">C'est fait <span class="kbd">⌘↩</span></button>
+    </div>
+    <div class="minor">
+      <button type="button" class="btn plain">Ajouter 5 min</button>
+      <button type="button" class="btn plain">Bloqué…</button>
+    </div>
+  </section>
+
+  <section class="notes" aria-label="Les trois pistes">
+    <div class="note"><h2>A · Cadran gradué</h2><p>L'anneau actuel devient un cadran : une graduation par minute de la session, plus longue toutes les cinq. L'arc braise se vide, un curseur rond marque où on en est, et un petit point fait le tour en une minute, comme une trotteuse.</p></div>
+    <div class="note"><h2>B · Disque d'une heure</h2><p>Le cadran d'un minuteur de cuisine : une heure en tout, chiffres de 0 à 55. Un secteur braise montre le temps qui reste et se referme vers midi. 25 minutes font un quart d'heure et demi de disque, 50 minutes presque tout.</p></div>
+    <div class="note"><h2>C · Grands chiffres</h2><p>Le temps en très grand, dans une police de chiffres étroite et grasse, sur une règle graduée plus épaisse dont la part braise raccourcit. Quatre polices à comparer : Bebas Neue, Oswald, Barlow Condensed, et Nunito Sans Black, déjà dans l'app.</p></div>
+    <div class="note"><h2>Dans tous les cas</h2><p>Les secondes avancent sans sauter en largeur. En pause, les chiffres clignotent lentement et la couleur passe au gris. Dans la dernière minute, l'arc luit doucement. La pause café passe au cobalt. Avec « Réduire les animations », rien ne clignote ni ne luit.</p></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var screen = document.getElementById('screen');
+  var stage = document.getElementById('stage');
+  var pauseButton = document.getElementById('pause');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var state = { variant: 'big', phase: 'focus', total: 25 * 60, remaining: 18 * 60 + 42, speed: 1, paused: false };
+  var last = performance.now();
+
+  function el(name, attrs, parent) {
+    var node = document.createElementNS(NS, name);
+    for (var key in attrs) node.setAttribute(key, attrs[key]);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+  function color() {
+    if (state.paused) return 'var(--paused)';
+    return state.phase === 'break' ? 'var(--breakColor)' : 'var(--focus)';
+  }
+  function tint() { return state.phase === 'break' ? 'var(--breakTint)' : 'var(--focusTint)'; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function clock() {
+    var s = Math.max(0, Math.ceil(state.remaining));
+    return { m: Math.floor(s / 60), s: s % 60 };
+  }
+  function polar(cx, cy, r, turn) {
+    var a = turn * 2 * Math.PI - Math.PI / 2;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  }
+  function arcPath(cx, cy, r, from, to) {
+    if (to - from >= 0.9999) to = from + 0.9999;
+    var a = polar(cx, cy, r, from), b = polar(cx, cy, r, to);
+    var large = to - from > 0.5 ? 1 : 0;
+    return 'M' + a[0] + ' ' + a[1] + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + b[0] + ' ' + b[1];
+  }
+  function sectorPath(cx, cy, r, from, to) {
+    if (to - from <= 0.0001) return '';
+    if (to - from >= 0.9999) to = from + 0.9999;
+    var a = polar(cx, cy, r, from), b = polar(cx, cy, r, to);
+    var large = to - from > 0.5 ? 1 : 0;
+    return 'M' + cx + ' ' + cy + ' L' + a[0] + ' ' + a[1] + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + b[0] + ' ' + b[1] + ' Z';
+  }
+
+  var parts = {};
+
+  function build() {
+    stage.innerHTML = '';
+    parts = {};
+    var minutes = Math.round(state.total / 60);
+    if (state.variant === 'dial') {
+      var wrap = document.createElement('div'); wrap.className = 'dial-wrap'; stage.appendChild(wrap);
+      var svg = el('svg', { viewBox: '0 0 340 340', 'aria-hidden': 'true' }, wrap);
+      // Graduations : une par minute de la session, plus longue toutes les cinq.
+      parts.ticks = [];
+      for (var i = 0; i < minutes; i++) {
+        var major = i % 5 === 0;
+        var p1 = polar(170, 170, 162, i / minutes), p2 = polar(170, 170, major ? 148 : 154, i / minutes);
+        parts.ticks.push(el('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], 'stroke-width': major ? 2 : 1.2, 'stroke-linecap': 'round' }, svg));
+      }
+      el('circle', { cx: 170, cy: 170, r: 132, fill: 'none', stroke: 'var(--track)', 'stroke-width': 6 }, svg);
+      parts.glow = el('path', { fill: 'none', 'stroke-width': 16, 'stroke-linecap': 'round', opacity: 0 }, svg);
+      parts.arc = el('path', { fill: 'none', 'stroke-width': 6, 'stroke-linecap': 'round' }, svg);
+      parts.knob = el('circle', { r: 9, fill: 'var(--surface)', 'stroke-width': 3 }, svg);
+      parts.second = el('circle', { r: 3.5 }, svg);
+      readout(wrap, true);
+    } else if (state.variant === 'disc') {
+      var wrapB = document.createElement('div'); wrapB.className = 'dial-wrap'; stage.appendChild(wrapB);
+      var svgB = el('svg', { viewBox: '0 0 340 340', 'aria-hidden': 'true' }, wrapB);
+      el('circle', { cx: 170, cy: 170, r: 150, fill: 'var(--surface)', stroke: 'var(--borderSubtle)', 'stroke-width': 1 }, svgB);
+      parts.ticks = [];
+      for (var t = 0; t < 60; t++) {
+        var mj = t % 5 === 0;
+        var q1 = polar(170, 170, 146, t / 60), q2 = polar(170, 170, mj ? 134 : 140, t / 60);
+        el('line', { x1: q1[0], y1: q1[1], x2: q2[0], y2: q2[1], stroke: mj ? 'var(--textSecondary)' : 'var(--borderDefault)', 'stroke-width': mj ? 2 : 1, 'stroke-linecap': 'round' }, svgB);
+        if (mj) {
+          var lp = polar(170, 170, 120, t / 60);
+          var label = el('text', { x: lp[0], y: lp[1] + 4, 'text-anchor': 'middle', 'font-family': 'Nunito Sans, system-ui, sans-serif', 'font-size': 11, 'font-weight': 600, fill: 'var(--textSecondary)' }, svgB);
+          label.textContent = String(t);
+        }
+      }
+      parts.sectorTint = el('path', { opacity: 1 }, svgB);
+      parts.sector = el('path', { opacity: 0.92 }, svgB);
+      parts.glow = el('circle', { cx: 170, cy: 170, r: 108, fill: 'none', 'stroke-width': 10, opacity: 0 }, svgB);
+      el('circle', { cx: 170, cy: 170, r: 16, fill: 'var(--surface)', stroke: 'var(--borderDefault)', 'stroke-width': 1 }, svgB);
+      parts.hub = el('circle', { cx: 170, cy: 170, r: 5 }, svgB);
+      var under = document.createElement('div'); under.className = 'readout'; under.style.position = 'static'; under.style.marginTop = '14px';
+      stage.appendChild(under);
+      parts.digits = document.createElement('div'); parts.digits.className = 'digits'; parts.digits.style.fontSize = '44px'; parts.digits.style.lineHeight = '48px';
+      parts.sub = document.createElement('div'); parts.sub.className = 'sub';
+      under.appendChild(parts.digits); under.appendChild(parts.sub);
+    } else {
+      var big = document.createElement('div'); big.className = 'big'; stage.appendChild(big);
+      parts.digits = document.createElement('div'); parts.digits.className = 'digits'; big.appendChild(parts.digits);
+      var ruler = document.createElement('div'); ruler.className = 'ruler'; big.appendChild(ruler);
+      // Règle en HTML, pas en image : la barre s'étire avec la place, mais son épaisseur, les
+      // graduations et les chiffres gardent leur taille, quelle que soit la largeur.
+      ruler.setAttribute('aria-hidden', 'true');
+      var track = document.createElement('div'); track.className = 'r-track'; ruler.appendChild(track);
+      parts.glow = document.createElement('div'); parts.glow.className = 'r-glow'; track.appendChild(parts.glow);
+      parts.bar = document.createElement('div'); parts.bar.className = 'r-fill'; track.appendChild(parts.bar);
+      for (var k = 0; k <= minutes; k++) {
+        var mk = k % 5 === 0, left = (k / minutes * 100) + '%';
+        var tickEl = document.createElement('span'); tickEl.className = 'r-tick' + (mk ? ' major' : ''); tickEl.style.left = left; ruler.appendChild(tickEl);
+        // Un chiffre toutes les 5 min, toutes les 10 au-delà d'une demi-heure ; l'unité est dans « sur 50 min ».
+        if (k % (minutes > 30 ? 10 : 5) === 0) {
+          var lab = document.createElement('span');
+          lab.className = 'r-label' + (k === 0 ? ' first' : (k === minutes ? ' last' : ''));
+          lab.style.left = left;
+          lab.textContent = String(k);
+          ruler.appendChild(lab);
+        }
+      }
+      parts.sub = document.createElement('div'); parts.sub.className = 'sub'; big.appendChild(parts.sub);
+    }
+  }
+
+  function readout(parent, split) {
+    var box = document.createElement('div'); box.className = 'readout'; parent.appendChild(box);
+    parts.digits = document.createElement('div'); parts.digits.className = 'digits';
+    parts.sub = document.createElement('div'); parts.sub.className = 'sub';
+    box.appendChild(parts.digits); box.appendChild(parts.sub);
+    parts.split = split;
+  }
+
+  function render() {
+    var c = clock();
+    var frac = Math.max(0, state.remaining / state.total);
+    var col = color();
+    var lastMinute = !state.paused && state.remaining <= 60 && state.remaining > 0;
+    screen.dataset.paused = String(state.paused);
+    screen.dataset.phase = state.phase === 'break' ? 'break' : 'focus';
+
+    if (parts.digits) {
+      if (parts.split) parts.digits.innerHTML = c.m + '<span class="sec">:' + pad(c.s) + '</span>';
+      else if (state.variant === 'big') parts.digits.innerHTML = (pad(c.m) + ':' + pad(c.s)).split('').map(function (ch) { return '<span class="' + (ch === ':' ? 'c' : 'd') + '">' + ch + '</span>'; }).join('');
+      else parts.digits.textContent = c.m + ':' + pad(c.s);
+      parts.digits.style.color = state.paused ? 'var(--textSecondary)' : 'var(--textPrimary)';
+    }
+    if (parts.sub) {
+      parts.sub.textContent = state.paused ? 'En pause' : (state.phase === 'break' ? 'de pause, sur ' + Math.round(state.total / 60) + ' min' : 'sur ' + Math.round(state.total / 60) + ' min');
+    }
+
+    if (state.variant === 'dial') {
+      var minutes = parts.ticks.length;
+      var elapsedTicks = (1 - frac) * minutes;
+      parts.ticks.forEach(function (tick, i) {
+        tick.setAttribute('stroke', i >= elapsedTicks ? 'var(--textSecondary)' : 'var(--borderDefault)');
+      });
+      var startTurn = 1 - frac;
+      parts.arc.setAttribute('d', frac > 0 ? arcPath(170, 170, 132, startTurn, 1) : '');
+      parts.arc.setAttribute('stroke', col);
+      var knob = polar(170, 170, 132, startTurn);
+      parts.knob.setAttribute('cx', knob[0]); parts.knob.setAttribute('cy', knob[1]); parts.knob.setAttribute('stroke', col);
+      // Trotteuse : un tour par minute, sur le bord intérieur.
+      var secTurn = ((state.total - state.remaining) % 60) / 60;
+      var sp = polar(170, 170, 116, secTurn);
+      parts.second.setAttribute('cx', sp[0]); parts.second.setAttribute('cy', sp[1]);
+      parts.second.setAttribute('fill', col);
+      parts.second.setAttribute('opacity', state.paused ? 0.35 : 0.9);
+      parts.glow.setAttribute('d', frac > 0 ? arcPath(170, 170, 132, startTurn, 1) : '');
+      parts.glow.setAttribute('stroke', tint());
+      parts.glow.setAttribute('class', lastMinute && !reduced ? 'glow' : '');
+      parts.glow.setAttribute('opacity', lastMinute ? 0.6 : 0);
+    } else if (state.variant === 'disc') {
+      var turns = state.remaining / 3600;
+      parts.sector.setAttribute('d', sectorPath(170, 170, 108, 0, turns));
+      parts.sector.setAttribute('fill', col);
+      parts.sectorTint.setAttribute('d', sectorPath(170, 170, 108, turns, state.total / 3600));
+      parts.sectorTint.setAttribute('fill', tint());
+      parts.hub.setAttribute('fill', col);
+      parts.glow.setAttribute('stroke', tint());
+      parts.glow.setAttribute('class', lastMinute && !reduced ? 'glow' : '');
+      parts.glow.setAttribute('opacity', lastMinute ? 0.6 : 0);
+    } else {
+      parts.bar.style.width = (frac * 100) + '%';
+      parts.bar.style.background = col;
+      parts.glow.style.width = (frac * 100) + '%';
+      parts.glow.style.background = tint();
+      parts.glow.className = 'r-glow' + (lastMinute && !reduced ? ' glow' : '');
+      parts.glow.style.opacity = lastMinute ? 0.6 : 0;
+    }
+    pauseButton.firstChild.textContent = state.paused ? 'Reprendre ' : 'Pause ';
+    pauseButton.classList.toggle('primary', state.paused);
+  }
+
+  function tick(now) {
+    var dt = (now - last) / 1000;
+    last = now;
+    if (!state.paused) {
+      state.remaining -= dt * state.speed;
+      if (state.remaining <= 0) state.remaining = state.total;
+    }
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function setPhase(value) {
+    state.phase = value === 'break' ? 'break' : 'focus';
+    state.total = value === 'deep' ? 50 * 60 : (value === 'break' ? 5 * 60 : 25 * 60);
+    state.remaining = Math.min(state.remaining, state.total);
+    if (value === 'deep') state.remaining = 37 * 60 + 12;
+    if (value === 'break') state.remaining = 3 * 60 + 40;
+    if (value === 'focus') state.remaining = 18 * 60 + 42;
+    document.getElementById('context').textContent = value === 'break' ? 'Pause' : 'Boutique · Refonte de la page d’accueil';
+    document.getElementById('title').textContent = value === 'break' ? 'Ensuite : relire la fiche produit' : 'Relire la fiche produit et noter les corrections';
+    document.getElementById('badge').hidden = value === 'break';
+    build();
+  }
+
+  document.querySelectorAll('.seg').forEach(function (group) {
+    group.addEventListener('click', function (event) {
+      var button = event.target.closest('button');
+      if (!button) return;
+      group.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === button)); });
+      var value = button.dataset.value;
+      switch (group.dataset.setting) {
+        case 'variant': state.variant = value; build(); break;
+        case 'font': screen.dataset.font = value; break;
+        case 'phase': setPhase(value); break;
+        case 'speed':
+          if (value === 'last') { state.speed = 1; state.remaining = 58; }
+          else state.speed = Number(value);
+          break;
+        case 'theme':
+          if (value === 'system') document.documentElement.removeAttribute('data-theme');
+          else document.documentElement.setAttribute('data-theme', value);
+          break;
+      }
+    });
+  });
+  pauseButton.addEventListener('click', function () { state.paused = !state.paused; });
+  document.getElementById('done').addEventListener('click', function () { state.remaining = state.total; });
+
+  // Largeur des cases des chiffres : celle du chiffre le plus large de la police, mesurée une fois
+  // la police chargée. Les chiffres sont serrés sans jamais bouger d'une seconde à l'autre.
+  function measureCells() {
+    var style = getComputedStyle(screen);
+    var family = style.getPropertyValue('--timerFont').trim() || 'Oswald';
+    var weight = style.getPropertyValue('--timerWeight').trim() || '600';
+    var ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = weight + ' 100px ' + family;
+    var widest = 0;
+    for (var d = 0; d <= 9; d++) widest = Math.max(widest, ctx.measureText(String(d)).width);
+    var colon = ctx.measureText(':').width;
+    // Un peu moins que le chiffre le plus large : les approches de la police suffisent à séparer les chiffres.
+    screen.style.setProperty('--digitCell', (widest / 100 - 0.04).toFixed(3) + 'em');
+    screen.style.setProperty('--colonCell', (colon / 100 - 0.01).toFixed(3) + 'em');
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureCells);
+  document.querySelectorAll('[data-setting="font"] button').forEach(function (b) {
+    b.addEventListener('click', function () { setTimeout(measureCells, 0); });
+  });
+
+  build();
+  render();
+  requestAnimationFrame(tick);
+})();
+</script>
