@@ -56,8 +56,11 @@ struct DayTimeline: View {
     let onMeeting: (Meeting) -> Void
     let onSlot: (Date) -> Void
 
-    /// Réunion ou bloc en train d'être glissé ou étiré.
+    /// Réunion ou bloc en train d'être glissé ou étiré : la dernière position connue du geste.
     @State private var drag: TimelineDrag?
+    /// Vrai tant qu'un geste dure. Revient seul à faux à la fin du geste, même quand macOS l'annule
+    /// sans prévenir : la dernière position est alors enregistrée, et rien ne reste sélectionné.
+    @GestureState private var gestureActive = false
     /// Une tâche glissée survole la grille.
     @State private var dropTargeted = false
 
@@ -158,6 +161,10 @@ struct DayTimeline: View {
                 return added
             } isTargeted: { dropTargeted = $0 }
         }
+        // Un geste annulé par macOS n'appelle pas sa fin : on la déclenche quand il retombe.
+        .onChange(of: gestureActive) { _, active in
+            if !active { finishGesture() }
+        }
     }
 
     @ViewBuilder
@@ -257,7 +264,8 @@ struct DayTimeline: View {
                     drag = TimelineDrag(id: block.id, mode: .move, minutes: Double(value.translation.height / hourHeight) * 60, days: days, lifted: lifted)
                     onLiftTarget(lifted ? targetDay(of: block, days: days) : nil)
                 }
-                .onEnded { _ in commit(block) }
+                .updating($gestureActive) { _, active, _ in active = true }
+                .onEnded { _ in finishGesture() }
         )
     }
 
@@ -291,28 +299,29 @@ struct DayTimeline: View {
                             NSCursor.resizeUpDown.set()
                             drag = TimelineDrag(id: block.id, mode: .resize, minutes: Double(value.translation.height / hourHeight) * 60)
                         }
-                        .onEnded { _ in
-                            commit(block)
-                            NSCursor.arrow.set()
-                        }
+                        .updating($gestureActive) { _, active, _ in active = true }
+                        .onEnded { _ in finishGesture() }
                 )
                 .accessibilityHidden(true)
         )
     }
 
-    /// Fin du geste : la réunion ou le bloc prend sa nouvelle plage, si elle est permise et a changé.
-    private func commit(_ block: Block) {
-        defer {
-            self.drag = nil
-            onDragging(false)
-            onLiftTarget(nil)
-        }
+    /// Fin du geste, qu'il soit relâché ou annulé : la réunion ou le bloc prend sa nouvelle plage, si
+    /// elle est permise et a changé ; le curseur et la sélection reviennent à l'état de repos. Appelée
+    /// au relâchement et quand `gestureActive` retombe ; la seconde fois, il n'y a plus rien à faire.
+    private func finishGesture() {
+        guard let drag else { return }
+        self.drag = nil
+        onDragging(false)
+        onLiftTarget(nil)
+        if drag.mode == .resize { NSCursor.arrow.set() }
+        guard let block = blocks().first(where: { $0.id == drag.id }) else { return }
         // Bloc lâché au-dessus de la grille : sa tâche revient aux échéances du jour visé.
-        if let drag, drag.id == block.id, drag.lifted, case .work(let workBlock, _) = block.kind {
+        if drag.lifted, case .work(let workBlock, _) = block.kind {
             onReturnToDue(workBlock, targetDay(of: block, days: drag.days))
             return
         }
-        guard let drag, drag.id == block.id, let range = target(of: block, drag),
+        guard let range = target(of: block, drag),
               range.start != block.start || range.end != block.end else { return }
         switch block.kind {
         case .meeting(var meeting):

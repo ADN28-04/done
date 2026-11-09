@@ -36,6 +36,34 @@ enum SystemBridge {
         }
     }
 
+    /// Un clic hors de tout champ de texte termine la saisie en cours : le champ perd le curseur et
+    /// son contour de focus, comme sur le web, au lieu de les garder jusqu'au prochain champ.
+    /// Un clic dans un autre champ, ou dans le même, garde le comportement habituel.
+    static func endEditingOnOutsideClicks() {
+        guard outsideClickMonitor == nil else { return }
+        outsideClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            guard let window = event.window, window.firstResponder is NSText else { return event }
+            let target = window.contentView?.superview?.hitTest(event.locationInWindow)
+                ?? window.contentView?.hitTest(event.locationInWindow)
+            if !isTextInput(target) {
+                window.makeFirstResponder(nil)
+            }
+            return event
+        }
+    }
+
+    private static var outsideClickMonitor: Any?
+
+    /// Un champ de texte, une zone de texte, ou une vue qu'ils contiennent.
+    private static func isTextInput(_ view: NSView?) -> Bool {
+        var current = view
+        while let candidate = current {
+            if candidate is NSTextField || candidate is NSTextView { return true }
+            current = candidate.superview
+        }
+        return false
+    }
+
     static func onTerminate(_ action: @escaping @MainActor () -> Void) {
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,

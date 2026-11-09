@@ -31,7 +31,7 @@ struct CalendarView: View {
             let now = context.date
             let days = WorkWeek.days(containing: reference(now))
             // La rangée des échéances suit le jour le plus chargé, jusqu'à cinq cartes ; au-delà, elle défile.
-            let busiest = days.map { WorkWeek.dueTasks(on: $0, in: model.index.all, today: now).count }.max() ?? 0
+            let busiest = days.map { dueTasks(on: $0, now: now).count }.max() ?? 0
             let dueHeight = min(max(CGFloat(busiest) * Self.dueRow + DoneSpace.s8, 40), 5 * Self.dueRow + DoneSpace.s8)
             VStack(alignment: .leading, spacing: 0) {
                 header(days: days, now: now)
@@ -152,7 +152,7 @@ struct CalendarView: View {
     /// « 4 réunions · 7 échéances · 2 h 10 de focus ».
     private func summary(days: [Date], now: Date) -> String {
         let meetings = days.reduce(0) { $0 + model.store.meetings(on: $1).count }
-        let due = days.reduce(0) { $0 + WorkWeek.dueTasks(on: $1, in: model.index.all, today: now).count }
+        let due = days.reduce(0) { $0 + dueTasks(on: $1, now: now).count }
         let focus = days.reduce(0) { $0 + focusMinutes(on: $1) }
         var parts = [plural(meetings, "réunion"), plural(due, "échéance")]
         if focus > 0 { parts.append("\(Format.minutes(focus)) de focus") }
@@ -225,7 +225,7 @@ struct CalendarView: View {
     // MARK: Échéances
 
     private func dueCell(_ day: Date, now: Date, height: CGFloat) -> some View {
-        let tasks = WorkWeek.dueTasks(on: day, in: model.index.all, today: now)
+        let tasks = dueTasks(on: day, now: now)
         return ScrollView {
             VStack(alignment: .leading, spacing: DoneSpace.s4) {
                 ForEach(tasks) { task in
@@ -261,6 +261,13 @@ struct CalendarView: View {
     }
 
     /// Nouvelle échéance pour les tâches déposées. Pas de jour passé.
+    /// Les échéances d'un jour, sans les tâches qui ont déjà un bloc de travail à venir : posées sur la
+    /// grille, elles n'apparaissent pas deux fois.
+    private func dueTasks(on day: Date, now: Date) -> [TodoTask] {
+        let scheduled = model.store.scheduledTaskIDs(at: now)
+        return WorkWeek.dueTasks(on: day, in: model.index.all, today: now).filter { !scheduled.contains($0.id) }
+    }
+
     private func move(_ ids: [String], to day: Date, now: Date) -> Bool {
         guard Calendar.current.startOfDay(for: day) >= Calendar.current.startOfDay(for: now) else { return false }
         for id in ids {

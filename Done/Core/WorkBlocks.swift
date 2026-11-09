@@ -60,6 +60,12 @@ extension TaskStore {
             .sorted { $0.start < $1.start }
     }
 
+    /// Tâches qui ont un bloc de travail pas encore fini : elles sont planifiées, et quittent les
+    /// échéances du calendrier et de Ma journée. Le bloc passé sans que la tâche soit faite, elle y revient.
+    func scheduledTaskIDs(at now: Date) -> Set<String> {
+        Set(workBlocks.filter { $0.end > now }.map(\.taskID))
+    }
+
     /// Le bloc en cours d'une tâche encore ouverte, à `now`.
     func currentWorkBlock(at now: Date) -> WorkBlock? {
         workBlocks

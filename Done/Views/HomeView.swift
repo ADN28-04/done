@@ -53,7 +53,9 @@ struct HomeView: View {
                 now: now
             )
             let plan = model.planIDs.compactMap { model.store[$0] }.filter(\.isOpen)
-            let due = DayAgenda.dueOrLate(in: model.index.all, plan: model.planIDs, today: now)
+            // Une échéance déjà posée sur la ligne de temps (bloc de travail à venir) n'apparaît pas deux fois.
+            let scheduled = model.store.scheduledTaskIDs(at: now)
+            let due = DayAgenda.dueOrLate(in: model.index.all, plan: model.planIDs, today: now).filter { !scheduled.contains($0.id) }
             let order = (plan + due).map(\.id)
             VStack(alignment: .leading, spacing: DoneSpace.s20) {
                 header(now: now, openTasks: plan.count)
