@@ -1000,18 +1000,8 @@ private struct PlanSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Button("Fermer") { dismiss() }
-                    .buttonStyle(DoneButtonStyle(compact: true))
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(.horizontal, DoneSpace.s16)
-            .padding(.top, DoneSpace.s12)
-            PlanView(onValidate: { dismiss() })
-        }
-        .frame(width: 1000, height: 680)
-        .background(DoneColor.bgCanvas)
+        PlanView(onValidate: { dismiss() }, onClose: { dismiss() })
+            .frame(width: 1000, height: 680)
+            .background(DoneColor.bgCanvas)
     }
 }

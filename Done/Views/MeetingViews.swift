@@ -4,11 +4,13 @@ import SwiftUI
 /// et prévient quelques minutes avant. Hachurées : le temps est pris.
 struct MeetingsCard: View {
     @Environment(AppModel.self) private var model
+    /// Nombre de réunions à venir montrées.
+    var limit = 5
     @State private var showSheet = false
     @State private var hovered: String?
 
     var body: some View {
-        let meetings = Array(model.upcomingMeetings.prefix(5))
+        let meetings = Array(model.upcomingMeetings.prefix(limit))
         VStack(alignment: .leading, spacing: DoneSpace.s8) {
             HStack {
                 Eyebrow(text: "Réunions")

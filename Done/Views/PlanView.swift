@@ -1,9 +1,13 @@
 import SwiftUI
 
-/// Rituel du matin : choisir et ordonner les tâches du jour.
+/// Rituel du matin : choisir et ordonner les tâches du jour. En tête, le titre et « Bilan du soir » ;
+/// à gauche les candidates, à droite le plan et les réunions ; en bas, « Chercher une autre tâche… »,
+/// puis « Fermer » et « Valider le plan ».
 struct PlanView: View {
     @Environment(AppModel.self) private var model
     var onValidate: () -> Void
+    /// Ferme la feuille sans enregistrer (Échap).
+    var onClose: () -> Void = {}
 
     @State private var draft: [String] = []
     @State private var loaded = false
@@ -37,9 +41,30 @@ struct PlanView: View {
             }
             .padding(.top, DoneSpace.s24)
             .frame(maxHeight: .infinity)
+            // Les actions de la feuille, sur une seule ligne.
+            HStack(spacing: DoneSpace.s8) {
+                Button("Chercher une autre tâche…") { showPicker = true }
+                    .buttonStyle(DoneButtonStyle(kind: .plain))
+                    .disabled(draft.count >= Rules.maxPlanSize)
+                Spacer()
+                if !doneText.isEmpty {
+                    Text(doneText)
+                        .doneText(.caption)
+                        .foregroundStyle(DoneColor.textSecondary)
+                        .padding(.trailing, DoneSpace.s8)
+                }
+                Button("Fermer", action: onClose)
+                    .buttonStyle(DoneButtonStyle())
+                    .keyboardShortcut(.cancelAction)
+                Button("Valider le plan", action: validate)
+                    .buttonStyle(DoneButtonStyle(kind: .primary))
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(draft.isEmpty)
+            }
+            .padding(.top, DoneSpace.s16)
         }
         .padding(.horizontal, DoneSpace.s40)
-        .padding(.top, DoneSpace.s4)
+        .padding(.top, DoneSpace.s32)
         .padding(.bottom, DoneSpace.s24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
@@ -91,30 +116,35 @@ struct PlanView: View {
                 .padding(.vertical, DoneSpace.s40)
                 .doneCard(radius: DoneRadius.lg)
             } else {
-                ScrollView {
-                    VStack(spacing: DoneSpace.s2) {
-                        ForEach(candidates) { task in
-                            candidateRow(task)
-                        }
+                // La carte garde la hauteur de ses lignes ; quand elles ne tiennent plus, elle défile.
+                ViewThatFits(in: .vertical) {
+                    candidateList(candidates)
+                    ScrollView {
+                        candidateList(candidates)
+                            .padding(.bottom, DoneSpace.s2)
                     }
-                    .padding(DoneSpace.s6)
-                    .doneCard(radius: DoneRadius.lg)
-                    .padding(.bottom, DoneSpace.s2)
+                    .scrollIndicators(.never)
                 }
-                .scrollIndicators(.never)
-                .fixedSize(horizontal: false, vertical: candidates.count <= 8)
             }
-            Button("Chercher une autre tâche…") { showPicker = true }
-                .buttonStyle(DoneButtonStyle(kind: .plain))
-                .disabled(draft.count >= Rules.maxPlanSize)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
+    private func candidateList(_ candidates: [TodoTask]) -> some View {
+        VStack(spacing: DoneSpace.s2) {
+            ForEach(candidates) { task in
+                candidateRow(task)
+            }
+        }
+        .padding(DoneSpace.s6)
+        .doneCard(radius: DoneRadius.lg)
+    }
+
     private func candidateRow(_ task: TodoTask) -> some View {
         let isFull = draft.count >= Rules.maxPlanSize
+        // Deux étages, comme sur Ma journée : le titre sur toute la largeur, puis la liste et les puces.
         return HStack(spacing: DoneSpace.s12) {
-            TaskRowContent(task: task)
+            TaskRowContent(task: task, stacked: true)
             Button {
                 add(task.id)
             } label: {
@@ -125,6 +155,7 @@ struct PlanView: View {
             .help(isFull ? "Le plan compte déjà \(Rules.maxPlanSize) tâches" : "Ajouter au plan")
         }
         .padding(.horizontal, DoneSpace.s12)
+        .padding(.vertical, DoneSpace.s8)
         .frame(minHeight: 48)
         .background(hovered == task.id ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
         .contentShape(Rectangle())
@@ -159,18 +190,8 @@ struct PlanView: View {
             }
             .scrollIndicators(.never)
             Spacer(minLength: 0)
-            MeetingsCard()
-                .padding(.bottom, DoneSpace.s16)
-            HStack {
-                Text(doneText)
-                    .doneText(.caption)
-                    .foregroundStyle(DoneColor.textSecondary)
-                Spacer()
-                Button("Valider le plan", action: validate)
-                    .buttonStyle(DoneButtonStyle(kind: .primary))
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(draft.isEmpty)
-            }
+            // Les trois prochaines : le plan garde la place de ses lignes.
+            MeetingsCard(limit: 3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
@@ -179,9 +200,12 @@ struct PlanView: View {
     private func planRow(_ id: String, position: Int) -> some View {
         let isHovered = hovered == id
         let isSecondary = position > planSize
-        HStack(spacing: DoneSpace.s12) {
+        // Deux étages : le titre sur toute la largeur, puis la liste et les puces, qui passent à la ligne.
+        // La tuile, la croix et la poignée restent sur la première ligne du titre.
+        HStack(alignment: .top, spacing: DoneSpace.s12) {
             NumberTile(position: position, isFilled: !isSecondary)
-            VStack(alignment: .leading, spacing: DoneSpace.s2) {
+                .frame(height: 20)
+            VStack(alignment: .leading, spacing: DoneSpace.s4) {
                 if let task = model.index[id] {
                     Text(task.title)
                         .doneText(.bodyStrong)
@@ -191,12 +215,15 @@ struct PlanView: View {
                     HStack(spacing: DoneSpace.s6) {
                         Text(model.listName(for: task))
                             .foregroundStyle(DoneColor.textSecondary)
+                            .lineLimit(1)
                         if model.carriedOverIDs.contains(id) {
                             Text("· Reportée")
                                 .foregroundStyle(DoneColor.stateActiveText)
+                                .fixedSize()
                         }
                     }
                     .doneText(.caption)
+                    TaskChips(task: task, wraps: true)
                 } else {
                     Text("Tâche terminée ou introuvable")
                         .doneText(.body)
@@ -205,9 +232,6 @@ struct PlanView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(isSecondary ? 0.6 : 1)
-            if let task = model.index[id] {
-                TaskChips(task: task)
-            }
             Button {
                 draft.removeAll { $0 == id }
             } label: {
@@ -218,14 +242,17 @@ struct PlanView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .frame(height: 20)
             .opacity(isHovered ? 1 : 0)
             .help("Retirer du plan")
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(DoneColor.textDisabled)
+                .frame(height: 20)
                 .help("Glisser pour réordonner")
         }
         .padding(.horizontal, DoneSpace.s16)
+        .padding(.vertical, DoneSpace.s12)
         .frame(minHeight: 60)
         .doneCard(radius: DoneRadius.md)
         .overlay(
