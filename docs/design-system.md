@@ -233,12 +233,12 @@ Le rail, la salutation et la barre de saisie ont des aperçus Xcode (`#Preview`)
 - **Grille** : six cartes widget en trois colonnes (1,25 / 1 / 1), deux rangées qui se partagent la hauteur, écart de 16. Sous 1 150 de large utile, deux colonnes de 300 de haut qui défilent, la carte Notes en dernier.
   1. **Prochaine action** : la position dans le plan (« • Tâche 1 sur 3 » en `accentText` sur `accentTint`), l'étape en `displayL`, sa tâche (« étape 2 sur 5 »), ses puces, la note de reprise, un anneau de 86 en braise avec la durée (un clic en propose une autre), « Lancer le focus », « Découper… », un menu « … » (Changer de tâche, Passer) et le temps libre avant la prochaine réunion. Selon la journée : bilan du soir (à l'heure du réglage, avec « Plus tard »), jour de congé avec « Travailler quand même », pas de plan, plan terminé, plan bloqué, pas le temps avant une réunion, pause due.
   2. **Ma journée** : la ligne de temps, de l'heure courante moins une jusqu'à 19:00, à 40 par heure, avec les créneaux libres ; un clic sur un créneau libre lance la prochaine action, ailleurs il propose une réunion. Lien « Calendrier ».
-  3. **Plan du jour** : barre d'avancement, tâches faites en haut (barrées, « Fait »), puis les tâches ouvertes avec case et tuile numérotée. Une tâche glissée depuis les échéances (ou une liste) rejoint le plan. Lien « Modifier » (ou « Choisir ») vers le Plan du jour, en feuille.
+  3. **Plan du jour** : barre d'avancement suivie du compte (« 1 sur 3 » en `numericS` secondaire), tâches faites en haut (barrées, « Fait »), puis les tâches ouvertes avec case et tuile numérotée. Une tâche glissée depuis les échéances (ou une liste) rejoint le plan. Lien « Modifier » (ou « Choisir ») vers le Plan du jour, en feuille.
   4. **Échéances et retards** : ce qui tombe aujourd'hui ou est en retard, hors plan. Lien « Tout voir » vers le Calendrier.
   5. **Notes** : la mosaïque à deux colonnes, le journal du jour en premier (ou « Journal du jour… »), puis les notes récentes et « Nouvelle note… ». Lien « Toutes les notes ».
   6. **Focus aujourd'hui** : le temps de focus en `numericL`, les pastilles de série en braise et « 3e pomodoro », les tâches cochées, l'Inbox à trier, les barres de la semaine (aujourd'hui en `stateActive`, les autres en `stateActiveTint`). Lien « Stats ».
 - **Barre de saisie** en bas.
-- **Clavier** : ↑ ↓ parcourent le plan puis les échéances, Espace coche, ↩ ouvre la fiche.
+- **Clavier** : ↑ ↓ parcourent le plan puis les échéances, Espace coche, ↩ ouvre la fiche. À l'ouverture, aucune ligne n'est choisie : la première flèche choisit la première (↓) ou la dernière (↑), comme dans les listes.
 
 ## Listes
 

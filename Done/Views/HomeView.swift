@@ -85,9 +85,7 @@ struct HomeView: View {
                 .onChange(of: order) { old, new in
                     selectedID = ListSelection.keep(selectedID, old: old, new: new)
                 }
-                .onChange(of: listFocused) {
-                    if listFocused, selectedID == nil { selectedID = order.first }
-                }
+                // Aucune ligne n'est choisie d'office : la première flèche choisit la première (ou la dernière).
                 .onChange(of: model.isPlanFinished) { _, finished in
                     if finished { planBursts += 1 }
                 }
@@ -336,11 +334,19 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: DoneSpace.s12) {
                 if total > 0 {
                     // La barre avance à chaque tâche cochée ; quand elle se remplit, un petit éclat à son bout.
-                    ProgressBar(fraction: Double(doneTasks.count) / Double(total))
-                        .animation(DoneMotion.motion(DoneMotion.arrive, reduced: reduceMotion), value: doneTasks.count)
-                        .overlay(alignment: .trailing) {
-                            SunBurst(count: planBursts, distance: 18, scale: 0.55)
-                        }
+                    // Le compte à droite dit ce qu'elle mesure, même vide.
+                    HStack(spacing: DoneSpace.s12) {
+                        ProgressBar(fraction: Double(doneTasks.count) / Double(total))
+                            .animation(DoneMotion.motion(DoneMotion.arrive, reduced: reduceMotion), value: doneTasks.count)
+                            .overlay(alignment: .trailing) {
+                                SunBurst(count: planBursts, distance: 18, scale: 0.55)
+                            }
+                        Text("\(doneTasks.count) sur \(total)")
+                            .doneText(.numericS)
+                            .foregroundStyle(DoneColor.textSecondary)
+                            .fixedSize()
+                            .accessibilityLabel("\(doneTasks.count) tâches faites sur \(total)")
+                    }
                 }
                 if plan.isEmpty, model.isPlanFinished {
                     NoticeBox(text: "Plan du jour terminé. Tout ce qui était prévu est fait.", tone: .success)

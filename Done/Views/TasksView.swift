@@ -154,9 +154,7 @@ struct TaskListView: View {
                 .onChange(of: order.map(\.id)) { old, new in
                     selectedID = ListSelection.keep(selectedID, old: old, new: new)
                 }
-                .onChange(of: listFocused) {
-                    if listFocused, selectedID == nil { selectedID = order.first?.id }
-                }
+                // Aucune ligne n'est choisie d'office : la première flèche choisit la première (ou la dernière).
             }
         }
         .frame(maxWidth: 820, maxHeight: .infinity, alignment: .topLeading)
