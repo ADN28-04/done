@@ -283,8 +283,9 @@ struct TaskPickerView: View {
                             dismiss()
                             onPick(task)
                         } label: {
-                            TaskRowContent(task: task)
+                            TaskRowContent(task: task, stacked: true)
                                 .padding(.horizontal, DoneSpace.s12)
+                                .padding(.vertical, DoneSpace.s8)
                                 .frame(minHeight: 48)
                                 .background(hovered == task.id ? DoneColor.surfaceHover : Color.clear, in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
                                 .contentShape(Rectangle())

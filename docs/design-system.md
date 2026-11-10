@@ -201,7 +201,7 @@ Les moments animés :
   - Au survol, `surfaceHover` ; au clavier, la ligne choisie passe en `surfaceSelected`.
   - Titre (`TaskTitle`) en `bodyStrong` sur deux lignes au plus, métadonnées en `caption` : liste, puis « N étapes ».
   - Puces à droite (`TaskChips`), espacées de 12 : priorité, « Aujourd'hui » ou « Bloquée », étiquettes, échéance, répétition, durée.
-  - Dans les cartes de Ma journée (Plan du jour, Échéances et retards) et dans la feuille Plan du jour (candidates et tâches retenues), la ligne a deux étages (`TaskRowContent(stacked: true)`) : le titre sur toute la largeur, puis la liste et les puces, qui passent à la ligne si la place manque (`FlowLayout`, écarts de 12 et 4). La case et la tuile restent sur la première ligne du titre ; marges de 12 × 8. Les puces ne poussent jamais le titre ni la carte.
+  - Dans les cartes de Ma journée (Plan du jour, Échéances et retards) et dans les feuilles (Plan du jour, bilan du soir, recherche d'une tâche), la ligne a deux étages (`TaskRowContent(stacked: true)`) : le titre sur toute la largeur, puis la liste et les puces, qui passent à la ligne si la place manque (`FlowLayout`, écarts de 12 et 4). La case et la tuile restent sur la première ligne du titre ; marges de 12 × 8. Les puces ne poussent jamais le titre ni la carte.
   - Étapes en retrait de 28 par niveau.
   - Cocher passe par `AppModel.completeSoon` : la tâche reste ouverte une seconde, le temps de l'animation, puis elle est cochée. Recliquer pendant cette seconde annule ; quitter Done enregistre aussitôt les coches en attente. `TaskRowTrailing` remplace les puces par « Fait ».
 - **Tuile numérotée** (`NumberTile`) : 24, rayon `xs`. Pleine `stateActive` pour une place dans le plan, en contour `borderDefault` pour un emplacement libre.

@@ -258,8 +258,9 @@ struct ReviewSheet: View {
     }
 
     private func unfinishedRow(_ task: TodoTask) -> some View {
+        // Deux étages : le choix (Demain, Plus tard…) à droite laisse peu de place au titre.
         HStack(spacing: DoneSpace.s12) {
-            TaskRowContent(task: task)
+            TaskRowContent(task: task, stacked: true)
             if Planner.needsBreakdown(action: task, root: task, in: model.index) {
                 Button("Découper…") { breakdownTask = task }
                     .buttonStyle(DoneButtonStyle(kind: .plain, compact: true))
