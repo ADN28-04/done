@@ -764,18 +764,21 @@ private struct NextActionCard: View {
                                     ? "Cette tâche n'a pas encore de sous-tâche"
                                     : "Ajouter une étape plus petite sous cette action")
                         }
-                        Menu {
-                            Button("Changer de tâche…") { showPicker = true }
-                            if suggestion.position > 0 {
-                                Button("Passer, la mettre en fin de plan") { model.skip(root.id) }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
+                        // Deux boutons ronds à icône, nommés au survol : changer de tâche, passer.
+                        Button { showPicker = true } label: {
+                            Image(systemName: "arrow.left.arrow.right")
                         }
-                        .menuStyle(.borderlessButton)
-                        .menuIndicator(.hidden)
-                        .fixedSize()
-                        .help("Autres choix")
+                        .buttonStyle(DoneIconButtonStyle())
+                        .help("Changer de tâche…")
+                        .accessibilityLabel("Changer de tâche")
+                        if suggestion.position > 0 {
+                            Button { model.skip(root.id) } label: {
+                                Image(systemName: "forward.end")
+                            }
+                            .buttonStyle(DoneIconButtonStyle())
+                            .help("Passer : la mettre en fin de plan")
+                            .accessibilityLabel("Passer, la mettre en fin de plan")
+                        }
                         Spacer(minLength: DoneSpace.s8)
                         freeTime
                     }
