@@ -411,14 +411,19 @@ struct HomeView: View {
 
     private func row(_ task: TodoTask, number: Int? = nil) -> some View {
         let finishing = model.finishing.contains(task.id)
-        return HStack(spacing: DoneSpace.s12) {
+        // Deux étages : le titre sur toute la largeur de la carte, puis sa liste et ses puces. La case et
+        // le numéro restent sur la première ligne du titre.
+        return HStack(alignment: .top, spacing: DoneSpace.s12) {
             TaskCheckbox(isDone: finishing, bursts: true) { toggle(task) }
+                .frame(height: 20)
             if let number {
                 NumberTile(position: number)
+                    .frame(height: 20)
             }
-            TaskRowContent(task: task, isFinishing: finishing)
+            TaskRowContent(task: task, isFinishing: finishing, stacked: true)
         }
         .padding(.horizontal, DoneSpace.s12)
+        .padding(.vertical, DoneSpace.s8)
         .frame(minHeight: 48)
         .background(rowBackground(task.id), in: RoundedRectangle(cornerRadius: DoneRadius.md, style: .continuous))
         .contentShape(Rectangle())
@@ -709,7 +714,7 @@ private struct NextActionCard: View {
                         Spacer(minLength: 0)
                         durationRing(minutes: minutes, action: action, root: root)
                     }
-                    TaskChips(task: action)
+                    TaskChips(task: action, wraps: true)
                         .padding(.top, DoneSpace.s12)
                     if let resume = model.resumeNote(for: action.id) {
                         Text("Où tu en étais : \(resume.text)")

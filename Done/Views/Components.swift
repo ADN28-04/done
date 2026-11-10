@@ -6,9 +6,12 @@ struct TaskChips: View {
     let task: TodoTask
     /// L'étiquette de la vue en cours : inutile de la répéter sur chaque ligne.
     var hiding: String?
+    /// Dans une carte étroite, les puces passent à la ligne au lieu de pousser le titre.
+    var wraps = false
 
     var body: some View {
-        HStack(spacing: DoneSpace.s12) {
+        let layout = wraps ? AnyLayout(FlowLayout()) : AnyLayout(HStackLayout(spacing: DoneSpace.s12))
+        layout {
             PriorityChip(priority: task.priority)
             if task.isBlocked {
                 StateChip(kind: .blocked, title: "Bloquée")
@@ -41,13 +44,37 @@ struct TaskChips: View {
 
 /// Contenu d'une ligne de tâche : titre (body.strong), métadonnées (caption) et puces à droite.
 /// Tout juste cochée (`isFinishing`), le titre se barre et « Fait » remplace les puces.
+/// Dans une carte étroite (`stacked`), le titre prend toute la largeur et les puces passent dessous,
+/// à la ligne si la place manque : elles ne poussent jamais le titre.
 struct TaskRowContent: View {
     @Environment(AppModel.self) private var model
     let task: TodoTask
     var showDetails = true
     var isFinishing = false
+    var stacked = false
 
     var body: some View {
+        if stacked {
+            VStack(alignment: .leading, spacing: DoneSpace.s4) {
+                TaskTitle(title: task.title, isFinishing: isFinishing)
+                if showDetails, !details.isEmpty {
+                    Text(details)
+                        .doneText(.caption)
+                        .foregroundStyle(DoneColor.textSecondary)
+                        .lineLimit(1)
+                }
+                TaskRowTrailing(isFinishing: isFinishing, alignment: .leading) {
+                    TaskChips(task: task, wraps: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .help(details)
+        } else {
+            inline
+        }
+    }
+
+    private var inline: some View {
         HStack(spacing: DoneSpace.s12) {
             VStack(alignment: .leading, spacing: DoneSpace.s2) {
                 TaskTitle(title: task.title, isFinishing: isFinishing)
@@ -115,11 +142,13 @@ struct TaskTitle: View {
 /// vient d'être cochée (DoneMotion.pop). Avec « Réduire les animations », un fondu.
 struct TaskRowTrailing<Chips: View>: View {
     let isFinishing: Bool
+    /// À droite de la ligne, ou sous le titre (`.leading`) dans une ligne à deux étages.
+    var alignment: Alignment = .trailing
     @ViewBuilder let chips: Chips
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ZStack(alignment: .trailing) {
+        ZStack(alignment: alignment) {
             if isFinishing {
                 StateChip(kind: .doneToday, title: "Fait")
                     .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
@@ -129,6 +158,62 @@ struct TaskRowTrailing<Chips: View>: View {
             }
         }
         .animation(DoneMotion.motion(DoneMotion.pop, reduced: reduceMotion), value: isFinishing)
+    }
+}
+
+/// Puces qui passent à la ligne quand la place manque, de gauche à droite, centrées sur chaque ligne.
+/// Une puce vide (P3, P4) ne prend ni place ni écart.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = DoneSpace.s12
+    var lineSpacing: CGFloat = DoneSpace.s4
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let lines = arrange(width: proposal.width ?? .infinity, subviews: subviews)
+        let width = lines.map(\.width).max() ?? 0
+        let height = lines.map(\.height).reduce(0, +) + lineSpacing * CGFloat(max(lines.count - 1, 0))
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        var placed = Set<Int>()
+        for line in arrange(width: bounds.width, subviews: subviews) {
+            var x = bounds.minX
+            for index in line.indices {
+                let size = subviews[index].sizeThatFits(.unspecified)
+                subviews[index].place(at: CGPoint(x: x, y: y + (line.height - size.height) / 2), proposal: ProposedViewSize(size))
+                placed.insert(index)
+                x += size.width + spacing
+            }
+            y += line.height + lineSpacing
+        }
+        for index in subviews.indices where !placed.contains(index) {
+            subviews[index].place(at: bounds.origin, proposal: .zero)
+        }
+    }
+
+    private struct Line {
+        var indices: [Int] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    private func arrange(width: CGFloat, subviews: Subviews) -> [Line] {
+        var lines: [Line] = []
+        var line = Line()
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            guard size.width > 0, size.height > 0 else { continue }
+            if !line.indices.isEmpty, line.width + spacing + size.width > width {
+                lines.append(line)
+                line = Line()
+            }
+            line.width += (line.indices.isEmpty ? 0 : spacing) + size.width
+            line.height = max(line.height, size.height)
+            line.indices.append(index)
+        }
+        if !line.indices.isEmpty { lines.append(line) }
+        return lines
     }
 }
 
